@@ -12,8 +12,10 @@ public class UtenteE {
     private String email;
     
     // Constructor
-    public UtenteE() {
-        
+    public UtenteE(int id, String username, String email) {
+        this.id=id;
+        this.username=username;
+        this.email=email;
     }
     
     // Methods

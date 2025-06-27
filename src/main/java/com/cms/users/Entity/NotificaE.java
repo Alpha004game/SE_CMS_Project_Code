@@ -12,7 +12,24 @@ public class NotificaE {
     private String status;
     
     // Constructor
-    public NotificaE() {
+    public NotificaE(int id, String text, String esito) {
+        this.id=id;
+        this.text=text;
+        switch(esito)
+        {
+            case "1":
+                this.status="accettato";
+                break;
+            case "2":
+                this.status="rifiutato";
+                break;
+            case "3":
+                this.status="presaVisione";
+                break;
+            default:
+                this.status=null;
+                break;
+        }
         
     }
     
