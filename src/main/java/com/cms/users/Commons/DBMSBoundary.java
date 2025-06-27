@@ -156,6 +156,41 @@ public class DBMSBoundary {
         
         
     }
+
+    public LinkedList<UtenteE> getUserList() //D
+    {
+        return null;
+    }
+
+    public UtenteE getUser(int idUtente) //D
+    {
+        try
+        {
+            UtenteE utente=null;
+            Connection con=getConnection();
+            PreparedStatement stmt=con.prepareStatement("SELECT U.id, U.username, U.email FROM utenti U WHERE U.id= ?");
+            stmt.setInt(1, idUtente);
+            ResultSet ris=stmt.executeQuery();
+            if(ris.next())
+            {
+                utente=new UtenteE(ris.getInt("id"), ris.getString("username"), ris.getString("email"));
+            }
+            ris.close();
+            stmt.close();
+            con.close();
+            return utente;
+
+        }
+        catch(Exception e)
+        {
+            return null;
+        }
+    }
+
+    public UtenteE getUserInfo(int conferenceId) //D
+    {
+        return null;
+    }
     
     public String getUsername(String email) {
 
@@ -203,8 +238,13 @@ public class DBMSBoundary {
         
     }
     
-    public void sendNewInformation(Object utente, Object infos) {
+    public void sendNewInformation(int idUtente, Object infos) {
         
+    }
+
+    public void sendNewSkillInformation(int idUtente, int idConferenza, Object Skills)
+    {
+
     }
 
     //RIVEDERE
@@ -323,8 +363,18 @@ public class DBMSBoundary {
         }
         
     }
+
+    public int getNumberActiveNotification(int idUtente)
+    {
+        return -1;
+    }
+
+    public LinkedList<ConferenzaE> getConferenzeNonAttive()
+    {
+        return null;
+    }
     
-    public LinkedList<ConferenzaE> getConferenceAttive() {
+    public LinkedList<ConferenzaE> getConferenzeAttive() {
         try
         {
             LinkedList<ConferenzaE> conferenze = new LinkedList<>();
@@ -445,6 +495,11 @@ public class DBMSBoundary {
             return null;
         }
     }
+
+    public ArrayList<String> getKeywords(int idConferenza)
+    {
+        return this.getKeywordsConferenza(getConnection(), idConferenza);
+    }
     
     private ArrayList<String> getKeywordsConferenza(Connection con, int idConferenza) {
         ArrayList<String> keywords = new ArrayList<>();
@@ -473,7 +528,7 @@ public class DBMSBoundary {
     }
     
     //VERIFICARE ANCHE CON SOTTOFUNZIONI
-    public void creaConferenza(String titolo, int annoEdizione, String abstractText, LocalDate dataInizio, LocalDate dataFine, LocalDate deadlineSottomissione, LocalDate deadlineRitiro, LocalDate deadlineRevisioni, LocalDate deadlineVersioneFinale, LocalDate deadlinePubblicazione, String luogo, int numeroRevisoriPerArticolo, int numeroArticoliPrevisti, int tassoAccettazione, String keywords)
+    public void setConferenza(String titolo, int annoEdizione, String abstractText, LocalDate dataInizio, LocalDate dataFine, LocalDate deadlineSottomissione, LocalDate deadlineRitiro, LocalDate deadlineRevisioni, LocalDate deadlineVersioneFinale, LocalDate deadlinePubblicazione, String luogo, int numeroRevisoriPerArticolo, int numeroArticoliPrevisti, int tassoAccettazione, String keywords)
     {
         try {
             Connection con = getConnection();
@@ -593,6 +648,11 @@ public class DBMSBoundary {
         selectStmt.close();
         return id;
     }
+
+    public String getConferenceLog(int conferenceId)
+    {
+        return null;
+    }
     
     public Object getConferenceInfo(int idConferenza) {
         try {
@@ -653,10 +713,6 @@ public class DBMSBoundary {
         }
     }
     
-    public Object getSettedId(Object linkedListUtente) { //????????
-        return null;
-    }
-    
     public LinkedList<UtenteE> getRevisori(int idConferenza) {
         try
         {
@@ -680,7 +736,12 @@ public class DBMSBoundary {
         }
     }
     
-    public void setRevisoriArticolo(Object articolo, Object idRevisore) {
+    public void setRevisoreArticolo(int idArticolo, int idRevisore) {
+        
+    }
+
+    public void rimuoviRevisore(int idConferenza, int idRevisore)
+    {
         
     }
     
@@ -688,124 +749,137 @@ public class DBMSBoundary {
         return null;
     }
     
-    public Object getInfoArticolo(Object articolo) {
+    public Object getInfoArticolo(int idArticolo) {
         return null;
     }
     
-    public Object getKeywordsList(Object conferenza) {
+    public Object getKeywordsList(int idConferenza) { //vedere se dublicato
         return null;
     }
     
-    public void setKeywordsList(Object utente, Object skills) {
+    
+    public LinkedList<ArticoloE> getListaArticoli(int idConferenza) {
+        return null;
+    }
+    
+    public void newConflitto(int idConferenza, int idUtente, int idArticolo) {
         
     }
     
-    public LinkedList<Object> getListaArticolo(Object conferenza) {
-        return null;
-    }
-    
-    public void newConflitto(Object conferenza, Object utente, Object articolo) {
+    public void newInteresse(int idConferenza, int idUtente, int idArticolo) {
         
     }
     
-    public void newInteresse(Object conferenza, Object utente, Object articolo) {
+    
+    public Object getReviewStatus(int idArticolo, int idUtente) {
+        return null;
+    }
+    
+    public Object getInfoReview(int idArticolo, int idUtente) {
+        return null;
+    }
+
+    public LinkedList<UtenteE> getInformazioniAutoriRevisioneFinalePassata(int idConferenza)
+    {
+        return null;
+    }
+    
+    public ArticoloE getArticolo(int idArticolo) {
+        return null;
+    }
+
+    public LinkedList<ArticoloE> getArticoliRevisioneFinalePassata(int idConferenza)
+    {
+        return null;
+    }
+    
+    public Object getInfoSottorevisione(int idRevisore, int idArticolo) {
+        return null;
+    }
+    
+    public void accettaRevisione(int idArticolo, int idUtente) {
         
     }
     
-    public LinkedList<Object> getListaArticolo(Object conferenza, Object utente) {
+    public UtenteE ottieniInfoSottorevisore(int idArticolo, int idRevisoreDelegante) {
         return null;
     }
-    
-    public Object getReviewStatus(Object articolo, Object utente) {
-        return null;
-    }
-    
-    public Object getInfoReview(Object articolo) {
-        return null;
-    }
-    
-    public Object getArticolo(Object articolo) {
-        return null;
-    }
-    
-    public Object getInfoSottorevisione(Object articolo) {
-        return null;
-    }
-    
-    public void accettaRevisione(Object articolo, Object utente) {
-        
-    }
-    
-    public Object ottieniInfoSottorevisore(Object articolo, Object idRevisore) {
-        return null;
+
+    public void rinunciaArticolo(int idUtente, int idArticolo)
+    {
+
     }
     
     public Object rinunciaRevisore(Object utente) {
         return null;
     }
     
-    public void getClearInformation(Object conferenza) {
-        
-    }
     
-    public void getInfoRevisioneAssegnato(Object sottorevisore, Object articolo) {
+    public void getInfoRevisoreAssegnatario(int idSottorevisore, int idArticolo) {
         
     }
     
     // Additional methods from UML diagram
-    public void rinunciaSottoRevisioneArticolo(Object utente, Object articolo) {
+    public void rinunciaSottoRevisioneArticolo(int idUtente, int idArticolo) {
         
     }
     
-    public LinkedList<Object> getListaSottomissioni(Object utente, Object conferenza) {
+    public LinkedList<UtenteE> getListaSottomissioni(int idUtente, int idConferenza) {
         return null;
     }
     
-    public void setSottomissione(Object articolo, Object data, String status) {
+    public void setSottomissione(Object articolo, Object data, String status) { //SPECIFICARE PARAMETRI
         
     }
     
-    public void modificaSottomissione(Object articolo, Object datiArticolo, Object data, String status) {
+    public void modificaSottomissione(int idArticolo, Object datiArticolo, Object data, String status) { //SPECIFICARE PARAMETRI
         
     }
     
-    public void deleteSubmission(Object articolo) {
+    public void deleteSubmission(int idArticolo) {
         
     }
     
-    public Object getRevisionStatus(Object conferenza) {
+    public Object getRevisionsStatus(int idArticolo) {
         return null;
     }
     
-    public LinkedList<Object> getRevisioni(Object articolo) {
+    public LinkedList<Object> getRevisioni(int idArticolo) {
         return null;
     }
     
-    public LinkedList<Object> getAcceptedSubmission(Object conferenza) {
+    public LinkedList<Object> getAcceptedArticles(int idConferenza) {
         return null;
     }
     
-    public Object getArticoloFile(Object articolo) {
+    public LinkedList<Object> getArticleFile(int idArticle) {
+        return null;
+    }
+
+    public Object getAllArticleFile(int idConferenza)
+    {
+        return null;
+    }
+
+    public LinkedList<UtenteE> getArticleAuthors(int idArticle)
+    {
         return null;
     }
     
-    public LinkedList<Object> getArticleFile(Object conferenza) {
+    public LinkedList<UtenteE> getListaAutori(int idConferenza) {
         return null;
     }
     
-    public LinkedList<Object> getArticleFileNameList(Object utente) {
+    public LinkedList<UtenteE> getListaAutoriVersioneFinaleMancante(int idConferenza) {
+        return null;
+    }
+
+    public LinkedList<UtenteE> getListaAutoriVersioneFinaleDaSistemare(int idConferenza)
+    {
         return null;
     }
     
-    public LinkedList<Object> getListaAutoriConferenza(Object conferenza) {
-        return null;
-    }
-    
-    public LinkedList<Object> getListaAutoriVersioneFinaleMancante(Object conferenza) {
-        return null;
-    }
-    
-    public LinkedList<Object> getListaChairSenzaRevisori(Object conferenza) {
+    public LinkedList<Object> getListaChairSenzaRevisori(int idConferenza) {
         return null;
     }
     
@@ -835,53 +909,81 @@ public class DBMSBoundary {
             return -1; //ERRORE
         }
     }
-    
-    public LinkedList<Object> getChairConferenza(Object utente) {
+
+    public String getEmail(int idUtente)
+    {
+        return null;
+    }
+
+    public LinkedList<String> getEmailAutori(int idArticolo)
+    {
         return null;
     }
     
-    public Object getEditore(Object conferenza) {
+    public LinkedList<UtenteE> getChair(int idConferenza) {
+        return null;
+    }
+
+    public LinkedList<UtenteE> getChairInformation(int idConferenza)
+    {
         return null;
     }
     
-    public int getNumeroArticoliNotificazione(Object utente) {
-        return 0;
+    public UtenteE getEditore(int idConferenza) {
+        return null;
+    }
+
+    public void setInfoReview(String puntiDiforza, String puntiDiDebolezza, int livelloDiCompetenzaDelRevisore, String commentiPerAutori, int valutazione)
+    {
+
     }
     
-    public LinkedList<Object> getConferenzaNotAttivi() {
+
+    public ConferenzaE getConferenza(int idConferenza)
+    {
         return null;
     }
     
-    public void insertNotificazione(Object record) {
+    public void insertNotifica(String text, int receiverId, int type) {
         
     }
     
-    public LinkedList<Object> getListaRevisori() {
+    public LinkedList<UtenteE> getListaRevisoriConLavoro(int idConferenza) {
+        return null;
+    }
+
+    public LinkedList<UtenteE> getListaRevisori()
+    {
+        return null;
+    }
+
+    public LinkedList<UtenteE> getListaRevisoriArticoli(int idConferenza)
+    {
+        return null;
+    }
+
+    public LinkedList<Object> getListaRevisioniStato(int idConferenza)
+    {
         return null;
     }
     
-    public LinkedList<String> getInfonotificazioniRevisioriFinaleMancare(Object conferenza) {
-        return null;
-    }
-    
-    public LinkedList<Object> getListaAutoriArticolo(Object articolo) {
-        return null;
-    }
-    
-    public void automaticEmailSubmission(Object articolo) {
+    public void automaticRetireSubmission(int idArticolo) {
         
+    }
+
+    public LinkedList<ArticoloE> getListaArticoliAssegnati(int idRevisore, int idConferenza)
+    {
+        return null;
     }
     
     public LinkedList<Object> getListaArticoliSottoRevisioni(Object sottoRevisore, Object conferenza, Object articolo) {
         return null;
     }
-    
-    public void setSottomissioneArticoloTitolo(String abstractText, String anno, Object dataInizio, Object dataFine, Object dataSubmissioni, Object dataVersioneFinale, Object dataPubblicazione, Object luogo, Object temi, Object conferenza, int numeroArticoliMassimo, int numeroArticoliPrevisti, boolean assegnazioneAutomatica) {
-        
-    }
-    
-    public LinkedList<Object> getKeywords(Object conferenza) {
+
+    public LinkedList<ArticoloE> getListaArticoliSotterevisore(int idSottorevisore, int idConferenza)
+    {
         return null;
     }
+
     
 }
