@@ -1,6 +1,10 @@
 package com.cms.users.Commons;
 
+import java.sql.DriverManager;
 import java.util.LinkedList;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * <<boundary>>
@@ -9,8 +13,30 @@ import java.util.LinkedList;
 public class DBMSBoundary {
     
     // Constructor
+    private final String DB_URL = "jdbc:mariadb://192.168.1.28:3306/CMS";
+    private final String DB_USER = "ids";
+    private final String DB_PASSWORD = "IngegneriaDelSoftware";
     public DBMSBoundary() {
         
+    }
+
+    private Connection getConnection()
+    {
+        try{
+            Connection connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            return connection;
+        }
+        catch(SQLException e)
+        {
+            e.printStackTrace(); //DEBUG
+            return null;
+        }
+        
+    }
+
+    public Connection debug()
+    {
+        return this.getConnection();
     }
     
     // User Management Methods
