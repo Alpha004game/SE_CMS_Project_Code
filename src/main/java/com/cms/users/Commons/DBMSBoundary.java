@@ -11,7 +11,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-import com.cms.users.Entity.*;
+import com.cms.users.Entity.ArticoloE;
+import com.cms.users.Entity.ConferenzaE;
+import com.cms.users.Entity.NotificaE;
+import com.cms.users.Entity.UtenteE;
 
 
 /**
@@ -210,12 +213,20 @@ public class DBMSBoundary {
         {
             LinkedList<NotificaE> notifiche=new LinkedList<>();
             Connection con=getConnection();
-            PreparedStatement stmt=con.prepareStatement("SELECT N.id AS id, N.testo AS testo, N.esito AS esito FROM notifiche AS N, utente AS U WHERE N.idUtente=U.idUtente AND U.username= ? AND N.esito IS NULL");
+            PreparedStatement stmt=con.prepareStatement("SELECT N.id, N.idConferenza, N.idUtente, N.testo, N.tipo, N.dettagli, N.esito FROM notifiche AS N, utenti AS U WHERE N.idUtente=U.id AND U.username= ? AND N.esito IS NULL");
             stmt.setString(1, username);
             ResultSet ris=stmt.executeQuery();
             while(ris.next())
             {
-                notifiche.add(new NotificaE(ris.getInt("id"), ris.getString("testo"), null));
+                notifiche.add(new NotificaE(
+                    ris.getInt("id"), 
+                    ris.getInt("idConferenza"), 
+                    ris.getInt("idUtente"), 
+                    ris.getString("testo"), 
+                    ris.getInt("tipo"), 
+                    ris.getString("dettagli"), 
+                    ris.getString("esito")
+                ));
             }
             ris.close();
             stmt.close();
@@ -234,12 +245,20 @@ public class DBMSBoundary {
         {
             LinkedList<NotificaE> notifiche=new LinkedList<>();
             Connection con=getConnection();
-            PreparedStatement stmt=con.prepareStatement("SELECT N.id AS id, N.testo AS testo, N.esito AS esito FROM notifiche AS N, utente AS U WHERE N.idUtente=U.idUtente AND U.username= ?");
+            PreparedStatement stmt=con.prepareStatement("SELECT N.id, N.idConferenza, N.idUtente, N.testo, N.tipo, N.dettagli, N.esito FROM notifiche AS N, utenti AS U WHERE N.idUtente=U.id AND U.username= ?");
             stmt.setString(1, username);
             ResultSet ris=stmt.executeQuery();
             while(ris.next())
             {
-                notifiche.add(new NotificaE(ris.getInt("id"), ris.getString("testo"), ris.getString("esito")));
+                notifiche.add(new NotificaE(
+                    ris.getInt("id"), 
+                    ris.getInt("idConferenza"), 
+                    ris.getInt("idUtente"), 
+                    ris.getString("testo"), 
+                    ris.getInt("tipo"), 
+                    ris.getString("dettagli"), 
+                    ris.getString("esito")
+                ));
             }
             ris.close();
             stmt.close();
@@ -254,11 +273,29 @@ public class DBMSBoundary {
     
     
     
-    public NotificaE getNotifica(int idNotifica) { //DA FINIRE
+    public NotificaE getNotifica(int idNotifica) { //DA CONTOLLARE
         try
         {
+            NotificaE notifica=null;
             Connection con=getConnection();
-            PreparedStatement stmt=con.prepareStatement("SELECT ");
+            PreparedStatement stmt=con.prepareStatement("SELECT N.id, N.idConferenza, N.idUtente, N.testo, N.tipo, N.dettagli, N.esito FROM notifiche AS N WHERE N.id= ?");
+            stmt.setInt(1, idNotifica);
+            ResultSet ris=stmt.executeQuery();
+            if(ris.next())
+            {
+                notifica=new NotificaE(
+                    ris.getInt("id"), 
+                    ris.getInt("idConferenza"), 
+                    ris.getInt("idUtente"), 
+                    ris.getString("testo"), 
+                    ris.getInt("tipo"), 
+                    ris.getString("dettagli"), 
+                    ris.getString("esito"));
+            }
+            ris.close();
+            stmt.close();
+            con.close();
+            return notifica;
         }
         catch(Exception e)
         {
@@ -648,15 +685,7 @@ public class DBMSBoundary {
     }
     
     public LinkedList<ArticoloE> getListaSottomissioni(int idConferenza) {
-        try
-        {
-            Connection con=getConnection();
-            PreparedStatement stmt=con.prepareStatement("SELECT ");
-        }
-        catch(Exception e)
-        {
-            return null;
-        }
+        return null;
     }
     
     public Object getInfoArticolo(Object articolo) {

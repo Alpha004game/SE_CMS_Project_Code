@@ -8,11 +8,15 @@ public class NotificaE {
     
     // Attributes
     private int id;
+    private int idConferenza;
+    private int idUtente;
     private String text;
+    private int tipo;
+    private String dettagli;
     private String status;
     
     // Constructor
-    public NotificaE(int id, String text, String esito) {
+    public NotificaE(int id, int idConferenza, int idUtente, String text, int tipo, String dettagli, String esito) {
         this.id=id;
         this.text=text;
         switch(esito)
