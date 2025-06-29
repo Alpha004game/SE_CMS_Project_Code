@@ -24,6 +24,7 @@
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/account/Interface/LoginScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/account/Interface/RecuperoCredenzialiScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/account/Interface/RegistrationScreen.java
+/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/account/Interface/SkillsSelectionScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/account/Interface/UserInfoScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/account/Interface/UserMenu.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/conference/Control/ConferenceControl.java
@@ -34,7 +35,6 @@
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/conference/Interface/ReviewSubmissionScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/conference/Interface/ReviewerScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/conference/Interface/RevisionOverviewScreen.java
-/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/conference/Interface/SendCustomNotificationScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/notifications/Control/DemoneControl.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/notifications/Control/NotificationControl.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/notifications/Interface/DemoneBoundary.java
@@ -43,7 +43,6 @@
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/publications/Control/PubblicazioneControl.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/publications/Interface/SendCustomNotificationScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/revisions/Control/GestioneRevisioneControl.java
-/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/revisions/Interface/MemberListScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/revisions/Interface/ReviewSubmissionScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/revisions/Interface/RevisionOverviewScreen.java
 /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/src/main/java/com/cms/users/revisions/Interface/SubRevisionScreen.java

@@ -12,7 +12,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="IT"/>
     <property name="sun.boot.library.path" value="/usr/local/Cellar/openjdk/24.0.1/libexec/openjdk.jdk/Contents/Home/lib"/>
-    <property name="sun.java.command" value="/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/surefire/surefirebooter-20250627104918873_3.jar /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/surefire 2025-06-27T10-49-18_803-jvmRun1 surefire-20250627104918873_1tmp surefire_0-20250627104918873_2tmp"/>
+    <property name="sun.java.command" value="/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/surefire/surefirebooter-20250629161019082_3.jar /Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/surefire 2025-06-29T16-10-19_027-jvmRun1 surefire-20250629161019082_1tmp surefire_0-20250629161019082_2tmp"/>
     <property name="http.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/test-classes:/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/classes:/Users/francescopatti/.m2/repository/junit/junit/3.8.1/junit-3.8.1.jar:/Users/francescopatti/.m2/repository/javax/mail/mail/1.5.0-b01/mail-1.5.0-b01.jar:/Users/francescopatti/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:/Users/francescopatti/.m2/repository/org/mariadb/jdbc/mariadb-java-client/3.5.3/mariadb-java-client-3.5.3.jar:/Users/francescopatti/.m2/repository/com/itextpdf/itextpdf/5.5.13.4/itextpdf-5.5.13.4.jar:"/>
@@ -29,7 +29,7 @@
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="apple.awt.application.name" value="ForkedBooter"/>
-    <property name="surefire.real.class.path" value="/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/surefire/surefirebooter-20250627104918873_3.jar"/>
+    <property name="surefire.real.class.path" value="/Users/francescopatti/Documents/GitHub/SE_CMS_Project_Code/target/surefire/surefirebooter-20250629161019082_3.jar"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="ftp.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="java.runtime.version" value="24.0.1"/>
