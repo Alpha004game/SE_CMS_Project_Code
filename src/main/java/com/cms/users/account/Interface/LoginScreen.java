@@ -34,7 +34,7 @@ public class LoginScreen extends JFrame {
         
         setTitle("4.4.1 LoginScreen");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(500, 350);
+        setSize(500, 450);
         setLocationRelativeTo(null);
         setResizable(false);
         getContentPane().setBackground(Color.WHITE);
@@ -64,20 +64,26 @@ public class LoginScreen extends JFrame {
         
         // Bottoni arancioni
         accediButton = new JButton("Accedi");
-        accediButton.setBackground(new Color(255, 140, 0));
-        accediButton.setForeground(Color.WHITE);
+        accediButton.setBackground(Color.ORANGE);
+        accediButton.setForeground(Color.BLACK);
         accediButton.setFont(new Font("Arial", Font.BOLD, 14));
         accediButton.setPreferredSize(new Dimension(100, 35));
+        accediButton.setMinimumSize(new Dimension(100, 35));
+        accediButton.setMaximumSize(new Dimension(100, 35));
         accediButton.setFocusPainted(false);
-        accediButton.setBorderPainted(false);
+        accediButton.setOpaque(true);
+        accediButton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
         
         registratiButton = new JButton("Registrati");
-        registratiButton.setBackground(new Color(255, 140, 0));
-        registratiButton.setForeground(Color.WHITE);
+        registratiButton.setBackground(Color.ORANGE);
+        registratiButton.setForeground(Color.BLACK);
         registratiButton.setFont(new Font("Arial", Font.BOLD, 14));
         registratiButton.setPreferredSize(new Dimension(100, 35));
+        registratiButton.setMinimumSize(new Dimension(100, 35));
+        registratiButton.setMaximumSize(new Dimension(100, 35));
         registratiButton.setFocusPainted(false);
-        registratiButton.setBorderPainted(false);
+        registratiButton.setOpaque(true);
+        registratiButton.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
         
         // Link per recupero credenziali - blu come nell'immagine
         recuperoLabel = new JLabel("<html><u>Username o password dimenticata</u></html>");
@@ -125,13 +131,23 @@ public class LoginScreen extends JFrame {
         JPanel recuperoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         recuperoPanel.setBackground(Color.WHITE);
         recuperoPanel.add(recuperoLabel);
-        recuperoPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        recuperoPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         
         // Bottoni
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        
+        // Debug: verifica che i bottoni esistano
+        System.out.println("Aggiungendo bottone Accedi: " + (accediButton != null));
+        System.out.println("Aggiungendo bottone Registrati: " + (registratiButton != null));
+        
         buttonPanel.add(accediButton);
         buttonPanel.add(registratiButton);
+        
+        // Forza il refresh del pannello
+        buttonPanel.revalidate();
+        buttonPanel.repaint();
         
         // Aggiungi tutti i panel
         mainPanel.add(titlePanel);
