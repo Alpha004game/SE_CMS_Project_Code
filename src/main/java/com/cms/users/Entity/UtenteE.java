@@ -47,4 +47,16 @@ public class UtenteE {
         
     }
     
+    // Getter methods
+    public String getUsername() {
+        return username;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public int getIdUser() {
+        return id;
+    }
 }

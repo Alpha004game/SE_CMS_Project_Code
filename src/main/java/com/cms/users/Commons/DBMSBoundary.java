@@ -244,7 +244,29 @@ public class DBMSBoundary {
     }
     
     public void sendNewInformation(int idUtente, Object infos) {
-        
+        try {
+            // Assumiamo che infos sia la nuova email (String)
+            if (infos instanceof String) {
+                String nuovaEmail = (String) infos;
+                
+                Connection conn = getConnection();
+                PreparedStatement stmt = conn.prepareStatement("UPDATE utenti SET email = ? WHERE id = ?");
+                stmt.setString(1, nuovaEmail);
+                stmt.setInt(2, idUtente);
+                
+                int rowsUpdated = stmt.executeUpdate();
+                if (rowsUpdated > 0) {
+                    System.out.println("Email aggiornata con successo per utente ID: " + idUtente);
+                } else {
+                    System.out.println("Nessuna riga aggiornata per utente ID: " + idUtente);
+                }
+                
+                stmt.close();
+                conn.close();
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendNewSkillInformation(int idUtente, int idConferenza, Object Skills)

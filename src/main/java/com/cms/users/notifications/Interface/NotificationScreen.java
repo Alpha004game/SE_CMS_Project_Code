@@ -5,6 +5,8 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
+import com.cms.users.Entity.NotificaE;
 
 /**
  * <<boundary>>
@@ -325,6 +327,33 @@ public class NotificationScreen extends JFrame {
             hasNotifications = true;
             // Qui si potrebbe implementare il parsing della stringa
         }
+        updateDisplay();
+    }
+    
+    /**
+     * Imposta la lista delle notifiche da NotificaE entities
+     */
+    public void setNotificationList(LinkedList<NotificaE> notificheList) {
+        notifications.clear();
+        
+        if (notificheList != null && !notificheList.isEmpty()) {
+            hasNotifications = true;
+            
+            // Converti NotificaE in NotificationData
+            for (NotificaE notifica : notificheList) {
+                String status = notifica.getStatus() != null ? " (" + notifica.getStatus() + ")" : "";
+                NotificationData notificationData = new NotificationData(
+                    String.valueOf(notifica.getId()),
+                    notifica.getText() + status,
+                    "ID: " + notifica.getId(), // Placeholder per la data
+                    notifica.getStatus() != null // Se ha uno status, è stata letta
+                );
+                notifications.add(notificationData);
+            }
+        } else {
+            hasNotifications = false;
+        }
+        
         updateDisplay();
     }
     

@@ -5,6 +5,9 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.ArrayList;
+import com.cms.users.account.Control.HeaderControl;
+import com.cms.users.account.Interface.UserMenu;
+import com.cms.users.notifications.Control.NotificationControl;
 
 /**
  * <<boundary>>
@@ -16,6 +19,9 @@ public class HeaderScreen extends JPanel {
     private JButton homeButton;
     private JButton notificationButton;
     private JButton profileButton;
+    
+    // Control
+    private HeaderControl headerControl;
     
     // Attributi originali
     private String userRole;
@@ -36,6 +42,8 @@ public class HeaderScreen extends JPanel {
         this.unreadNotifications = 0;
         this.userName = "Utente";
         this.userRole = "User";
+        this.headerControl = new HeaderControl();
+        this.headerControl.create();
         
         initializeComponents();
         setupLayout();
@@ -51,6 +59,8 @@ public class HeaderScreen extends JPanel {
         this.unreadNotifications = 0;
         this.userName = userName != null ? userName : "Utente";
         this.userRole = userRole != null ? userRole : "User";
+        this.headerControl = new HeaderControl();
+        this.headerControl.create();
         
         initializeComponents();
         setupLayout();
@@ -237,15 +247,14 @@ public class HeaderScreen extends JPanel {
     }
     
     public void navigateToProfile() {
-        // Implementazione di default - apre UserMenu sotto il bottone profilo
-        try {
-            Class<?> userMenuClass = Class.forName("com.cms.users.account.Interface.UserMenu");
-            Object userMenu = userMenuClass.getDeclaredConstructor(String.class, String.class)
-                .newInstance(userName, userName + "@cms.com");
-            java.lang.reflect.Method showMenuMethod = userMenuClass.getMethod("showMenuBelowButton", JButton.class);
-            showMenuMethod.invoke(userMenu, profileButton);
-        } catch (Exception e) {
-            // Fallback se UserMenu non è disponibile - mostra menu semplificato
+        // Segue il sequence diagram: userSelectMenuButton() -> HeaderControl.userSelectMenu()
+        headerControl.userSelectMenu();
+        UserMenu userMenu = headerControl.getUserMenu();
+        
+        if (userMenu != null) {
+            userMenu.showMenuBelowButton(profileButton);
+        } else {
+            // Fallback se qualcosa va storto
             showSimpleProfileMenu();
         }
     }
@@ -311,18 +320,12 @@ public class HeaderScreen extends JPanel {
     }
     
     /**
-     * Mostra la schermata delle notifiche
+     * Mostra la schermata delle notifiche seguendo il sequence diagram
      */
     private void showNotificationScreen() {
-        // Implementazione di default - apre NotificationScreen
-        try {
-            Class<?> notificationClass = Class.forName("com.cms.users.notifications.Interface.NotificationScreen");
-            Object notificationScreen = notificationClass.getDeclaredConstructor().newInstance();
-            java.lang.reflect.Method createMethod = notificationClass.getMethod("create");
-            createMethod.invoke(notificationScreen);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Apertura notifiche...");
-        }
+        // Segue il sequence diagram: viewNotification() -> crea NotificationControl
+        NotificationControl notificationControl = new NotificationControl();
+        notificationControl.create(); // Questo eseguirà il flusso completo del sequence diagram
     }
     
     public void logout() {

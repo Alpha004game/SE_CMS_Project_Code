@@ -6,6 +6,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import com.cms.users.account.Control.HeaderControl;
+import com.cms.users.account.Control.GestioneUtenteControl;
 
 /**
  * <<boundary>>
@@ -223,15 +225,9 @@ public class UserMenu extends JPopupMenu {
         );
         
         if (result == JOptionPane.YES_OPTION) {
-            JOptionPane.showMessageDialog(
-                parentComponent,
-                "Logout effettuato con successo!",
-                "Logout",
-                JOptionPane.INFORMATION_MESSAGE
-            );
-            
-            // Qui andrà la logica per il logout reale
-            performLogout();
+            // Usa HeaderControl per gestire il logout come da sequence diagram
+            HeaderControl headerControl = new HeaderControl();
+            headerControl.logout();
         }
     }
     
@@ -278,45 +274,12 @@ public class UserMenu extends JPopupMenu {
     }
     
     /**
-     * Esegue il logout (placeholder per la logica reale)
-     */
-    private void performLogout() {
-        // Qui andrà la logica reale per il logout
-        System.out.println("Performing logout for user: " + username);
-        
-        // Esempio: chiudi tutte le finestre e torna al login
-        SwingUtilities.invokeLater(() -> {
-            // Chiudi tutte le finestre aperte
-            for (Window window : Window.getWindows()) {
-                if (window instanceof JFrame && window.isDisplayable()) {
-                    window.dispose();
-                }
-            }
-            
-            // Apri la schermata di login
-            try {
-                Class<?> loginClass = Class.forName("com.cms.users.account.Interface.LoginScreen");
-                Object loginScreen = loginClass.getDeclaredConstructor().newInstance();
-                java.lang.reflect.Method createMethod = loginClass.getMethod("create");
-                createMethod.invoke(loginScreen);
-            } catch (Exception e) {
-                System.out.println("Could not open LoginScreen: " + e.getMessage());
-            }
-        });
-    }
-    
-    /**
-     * Apre la gestione account (placeholder per la logica reale)
+     * Apre la gestione account seguendo il sequence diagram
      */
     private void openAccountManagement() {
-        // Qui andrà l'apertura della schermata di gestione account
-        System.out.println("Opening account management for user: " + username);
-        
-        // Apri la UserInfoScreen
-        SwingUtilities.invokeLater(() -> {
-            UserInfoScreen userInfoScreen = new UserInfoScreen(username, email, this);
-            userInfoScreen.create();
-        });
+        // Crea GestioneUtenteControl come da sequence diagram
+        GestioneUtenteControl gestioneUtenteControl = new GestioneUtenteControl();
+        gestioneUtenteControl.create();
     }
     
     /**

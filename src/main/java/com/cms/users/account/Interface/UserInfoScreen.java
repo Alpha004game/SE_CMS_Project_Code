@@ -2,6 +2,7 @@ package com.cms.users.account.Interface;
 
 import javax.swing.*;
 import java.awt.*;
+import com.cms.users.account.Control.GestioneUtenteControl;
 
 /**
  * <<boundary>>
@@ -22,6 +23,9 @@ public class UserInfoScreen extends JFrame {
     private String username;
     private String email;
     private String password;
+    
+    // Riferimento al controllo per la gestione delle operazioni
+    private GestioneUtenteControl gestioneUtenteControl;
     
     // Riferimento al menu utente per aggiornamenti
     private UserMenu parentUserMenu;
@@ -275,7 +279,13 @@ public class UserInfoScreen extends JFrame {
         // Abilita la modifica dei campi (già abilitata di default)
         emailField.setEditable(true);
         passwordField.setEditable(true);
-        emailField.requestFocus();
+    }
+    
+    /**
+     * Imposta il riferimento al controllo di gestione utente
+     */
+    public void setGestioneUtenteControl(GestioneUtenteControl control) {
+        this.gestioneUtenteControl = control;
     }
     
     /**
@@ -314,24 +324,16 @@ public class UserInfoScreen extends JFrame {
             return;
         }
         
-        // Salva le modifiche
-        this.email = newEmail;
-        if (!newPassword.isEmpty()) {
-            this.password = newPassword;
+        // Usa GestioneUtenteControl per salvare come da sequence diagram
+        if (gestioneUtenteControl != null) {
+            gestioneUtenteControl.salvaModifiche(newEmail, newPassword.isEmpty() ? null : newPassword);
+        } else {
+            // Fallback se il controllo non è impostato
+            JOptionPane.showMessageDialog(this, 
+                "Errore: Controllo di gestione non disponibile!", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
         }
-        
-        // Aggiorna il menu utente se disponibile
-        if (parentUserMenu != null) {
-            parentUserMenu.setUserData(username, email);
-        }
-        
-        JOptionPane.showMessageDialog(this, 
-            "Modifiche salvate con successo!", 
-            "Successo", 
-            JOptionPane.INFORMATION_MESSAGE);
-        
-        // Qui andrà la logica per salvare nel database
-        System.out.println("Salvate modifiche per " + username + ": email=" + email);
     }
     
     /**

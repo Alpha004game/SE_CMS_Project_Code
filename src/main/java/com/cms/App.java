@@ -14,7 +14,6 @@ public class App
     public static UtenteE utenteAccesso;
     public static void main( String[] args )
     {
-        System.out.println( "Hello gays!" );
         LoginScreen login=new LoginScreen();
         
         login.create();

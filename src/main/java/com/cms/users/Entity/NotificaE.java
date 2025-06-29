@@ -17,8 +17,13 @@ public class NotificaE {
     
     // Constructor
     public NotificaE(int id, int idConferenza, int idUtente, String text, int tipo, String dettagli, String esito) {
-        this.id=id;
-        this.text=text;
+        this.id = id;
+        this.idConferenza = idConferenza;
+        this.idUtente = idUtente;
+        this.text = text;
+        this.tipo = tipo;
+        this.dettagli = dettagli;
+        
         switch(esito)
         {
             case "1":
@@ -34,7 +39,6 @@ public class NotificaE {
                 this.status=null;
                 break;
         }
-        
     }
     
     // Methods
@@ -42,12 +46,41 @@ public class NotificaE {
         
     }
     
-    public void getId() {
+    public void updateNotificationStatus(int id, Object notification, String status) {
         
     }
     
-    public void updateNotificationStatus(int id, Object notification, String status) {
-        
+    // Getter methods
+    public int getId() {
+        return id;
+    }
+    
+    public int getIdConferenza() {
+        return idConferenza;
+    }
+    
+    public int getIdUtente() {
+        return idUtente;
+    }
+    
+    public String getText() {
+        return text;
+    }
+    
+    public int getTipo() {
+        return tipo;
+    }
+    
+    public String getDettagli() {
+        return dettagli;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
     }
     
 }
