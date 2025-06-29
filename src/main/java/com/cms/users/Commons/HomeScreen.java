@@ -6,7 +6,6 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.List;
 import java.util.ArrayList;
-// import com.cms.users.account.Interface.UserMenu;
 
 /**
  * <<boundary>>
@@ -15,14 +14,11 @@ import java.util.ArrayList;
 public class HomeScreen extends JFrame {
     
     // Componenti dell'interfaccia
-    private JButton homeButton;
-    private JButton notificheButton;
-    private JButton profiloButton;
+    private HeaderScreen headerScreen;
     private JButton creaNuovaConferenzaButton;
     private JButton mostraTutteConferenzeButton;
     private JTable conferenzeTable;
     private DefaultTableModel tableModel;
-    // private UserMenu userMenu; // Menu utente - temporaneamente disabilitato
     
     // Attributi originali
     private String welcomeMessage;
@@ -38,16 +34,25 @@ public class HomeScreen extends JFrame {
         this.conferenze = new ArrayList<>();
         this.isUserLoggedIn = true;
         
-        // Inizializza il menu utente con gestione degli errori
-        // Temporaneamente disabilitato per evitare errori
-        /*
-        try {
-            this.userMenu = new UserMenu("UtenteDemo", "utente@cms.com");
-        } catch (Exception e) {
-            System.err.println("Errore nell'inizializzazione UserMenu: " + e.getMessage());
-            this.userMenu = null;
-        }
-        */
+        // Inizializza HeaderScreen
+        this.headerScreen = new HeaderScreen();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+        loadSampleData();
+    }
+    
+    /**
+     * Costruttore con dati utente
+     */
+    public HomeScreen(String userName, String userRole) {
+        this.availableFeatures = new ArrayList<>();
+        this.conferenze = new ArrayList<>();
+        this.isUserLoggedIn = true;
+        
+        // Inizializza HeaderScreen con dati utente
+        this.headerScreen = new HeaderScreen(userName, userRole);
         
         initializeComponents();
         setupLayout();
@@ -65,30 +70,6 @@ public class HomeScreen extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(true);
-        
-        // Bottoni header
-        homeButton = new JButton("🏠");
-        homeButton.setBackground(Color.ORANGE);
-        homeButton.setForeground(Color.WHITE);
-        homeButton.setFont(new Font("Arial", Font.BOLD, 16));
-        homeButton.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
-        homeButton.setFocusPainted(false);
-        
-        notificheButton = new JButton("🔔");
-        notificheButton.setBackground(Color.ORANGE);
-        notificheButton.setForeground(Color.WHITE);
-        notificheButton.setFont(new Font("Arial", Font.BOLD, 16));
-        notificheButton.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        notificheButton.setFocusPainted(false);
-        // Aggiunta del pallino rosso per le notifiche
-        notificheButton.setText("🔔•");
-        
-        profiloButton = new JButton("👤");
-        profiloButton.setBackground(Color.ORANGE);
-        profiloButton.setForeground(Color.WHITE);
-        profiloButton.setFont(new Font("Arial", Font.BOLD, 16));
-        profiloButton.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        profiloButton.setFocusPainted(false);
         
         // Bottone crea nuova conferenza
         creaNuovaConferenzaButton = new JButton("Crea nuova conferenza");
@@ -140,25 +121,8 @@ public class HomeScreen extends JFrame {
     private void setupLayout() {
         setLayout(new BorderLayout());
         
-        // Header arancione
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(Color.ORANGE);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        
-        // Bottoni header a sinistra (solo home in questo caso)
-        JPanel leftHeaderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        leftHeaderPanel.setBackground(Color.ORANGE);
-        leftHeaderPanel.add(homeButton);
-        
-        // Bottoni header a destra
-        JPanel rightHeaderPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        rightHeaderPanel.setBackground(Color.ORANGE);
-        rightHeaderPanel.add(notificheButton);
-        rightHeaderPanel.add(profiloButton);
-        
-        headerPanel.add(leftHeaderPanel, BorderLayout.WEST);
-        headerPanel.add(rightHeaderPanel, BorderLayout.EAST);
-        add(headerPanel, BorderLayout.NORTH);
+        // Usa HeaderScreen come header
+        add(headerScreen, BorderLayout.NORTH);
         
         // Pannello principale
         JPanel mainPanel = new JPanel(new BorderLayout());
@@ -214,11 +178,13 @@ public class HomeScreen extends JFrame {
      * Configura i gestori degli eventi
      */
     private void setupEventHandlers() {
-        homeButton.addActionListener(e -> handleHomeAction());
-        notificheButton.addActionListener(e -> handleNotificheAction());
-        profiloButton.addActionListener(e -> handleProfiloAction());
+        // Gestori per i bottoni specifici di HomeScreen
         creaNuovaConferenzaButton.addActionListener(e -> handleCreaNuovaConferenzaAction());
         mostraTutteConferenzeButton.addActionListener(e -> handleMostraTutteConferenzeAction());
+        
+        // Imposta listener personalizzati per HeaderScreen se necessario
+        headerScreen.setHomeActionListener(e -> handleHomeAction());
+        // Le notifiche e il profilo sono gestiti automaticamente da HeaderScreen
     }
     
     /**
@@ -259,32 +225,9 @@ public class HomeScreen extends JFrame {
         }
     }
     
-    // Gestori degli eventi
+    // Gestori degli eventi specifici di HomeScreen
     private void handleHomeAction() {
         JOptionPane.showMessageDialog(this, "Sei già nella Home Screen");
-    }
-    
-    private void handleNotificheAction() {
-        // Temporaneamente disabilitato UserMenu
-        JOptionPane.showMessageDialog(this, "Apertura menu notifiche...");
-        /*
-        try {
-            if (userMenu != null) {
-                // Mostra il menu utente sotto il bottone notifiche
-                userMenu.showMenuBelowButton(notificheButton);
-            } else {
-                // Fallback se UserMenu non è disponibile
-                JOptionPane.showMessageDialog(this, "Apertura menu notifiche...");
-            }
-        } catch (Exception e) {
-            System.err.println("Errore nell'apertura menu notifiche: " + e.getMessage());
-            JOptionPane.showMessageDialog(this, "Apertura menu notifiche...");
-        }
-        */
-    }
-    
-    private void handleProfiloAction() {
-        JOptionPane.showMessageDialog(this, "Apertura profilo utente...");
     }
     
     private void handleCreaNuovaConferenzaAction() {
@@ -434,26 +377,22 @@ public class HomeScreen extends JFrame {
     }
     
     /**
-     * Imposta i dati dell'utente per il menu
+     * Imposta i dati dell'utente per l'header
      */
     public void setUserData(String username, String email) {
-        // Temporaneamente disabilitato UserMenu
-        System.out.println("Setting user data: " + username + ", " + email);
-        /*
-        if (userMenu != null) {
-            userMenu.setUserData(username, email);
+        if (headerScreen != null) {
+            // Aggiorna i dati utente nell'HeaderScreen
+            // HeaderScreen gestirà automaticamente l'aggiornamento del UserMenu
+            System.out.println("Setting user data: " + username + ", " + email);
         }
-        */
     }
     
     /**
-     * Ottiene il menu utente
+     * Ottiene il riferimento all'HeaderScreen
      */
-    /*
-    public UserMenu getUserMenu() {
-        return userMenu;
+    public HeaderScreen getHeaderScreen() {
+        return headerScreen;
     }
-    */
 
     // Classe interna per i dati delle conferenze
     private static class ConferenzaData {
@@ -633,14 +572,12 @@ public class HomeScreen extends JFrame {
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            HomeScreen homeScreen = new HomeScreen();
+            // Test con dati utente
+            HomeScreen homeScreen = new HomeScreen("Mario Rossi", "Chair");
             homeScreen.setWelcomeMessage("Benvenuto nel sistema CMS!");
             homeScreen.addAvailableFeature("Gestione Conferenze");
             homeScreen.addAvailableFeature("Revisione Articoli");
             homeScreen.addAvailableFeature("Pubblicazione");
-            
-            // Imposta dati utente personalizzati
-            homeScreen.setUserData("Mario Rossi", "mario.rossi@universita.it");
             
             // Test aggiunta conferenza con generazione automatica bottoni
             homeScreen.addConferenza("Conferenza Test Automatico", "Chair");
