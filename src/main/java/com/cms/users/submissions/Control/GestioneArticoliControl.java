@@ -6,6 +6,7 @@ import com.cms.users.Entity.ArticoloE;
 import com.cms.users.Commons.DBMSBoundary;
 import com.cms.users.submissions.Interface.SubmissionScreen;
 import com.cms.users.submissions.Interface.NewSubmissionScreen;
+import com.cms.users.submissions.Interface.ViewDetailsSubmissionScreen;
 
 /**
  * <<control>>
@@ -94,8 +95,81 @@ public class GestioneArticoliControl {
         // Implementazione da definire
     }
     
-    public void visualizzaDettagli(String idArticolo) {
-        // Implementazione da definire
+    /**
+     * Visualizza i dettagli di un articolo seguendo il sequence diagram
+     * Segue il flusso: GestioneArticoliControl -> DBMSBoundary.getArticolo() -> ViewDetailsSubmissionScreen
+     */
+    public void visualizzaDettagli(int idArticolo) {
+        System.out.println("DEBUG GestioneArticoliControl: visualizzaDettagli chiamato con ID: " + idArticolo);
+        
+        try {
+            // Passo 1: Chiama getArticolo(idArticolo) del DBMSBoundary seguendo il sequence diagram
+            System.out.println("DEBUG: Chiamata a DBMSBoundary.getArticolo(" + idArticolo + ")");
+            ArticoloE articolo = dbmsBoundary.getArticolo(idArticolo);
+            
+            if (articolo != null) {
+                System.out.println("DEBUG: Articolo trovato: " + articolo.getTitolo());
+                
+                // Passo 2: Crea ViewDetailsSubmissionScreen seguendo il sequence diagram
+                System.out.println("DEBUG: Creazione ViewDetailsSubmissionScreen");
+                ViewDetailsSubmissionScreen viewDetailsScreen = new ViewDetailsSubmissionScreen();
+                
+                // Passo 3: Popola la schermata con i dati reali dell'articolo
+                System.out.println("DEBUG: Popolamento dati articolo");
+                viewDetailsScreen.setArticoloData(articolo);
+                
+                // Passo 4: Mostra la schermata
+                System.out.println("DEBUG: Mostra schermata dettagli");
+                viewDetailsScreen.setVisible(true);
+                
+                System.out.println("DEBUG: ViewDetailsSubmissionScreen mostrata con successo");
+                
+            } else {
+                System.err.println("ERRORE: Articolo non trovato con ID: " + idArticolo);
+                System.err.println("DEBUG: Creazione di un articolo di test per il debug...");
+                
+                // Crea un articolo di test per verificare che l'UI funzioni
+                ArticoloE articoloTest = new ArticoloE();
+                articoloTest.setId(idArticolo);
+                articoloTest.setTitolo("Articolo di Test - ID " + idArticolo);
+                articoloTest.setAbstractText("Questo è un articolo di test creato perché l'articolo originale non è stato trovato nel database.");
+                
+                // Aggiunge alcune keywords di test
+                LinkedList<String> keywordsTest = new LinkedList<>();
+                keywordsTest.add("Test");
+                keywordsTest.add("Debug");
+                keywordsTest.add("Software Engineering");
+                articoloTest.setKeywords(keywordsTest);
+                
+                // Aggiunge co-autori di test
+                LinkedList<String> coAutoriTest = new LinkedList<>();
+                coAutoriTest.add("Mario Rossi");
+                coAutoriTest.add("Luigi Verdi");
+                articoloTest.setCoAutori(coAutoriTest);
+                
+                articoloTest.setDichiarazioneOriginalita(true);
+                
+                ViewDetailsSubmissionScreen viewDetailsScreen = new ViewDetailsSubmissionScreen();
+                viewDetailsScreen.setArticoloData(articoloTest);
+                viewDetailsScreen.setVisible(true);
+                
+                System.out.println("DEBUG: Mostrata schermata con articolo di test");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE durante la visualizzazione dei dettagli dell'articolo: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra comunque una schermata di errore per il debug
+            try {
+                ViewDetailsSubmissionScreen errorScreen = new ViewDetailsSubmissionScreen();
+                errorScreen.setVisible(true);
+                System.out.println("DEBUG: Mostrata schermata vuota per debug errori");
+            } catch (Exception e2) {
+                System.err.println("ERRORE critico: impossibile mostrare anche la schermata di errore: " + e2.getMessage());
+                e2.printStackTrace();
+            }
+        }
     }
     
     public String scaricaRapportoValutazione() {

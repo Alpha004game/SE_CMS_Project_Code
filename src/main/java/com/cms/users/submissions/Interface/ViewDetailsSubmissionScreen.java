@@ -2,6 +2,8 @@ package com.cms.users.submissions.Interface;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.LinkedList;
+import com.cms.users.Entity.ArticoloE;
 
 /**
  * <<boundary>>
@@ -814,6 +816,55 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         modificaSottomissioneButton.setEnabled(canModify());
         ritiraSottomissioneButton.setEnabled(canWithdraw());
         scaricaRapportoButton.setEnabled(hasEvaluationReport());
+    }
+    
+    /**
+     * Imposta i dati dell'articolo nella schermata utilizzando un oggetto ArticoloE
+     * Questo metodo è chiamato dal GestioneArticoliControl per popolare i campi con dati reali
+     */
+    public void setArticoloData(ArticoloE articolo) {
+        if (articolo == null) {
+            System.err.println("Articolo nullo passato a setArticoloData");
+            return;
+        }
+        
+        try {
+            // Imposta i dati dell'articolo nei campi dell'interfaccia
+            this.submissionId = String.valueOf(articolo.getId());
+            this.titolo = articolo.getTitolo() != null ? articolo.getTitolo() : "";
+            this.abstractText = articolo.getAbstractText() != null ? articolo.getAbstractText() : "";
+            
+            // Converte la lista di keywords in stringa separata da virgole
+            LinkedList<String> keywordsList = articolo.getKeywords();
+            if (keywordsList != null && !keywordsList.isEmpty()) {
+                this.keywords = String.join(", ", keywordsList);
+            } else {
+                this.keywords = "";
+            }
+            
+            // Converte la lista di co-autori in stringa separata da virgole
+            LinkedList<String> coAutoriList = articolo.getCoAutori();
+            if (coAutoriList != null && !coAutoriList.isEmpty()) {
+                this.coAutori = String.join(", ", coAutoriList);
+            } else {
+                this.coAutori = "";
+            }
+            
+            // Per ora imposta valori di default per filePath e allegatoPath
+            // (possono essere gestiti in futuro se aggiunti all'entity)
+            this.filePath = "articolo_" + articolo.getId() + ".pdf";
+            this.allegatoPath = "allegato_" + articolo.getId() + ".zip";
+            
+            // Usa il metodo corretto per la dichiarazione di originalità
+            this.originalitaDichiarata = articolo.isDichiarazioneOriginalita();
+            
+            // Popola i campi dell'interfaccia utente
+            populateFields();
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'impostazione dei dati dell'articolo: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**

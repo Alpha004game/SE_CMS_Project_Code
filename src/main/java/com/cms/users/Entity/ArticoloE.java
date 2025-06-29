@@ -62,103 +62,6 @@ public class ArticoloE {
         this.stato = "Inviato"; // Default stato
     }
     
-    // Getters and Setters
-    public int getId() {
-        return id;
-    }
-    
-    public void setId(int id) {
-        this.id = id;
-    }
-    
-    public String getTitolo() {
-        return titolo;
-    }
-    
-    public void setTitolo(String titolo) {
-        this.titolo = titolo;
-    }
-    
-    public String getAbstractText() {
-        return abstractText;
-    }
-    
-    public void setAbstractText(String abstractText) {
-        this.abstractText = abstractText;
-    }
-    
-    public boolean isConflitti() {
-        return conflitti;
-    }
-    
-    public void setConflitti(boolean conflitti) {
-        this.conflitti = conflitti;
-    }
-    
-    public LinkedList<String> getKeywords() {
-        return keywords;
-    }
-    
-    public void setKeywords(LinkedList<String> keywords) {
-        this.keywords = keywords;
-    }
-    
-    public LinkedList<String> getCoAutori() {
-        return coAutori;
-    }
-    
-    public void setCoAutori(LinkedList<String> coAutori) {
-        this.coAutori = coAutori;
-    }
-    
-    public boolean isDichiarazioneOriginalita() {
-        return dichiarazioneOriginalita;
-    }
-    
-    public void setDichiarazioneOriginalita(boolean dichiarazioneOriginalita) {
-        this.dichiarazioneOriginalita = dichiarazioneOriginalita;
-    }
-    
-    public Object getFileArticolo() {
-        return fileArticolo;
-    }
-    
-    public void setFileArticolo(Object fileArticolo) {
-        this.fileArticolo = fileArticolo;
-    }
-    
-    public String getStato() {
-        return stato;
-    }
-    
-    public void setStato(String stato) {
-        this.stato = stato;
-    }
-    
-    public int getIdConferenza() {
-        return idConferenza;
-    }
-    
-    public void setIdConferenza(int idConferenza) {
-        this.idConferenza = idConferenza;
-    }
-    
-    public LocalDate getUltimaModifica() {
-        return ultimaModifica;
-    }
-    
-    public void setUltimaModifica(LocalDate ultimaModifica) {
-        this.ultimaModifica = ultimaModifica;
-    }
-    
-    public Object getAllegato() {
-        return allegato;
-    }
-    
-    public void setAllegato(Object allegato) {
-        this.allegato = allegato;
-    }
-    
     // Methods
     public void create() {
         // Implementazione da definire
@@ -179,4 +82,103 @@ public class ArticoloE {
                 ", dichiarazioneOriginalita=" + dichiarazioneOriginalita +
                 '}';
     }
+    
+    // Getter methods
+    public int getId() {
+        return id;
+    }
+    
+    public String getTitolo() {
+        return titolo;
+    }
+    
+    public String getAbstractText() {
+        return abstractText;
+    }
+    
+    public Object getFileArticolo() {
+        return fileArticolo;
+    }
+    
+    public Object getAllegato() {
+        return allegato;
+    }
+    
+    public String getStato() {
+        return stato;
+    }
+    
+    public int getIdConferenza() {
+        return idConferenza;
+    }
+    
+    public LocalDate getUltimaModifica() {
+        return ultimaModifica;
+    }
+    
+    public boolean isConflitti() {
+        return conflitti;
+    }
+    
+    public LinkedList<String> getKeywords() {
+        return keywords;
+    }
+    
+    public LinkedList<String> getCoAutori() {
+        return coAutori;
+    }
+    
+    public boolean isDichiarazioneOriginalita() {
+        return dichiarazioneOriginalita;
+    }
+    
+    // Setter methods
+    public void setId(int id) {
+        this.id = id;
+    }
+    
+    public void setTitolo(String titolo) {
+        this.titolo = titolo;
+    }
+    
+    public void setAbstractText(String abstractText) {
+        this.abstractText = abstractText;
+    }
+    
+    public void setFileArticolo(Object fileArticolo) {
+        this.fileArticolo = fileArticolo;
+    }
+    
+    public void setAllegato(Object allegato) {
+        this.allegato = allegato;
+    }
+    
+    public void setStato(String stato) {
+        this.stato = stato;
+    }
+    
+    public void setIdConferenza(int idConferenza) {
+        this.idConferenza = idConferenza;
+    }
+    
+    public void setUltimaModifica(LocalDate ultimaModifica) {
+        this.ultimaModifica = ultimaModifica;
+    }
+    
+    public void setConflitti(boolean conflitti) {
+        this.conflitti = conflitti;
+    }
+    
+    public void setKeywords(LinkedList<String> keywords) {
+        this.keywords = keywords;
+    }
+    
+    public void setCoAutori(LinkedList<String> coAutori) {
+        this.coAutori = coAutori;
+    }
+    
+    public void setDichiarazioneOriginalita(boolean dichiarazioneOriginalita) {
+        this.dichiarazioneOriginalita = dichiarazioneOriginalita;
+    }
+    
 }

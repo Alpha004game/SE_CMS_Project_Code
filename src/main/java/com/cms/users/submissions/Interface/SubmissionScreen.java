@@ -25,6 +25,7 @@ public class SubmissionScreen extends JFrame {
     
     // Dati degli articoli
     private List<String> articoli;
+    private LinkedList<ArticoloE> articoliOriginali; // Lista originale per mantenere gli ID
     
     // Informazioni per l'integrazione con il database
     private int idUtente;
@@ -36,6 +37,7 @@ public class SubmissionScreen extends JFrame {
      */
     public SubmissionScreen() {
         this.articoli = new ArrayList<>();
+        this.articoliOriginali = new LinkedList<>();
         this.idUtente = -1;
         this.idConferenza = -1;
         this.gestioneArticoliControl = new GestioneArticoliControl();
@@ -50,6 +52,7 @@ public class SubmissionScreen extends JFrame {
      */
     public SubmissionScreen(List<String> articoli) {
         this.articoli = articoli != null ? new ArrayList<>(articoli) : new ArrayList<>();
+        this.articoliOriginali = new LinkedList<>();
         this.idUtente = -1;
         this.idConferenza = -1;
         this.gestioneArticoliControl = new GestioneArticoliControl();
@@ -64,6 +67,7 @@ public class SubmissionScreen extends JFrame {
      */
     public SubmissionScreen(int idUtente, int idConferenza) {
         this.articoli = new ArrayList<>();
+        this.articoliOriginali = new LinkedList<>();
         this.idUtente = idUtente;
         this.idConferenza = idConferenza;
         this.gestioneArticoliControl = new GestioneArticoliControl();
@@ -399,30 +403,55 @@ public class SubmissionScreen extends JFrame {
     }
     
     private void handleVisualizzaDettagli(String articleTitle, int index) {
-        // Mostra i dettagli dell'articolo
-        String details = "Dettagli Articolo #" + (index + 1) + ":\n\n" +
-                        "Titolo: " + articleTitle + "\n" +
-                        "Stato: In revisione\n" +
-                        "Data sottomissione: " + java.time.LocalDate.now().minusDays(index * 5) + "\n" +
-                        "Numero revisori assegnati: " + (2 + index % 3) + "\n" +
-                        "Commenti: In attesa di feedback dai revisori";
+        // Seguendo il sequence diagram: SubmissionScreen -> GestioneArticoliControl.visualizzaDettagli(idArticolo)
+        System.out.println("DEBUG: handleVisualizzaDettagli chiamato per: " + articleTitle + ", indice: " + index);
+        System.out.println("DEBUG: articoliOriginali size: " + (articoliOriginali != null ? articoliOriginali.size() : "null"));
+        System.out.println("DEBUG: articoli size: " + (articoli != null ? articoli.size() : "null"));
         
-        JTextArea detailsArea = new JTextArea(details, 8, 40);
-        detailsArea.setEditable(false);
-        detailsArea.setFont(new Font("Arial", Font.PLAIN, 12));
-        
-        JScrollPane scrollPane = new JScrollPane(detailsArea);
-        JOptionPane.showMessageDialog(this, scrollPane, "Dettagli Articolo", JOptionPane.INFORMATION_MESSAGE);
-        
-        // Qui andrà la logica per aprire la schermata dei dettagli
         try {
-            Class<?> detailsClass = Class.forName("com.cms.users.submissions.Interface.ViewDetailsSubmissionScreen");
-            Object detailsScreen = detailsClass.getDeclaredConstructor(String.class).newInstance(articleTitle);
-            java.lang.reflect.Method createMethod = detailsClass.getMethod("create");
-            createMethod.invoke(detailsScreen);
+            // Ottiene l'ID dell'articolo dalla lista originale
+            if (articoliOriginali != null && index >= 0 && index < articoliOriginali.size()) {
+                ArticoloE articolo = articoliOriginali.get(index);
+                int idArticolo = articolo.getId();
+                
+                System.out.println("DEBUG: Trovato articolo con ID: " + idArticolo);
+                System.out.println("DEBUG: Chiamata al controller...");
+                
+                // Chiama il metodo del controller seguendo il sequence diagram
+                gestioneArticoliControl.visualizzaDettagli(idArticolo);
+                
+                System.out.println("DEBUG: Controller chiamato con successo");
+                
+            } else {
+                // Fallback per compatibilità con codice esistente
+                System.err.println("ERRORE: Impossibile ottenere l'ID dell'articolo per l'indice: " + index);
+                System.err.println("DEBUG: articoliOriginali è null? " + (articoliOriginali == null));
+                if (articoliOriginali != null) {
+                    System.err.println("DEBUG: Size articoliOriginali: " + articoliOriginali.size());
+                }
+                
+                // Per ora, creiamo un articolo di test per verificare che il resto funzioni
+                System.out.println("DEBUG: Creazione di un articolo di test...");
+                ArticoloE articoloTest = new ArticoloE();
+                articoloTest.setId(999); // ID di test
+                articoloTest.setTitolo("Articolo di Test");
+                articoloTest.setAbstractText("Questo è un articolo di test per verificare il funzionamento della visualizzazione dettagli.");
+                
+                gestioneArticoliControl.visualizzaDettagli(999);
+                
+                // Mostra messaggio di errore all'utente
+                JOptionPane.showMessageDialog(this, 
+                    "Attenzione: usando dati di test perché l'articolo originale non è disponibile.", 
+                    "Debug", 
+                    JOptionPane.WARNING_MESSAGE);
+            }
         } catch (Exception e) {
-            // Fallback a dialog se la classe non esiste o non è accessibile
-            System.out.println("Apertura dettagli per: " + articleTitle);
+            System.err.println("ERRORE durante la visualizzazione dei dettagli: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante la visualizzazione dei dettagli dell'articolo.\nDettagli: " + e.getMessage(), 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -569,16 +598,64 @@ public class SubmissionScreen extends JFrame {
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            // Test con articoli
-            List<String> articoliTest = new ArrayList<>();
-            articoliTest.add("Machine Learning Algorithms for Software Testing");
-            articoliTest.add("Agile Methodologies in Large Scale Projects");
-            articoliTest.add("Cloud Computing Architecture Patterns");
-            articoliTest.add("Artificial Intelligence in Code Review");
-            articoliTest.add("DevOps Best Practices and Tools");
+            // Test con articoli reali (ArticoloE) invece di stringhe
+            LinkedList<ArticoloE> articoliTest = new LinkedList<>();
             
-            SubmissionScreen screenWithArticles = new SubmissionScreen(articoliTest);
+            // Crea alcuni articoli di test
+            ArticoloE articolo1 = new ArticoloE();
+            articolo1.setId(1);
+            articolo1.setTitolo("Machine Learning Algorithms for Software Testing");
+            articolo1.setAbstractText("Questo articolo presenta algoritmi di machine learning per il testing del software...");
+            LinkedList<String> keywords1 = new LinkedList<>();
+            keywords1.add("Machine Learning");
+            keywords1.add("Software Testing");
+            keywords1.add("Algorithms");
+            articolo1.setKeywords(keywords1);
+            LinkedList<String> coAutori1 = new LinkedList<>();
+            coAutori1.add("Mario Rossi");
+            coAutori1.add("Luigi Verdi");
+            articolo1.setCoAutori(coAutori1);
+            articolo1.setDichiarazioneOriginalita(true);
+            
+            ArticoloE articolo2 = new ArticoloE();
+            articolo2.setId(2);
+            articolo2.setTitolo("Agile Methodologies in Large Scale Projects");
+            articolo2.setAbstractText("Studio delle metodologie agili applicato a progetti di larga scala...");
+            LinkedList<String> keywords2 = new LinkedList<>();
+            keywords2.add("Agile");
+            keywords2.add("Software Engineering");
+            keywords2.add("Project Management");
+            articolo2.setKeywords(keywords2);
+            LinkedList<String> coAutori2 = new LinkedList<>();
+            coAutori2.add("Anna Bianchi");
+            coAutori2.add("Giuseppe Neri");
+            articolo2.setCoAutori(coAutori2);
+            articolo2.setDichiarazioneOriginalita(true);
+            
+            ArticoloE articolo3 = new ArticoloE();
+            articolo3.setId(3);
+            articolo3.setTitolo("Cloud Computing Architecture Patterns");
+            articolo3.setAbstractText("Analisi dei pattern architetturali per il cloud computing...");
+            LinkedList<String> keywords3 = new LinkedList<>();
+            keywords3.add("Cloud Computing");
+            keywords3.add("Architecture");
+            keywords3.add("Design Patterns");
+            articolo3.setKeywords(keywords3);
+            LinkedList<String> coAutori3 = new LinkedList<>();
+            coAutori3.add("Francesco Blu");
+            articolo3.setCoAutori(coAutori3);
+            articolo3.setDichiarazioneOriginalita(true);
+            
+            articoliTest.add(articolo1);
+            articoliTest.add(articolo2);
+            articoliTest.add(articolo3);
+            
+            // Crea la schermata e popola con articoli reali
+            SubmissionScreen screenWithArticles = new SubmissionScreen(1, 1); // ID utente e conferenza di test
+            screenWithArticles.mostraListaSottomissioni(articoliTest);
             screenWithArticles.create();
+            
+            System.out.println("DEBUG MAIN: SubmissionScreen creata con " + articoliTest.size() + " articoli di test");
             
             // Test senza articoli (commentato per non aprire due finestre)
             // SubmissionScreen emptyScreen = new SubmissionScreen();
@@ -593,8 +670,12 @@ public class SubmissionScreen extends JFrame {
     public void mostraListaSottomissioni(LinkedList<ArticoloE> listaSottomissioni) {
         // Converte la lista di ArticoloE in lista di stringhe per la visualizzazione
         this.articoli.clear();
+        this.articoliOriginali.clear();
         
         if (listaSottomissioni != null && !listaSottomissioni.isEmpty()) {
+            // Salva la lista originale per poter accedere agli ID
+            this.articoliOriginali.addAll(listaSottomissioni);
+            
             for (ArticoloE articolo : listaSottomissioni) {
                 String displayText = articolo.getTitolo();
                 if (displayText == null || displayText.isEmpty()) {
