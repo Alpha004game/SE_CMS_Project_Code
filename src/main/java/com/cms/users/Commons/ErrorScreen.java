@@ -63,7 +63,7 @@ public class ErrorScreen extends JFrame {
      */
     private void initializeComponents() {
         setTitle("Errore");
-        setSize(400, 250);
+        setSize(500, 320);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
