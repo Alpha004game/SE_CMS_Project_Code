@@ -26,7 +26,7 @@ public class InserisciCodiceScreen extends JFrame {
         
         setTitle("Inserisci codice di verifica");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(500, 350);
+        setSize(500, 400);
         setLocationRelativeTo(null);
         setResizable(false);
         getContentPane().setBackground(Color.WHITE);
@@ -50,9 +50,12 @@ public class InserisciCodiceScreen extends JFrame {
         verificaButton.setBackground(new Color(255, 140, 0));
         verificaButton.setForeground(Color.WHITE);
         verificaButton.setFont(new Font("Arial", Font.BOLD, 14));
-        verificaButton.setPreferredSize(new Dimension(120, 40));
+        verificaButton.setPreferredSize(new Dimension(150, 45));
+        verificaButton.setMinimumSize(new Dimension(150, 45));
+        verificaButton.setMaximumSize(new Dimension(150, 45));
         verificaButton.setFocusPainted(false);
         verificaButton.setBorderPainted(false);
+        verificaButton.setOpaque(true);
     }
     
     private void setupLayout() {
@@ -61,31 +64,39 @@ public class InserisciCodiceScreen extends JFrame {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(80, 50, 80, 50));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50));
         
         // Titolo
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         titlePanel.setBackground(Color.WHITE);
         titlePanel.add(titleLabel);
-        titlePanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 60, 0));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         
-        // Campo codice con più spazio sopra e sotto
+        // Campo codice con spazio ridotto
         JPanel codiceFieldPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         codiceFieldPanel.setBackground(Color.WHITE);
         codiceFieldPanel.add(codiceField);
-        codiceFieldPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 60, 0));
+        codiceFieldPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 30, 0));
         
-        // Bottone
+        // Bottone con margine ridotto
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.add(verificaButton);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         
         // Aggiungi tutti i panel
         mainPanel.add(titlePanel);
         mainPanel.add(codiceFieldPanel);
         mainPanel.add(buttonPanel);
         
+        // Spazio aggiuntivo in basso per assicurarci che il bottone sia visibile
+        mainPanel.add(Box.createVerticalGlue());
+        
         add(mainPanel, BorderLayout.CENTER);
+        
+        // Debug: verifica che il bottone sia stato aggiunto
+        System.out.println("Bottone verificaButton aggiunto: " + (verificaButton != null));
+        System.out.println("Dimensioni bottone: " + verificaButton.getPreferredSize());
     }
     
     private void setupEventHandlers() {

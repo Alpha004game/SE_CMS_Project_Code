@@ -13,7 +13,7 @@ public class WarningScreen extends JFrame {
     
     // Componenti dell'interfaccia
     private JLabel titleLabel;
-    private JLabel messageLabel;
+    private JComponent messageComponent; // Può essere JLabel o JTextArea
     private JButton confirmButton;
     private JButton cancelButton;
     private Timer autoCloseTimer;
@@ -72,7 +72,7 @@ public class WarningScreen extends JFrame {
      */
     private void initializeComponents() {
         setTitle("Attenzione");
-        setSize(450, 250);
+        setSize(450, 280);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -83,11 +83,8 @@ public class WarningScreen extends JFrame {
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         titleLabel.setVerticalAlignment(SwingConstants.CENTER);
         
-        // Label per il messaggio di warning
-        messageLabel = new JLabel();
-        messageLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        messageLabel.setVerticalAlignment(SwingConstants.CENTER);
+        // Componente per il messaggio di warning
+        createMessageComponent();
         updateMessageDisplay();
         
         // Bottone Conferma (Sì)
@@ -96,8 +93,8 @@ public class WarningScreen extends JFrame {
         confirmButton.setForeground(Color.BLACK);
         confirmButton.setFont(new Font("Arial", Font.BOLD, 14));
         confirmButton.setFocusPainted(false);
-        confirmButton.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
-        confirmButton.setPreferredSize(new Dimension(80, 40));
+        confirmButton.setBorder(BorderFactory.createEmptyBorder(12, 30, 12, 30));
+        confirmButton.setPreferredSize(new Dimension(100, 45));
         
         // Bottone Cancella (No)
         cancelButton = new JButton(cancelButtonText);
@@ -105,8 +102,8 @@ public class WarningScreen extends JFrame {
         cancelButton.setForeground(Color.BLACK);
         cancelButton.setFont(new Font("Arial", Font.BOLD, 14));
         cancelButton.setFocusPainted(false);
-        cancelButton.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
-        cancelButton.setPreferredSize(new Dimension(80, 40));
+        cancelButton.setBorder(BorderFactory.createEmptyBorder(12, 30, 12, 30));
+        cancelButton.setPreferredSize(new Dimension(100, 45));
         
         // Timer per chiusura automatica (se configurato)
         autoCloseTimer = new Timer(autoCloseDelay, new ActionListener() {
@@ -119,18 +116,39 @@ public class WarningScreen extends JFrame {
     }
     
     /**
+     * Crea il componente appropriato per il messaggio
+     */
+    private void createMessageComponent() {
+        if (warningMessage.contains("\n")) {
+            // Usa JTextArea per messaggi multilinea
+            JTextArea textArea = new JTextArea(warningMessage);
+            textArea.setFont(new Font("Arial", Font.PLAIN, 13));
+            textArea.setBackground(Color.WHITE);
+            textArea.setEditable(false);
+            textArea.setFocusable(false);
+            textArea.setOpaque(true);
+            textArea.setWrapStyleWord(true);
+            textArea.setLineWrap(true);
+            textArea.setRows(4); // Aumentiamo le righe per dare più spazio
+            textArea.setColumns(35);
+            
+            messageComponent = textArea;
+        } else {
+            // Usa JLabel per messaggi singola linea
+            JLabel label = new JLabel(warningMessage);
+            label.setFont(new Font("Arial", Font.PLAIN, 13));
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            label.setVerticalAlignment(SwingConstants.CENTER);
+            
+            messageComponent = label;
+        }
+    }
+    
+    /**
      * Aggiorna la visualizzazione del messaggio
      */
     private void updateMessageDisplay() {
-        if (warningMessage.contains("\n")) {
-            // Messaggio multilinea usando HTML
-            String htmlMessage = "<html><div style='text-align: center;'>" + 
-                               warningMessage.replace("\n", "<br>") + 
-                               "</div></html>";
-            messageLabel.setText(htmlMessage);
-        } else {
-            messageLabel.setText(warningMessage);
-        }
+        createMessageComponent();
     }
     
     /**
@@ -140,23 +158,41 @@ public class WarningScreen extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);
         
-        // Pannello principale
+        // Pannello principale con margini ridotti
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
         
-        // Titolo in alto
+        // Titolo in alto con spazio ridotto
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         titlePanel.setBackground(Color.WHITE);
-        titlePanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
         titlePanel.add(titleLabel);
         mainPanel.add(titlePanel, BorderLayout.NORTH);
         
-        // Messaggio al centro
+        // Messaggio al centro con spazio ridotto
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.setBackground(Color.WHITE);
-        messagePanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 20, 0));
-        messagePanel.add(messageLabel, BorderLayout.CENTER);
+        messagePanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 15, 0));
+        
+        // Aggiungi il componente messaggio al centro del suo pannello
+        if (messageComponent != null) {
+            if (messageComponent instanceof JTextArea) {
+                // Per JTextArea, usa un layout più semplice
+                JTextArea textArea = (JTextArea) messageComponent;
+                
+                JPanel textAreaWrapper = new JPanel(new BorderLayout());
+                textAreaWrapper.setBackground(Color.WHITE);
+                textAreaWrapper.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+                textAreaWrapper.add(textArea, BorderLayout.CENTER);
+                
+                messagePanel.add(textAreaWrapper, BorderLayout.CENTER);
+            } else {
+                // Per JLabel, aggiungilo direttamente
+                messagePanel.add(messageComponent, BorderLayout.CENTER);
+            }
+        }
+        
         mainPanel.add(messagePanel, BorderLayout.CENTER);
         
         // Bottoni in basso
@@ -187,8 +223,8 @@ public class WarningScreen extends JFrame {
         button.setForeground(Color.BLACK);
         button.setFont(new Font("Arial", Font.BOLD, 14));
         button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 25));
-        button.setPreferredSize(new Dimension(80, 40));
+        button.setBorder(BorderFactory.createEmptyBorder(12, 30, 12, 30));
+        button.setPreferredSize(new Dimension(100, 45));
     }
     
     /**
@@ -255,7 +291,7 @@ public class WarningScreen extends JFrame {
     public void setWarningMessage(String message) {
         if (message != null && !message.trim().isEmpty()) {
             this.warningMessage = message;
-            if (messageLabel != null) {
+            if (messageComponent != null) {
                 updateMessageDisplay();
             }
         }

@@ -72,7 +72,7 @@ public class UserInfoScreen extends JFrame {
     private void initializeComponents() {
         // Configurazione finestra principale
         setTitle("CMS - Informazioni Profilo");
-        setSize(500, 450);
+        setSize(500, 420);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -157,30 +157,30 @@ public class UserInfoScreen extends JFrame {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 50, 20, 50));
         
         // Titolo
         JLabel titleLabel = new JLabel("Informazioni del tuo profilo");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         titleLabel.setForeground(Color.BLACK);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 40, 0));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 25, 0));
         mainPanel.add(titleLabel);
         
         // Campo Username
         JPanel usernamePanel = createFieldPanel("Username:", usernameValueLabel);
         mainPanel.add(usernamePanel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
         
         // Campo Email
         JPanel emailPanel = createFieldPanel("Email:", emailField);
         mainPanel.add(emailPanel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 15)));
         
         // Campo Password
         JPanel passwordPanel = createFieldPanel("Password:", passwordField);
         mainPanel.add(passwordPanel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 40)));
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 25)));
         
         // Bottone Salva modifiche
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));

@@ -6,7 +6,7 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.List;
 import java.util.ArrayList;
-import com.cms.users.account.Interface.UserMenu;
+// import com.cms.users.account.Interface.UserMenu;
 
 /**
  * <<boundary>>
@@ -22,7 +22,7 @@ public class HomeScreen extends JFrame {
     private JButton mostraTutteConferenzeButton;
     private JTable conferenzeTable;
     private DefaultTableModel tableModel;
-    private UserMenu userMenu; // Menu utente
+    // private UserMenu userMenu; // Menu utente - temporaneamente disabilitato
     
     // Attributi originali
     private String welcomeMessage;
@@ -38,8 +38,16 @@ public class HomeScreen extends JFrame {
         this.conferenze = new ArrayList<>();
         this.isUserLoggedIn = true;
         
-        // Inizializza il menu utente
-        this.userMenu = new UserMenu("UtenteDemo", "utente@cms.com");
+        // Inizializza il menu utente con gestione degli errori
+        // Temporaneamente disabilitato per evitare errori
+        /*
+        try {
+            this.userMenu = new UserMenu("UtenteDemo", "utente@cms.com");
+        } catch (Exception e) {
+            System.err.println("Errore nell'inizializzazione UserMenu: " + e.getMessage());
+            this.userMenu = null;
+        }
+        */
         
         initializeComponents();
         setupLayout();
@@ -108,14 +116,22 @@ public class HomeScreen extends JFrame {
         };
         
         conferenzeTable = new JTable(tableModel);
-        conferenzeTable.setRowHeight(50);
+        conferenzeTable.setRowHeight(95);
         conferenzeTable.setFont(new Font("Arial", Font.PLAIN, 12));
         conferenzeTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
         conferenzeTable.getTableHeader().setBackground(Color.LIGHT_GRAY);
+        conferenzeTable.setGridColor(new Color(230, 230, 230));
+        conferenzeTable.setShowVerticalLines(true);
+        conferenzeTable.setShowHorizontalLines(true);
         
         // Renderer personalizzato per i bottoni nelle celle
         conferenzeTable.getColumn("Azioni").setCellRenderer(new ButtonRenderer());
         conferenzeTable.getColumn("Azioni").setCellEditor(new ButtonEditor(new JCheckBox()));
+        
+        // Migliora la larghezza delle colonne
+        conferenzeTable.getColumnModel().getColumn(0).setPreferredWidth(200); // Conferenza
+        conferenzeTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Ruolo  
+        conferenzeTable.getColumnModel().getColumn(2).setPreferredWidth(300); // Azioni
     }
     
     /**
@@ -168,7 +184,18 @@ public class HomeScreen extends JFrame {
         // Pannello tabella
         JScrollPane scrollPane = new JScrollPane(conferenzeTable);
         scrollPane.setBackground(Color.WHITE);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Le tue conferenze"));
+        scrollPane.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                "Le tue conferenze",
+                javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+                javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                new Font("Arial", Font.BOLD, 14),
+                new Color(80, 80, 80)
+            ),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        scrollPane.getViewport().setBackground(Color.WHITE);
         
         // Pannello bottone in basso
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -198,13 +225,25 @@ public class HomeScreen extends JFrame {
      * Carica dati di esempio per le conferenze
      */
     private void loadSampleData() {
-        conferenze.add(new ConferenzaData("Conferenza AI 2025", "Revisore", 
-            new String[]{"Chair", "Seleziona Specifiche competenze", "Modifica preferenze articolo"}));
-        conferenze.add(new ConferenzaData("Conferenza Software Engineering", "Editore", new String[]{}));
+        // Chair: "Revisore", "Chair", "Selezione specifiche competenze", "Modifica Preferenze Articolo"
+        conferenze.add(new ConferenzaData("Conferenza AI 2025", "Chair", 
+            new String[]{"Revisore", "Chair", "Selezione specifiche competenze", "Modifica Preferenze Articolo"}));
+        
+        // Editore: "Editore"
+        conferenze.add(new ConferenzaData("Conferenza Software Engineering", "Editore", 
+            new String[]{"Editore"}));
+        
+        // Revisore: "Revisore", "Selezione Specifiche Competenze", "Modifica preferenze articolo"
         conferenze.add(new ConferenzaData("Conferenza Machine Learning", "Revisore", 
-            new String[]{"Seleziona Specifiche competenze", "Modifica preferenze articolo"}));
-        conferenze.add(new ConferenzaData("Conferenza Data Science", "Sotto-revisore", new String[]{}));
-        conferenze.add(new ConferenzaData("Conferenza Cybersecurity", "Autore", new String[]{}));
+            new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo"}));
+        
+        // Sotto-revisore: "Sotto-revisore"
+        conferenze.add(new ConferenzaData("Conferenza Data Science", "Sotto-revisore", 
+            new String[]{"Sotto-revisore"}));
+        
+        // Autore: "Autore"
+        conferenze.add(new ConferenzaData("Conferenza Cybersecurity", "Autore", 
+            new String[]{"Autore"}));
         
         refreshTable();
     }
@@ -226,8 +265,22 @@ public class HomeScreen extends JFrame {
     }
     
     private void handleNotificheAction() {
-        // Mostra il menu utente sotto il bottone notifiche
-        userMenu.showMenuBelowButton(notificheButton);
+        // Temporaneamente disabilitato UserMenu
+        JOptionPane.showMessageDialog(this, "Apertura menu notifiche...");
+        /*
+        try {
+            if (userMenu != null) {
+                // Mostra il menu utente sotto il bottone notifiche
+                userMenu.showMenuBelowButton(notificheButton);
+            } else {
+                // Fallback se UserMenu non è disponibile
+                JOptionPane.showMessageDialog(this, "Apertura menu notifiche...");
+            }
+        } catch (Exception e) {
+            System.err.println("Errore nell'apertura menu notifiche: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Apertura menu notifiche...");
+        }
+        */
     }
     
     private void handleProfiloAction() {
@@ -240,6 +293,41 @@ public class HomeScreen extends JFrame {
     
     private void handleMostraTutteConferenzeAction() {
         JOptionPane.showMessageDialog(this, "Mostra tutte le conferenze disponibili...");
+    }
+    
+    /**
+     * Gestisce le azioni dei bottoni nella tabella delle conferenze
+     */
+    private void handleButtonAction(String action, int row) {
+        ConferenzaData conferenza = conferenze.get(row);
+        String message = "Azione: " + action + "\nConferenza: " + conferenza.nome + "\nRuolo: " + conferenza.ruolo;
+        
+        switch (action.toLowerCase()) {
+            case "chair":
+                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Chair...");
+                break;
+            case "revisore":
+                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Revisore...");
+                break;
+            case "editore":
+                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Editore...");
+                break;
+            case "sotto-revisore":
+                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Sotto-revisore...");
+                break;
+            case "autore":
+                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Autore...");
+                break;
+            case "selezione specifiche competenze":
+                JOptionPane.showMessageDialog(this, message + "\n\nApertura selezione competenze...");
+                break;
+            case "modifica preferenze articolo":
+                JOptionPane.showMessageDialog(this, message + "\n\nApertura modifica preferenze...");
+                break;
+            default:
+                JOptionPane.showMessageDialog(this, message);
+                break;
+        }
     }
     
     // Metodi originali implementati
@@ -297,25 +385,75 @@ public class HomeScreen extends JFrame {
         refreshTable();
     }
     
-    public void show() {
-        setVisible(true);
+    /**
+     * Aggiunge una conferenza con generazione automatica dei bottoni in base al ruolo
+     */
+    public void addConferenza(String nome, String ruolo) {
+        String[] azioni = generateActionsForRole(ruolo);
+        conferenze.add(new ConferenzaData(nome, ruolo, azioni));
+        refreshTable();
+    }
+    
+    /**
+     * Genera i bottoni appropriati in base al ruolo dell'utente
+     */
+    private String[] generateActionsForRole(String ruolo) {
+        switch (ruolo.toLowerCase()) {
+            case "chair":
+                return new String[]{"Revisore", "Chair", "Selezione specifiche competenze", "Modifica Preferenze Articolo"};
+            case "editore":
+                return new String[]{"Editore"};
+            case "revisore":
+                return new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo"};
+            case "sotto-revisore":
+                return new String[]{"Sotto-revisore"};
+            case "autore":
+                return new String[]{"Autore"};
+            default:
+                return new String[]{}; // Nessun bottone per ruoli non riconosciuti
+        }
+    }
+    
+    /**
+     * Aggiorna il ruolo di una conferenza esistente e rigenera i bottoni
+     */
+    public void updateConferenceRole(int index, String newRole) {
+        if (index >= 0 && index < conferenze.size()) {
+            ConferenzaData conf = conferenze.get(index);
+            conf.ruolo = newRole;
+            conf.azioni = generateActionsForRole(newRole);
+            refreshTable();
+        }
+    }
+    
+    /**
+     * Ottiene i ruoli disponibili nel sistema
+     */
+    public String[] getAvailableRoles() {
+        return new String[]{"Chair", "Editore", "Revisore", "Sotto-revisore", "Autore"};
     }
     
     /**
      * Imposta i dati dell'utente per il menu
      */
     public void setUserData(String username, String email) {
+        // Temporaneamente disabilitato UserMenu
+        System.out.println("Setting user data: " + username + ", " + email);
+        /*
         if (userMenu != null) {
             userMenu.setUserData(username, email);
         }
+        */
     }
     
     /**
      * Ottiene il menu utente
      */
+    /*
     public UserMenu getUserMenu() {
         return userMenu;
     }
+    */
 
     // Classe interna per i dati delle conferenze
     private static class ConferenzaData {
@@ -342,17 +480,26 @@ public class HomeScreen extends JFrame {
             if (value instanceof String[]) {
                 String[] actions = (String[]) value;
                 removeAll();
-                setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
+                
+                // Usa GridBagLayout per una disposizione più controllata
+                setLayout(new GridBagLayout());
+                GridBagConstraints gbc = new GridBagConstraints();
+                gbc.insets = new Insets(3, 3, 3, 3);
+                gbc.anchor = GridBagConstraints.CENTER;
+                
+                int buttonsPerRow = 2; // Massimo 2 bottoni per riga
+                int buttonCount = 0;
                 
                 for (String action : actions) {
                     if (!action.isEmpty()) {
-                        JButton button = new JButton(action);
-                        button.setBackground(Color.ORANGE);
-                        button.setForeground(Color.WHITE);
-                        button.setFont(new Font("Arial", Font.PLAIN, 10));
-                        button.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
-                        button.setFocusPainted(false);
-                        add(button);
+                        JButton button = HomeScreen.this.createStyledButton(action);
+                        
+                        gbc.gridx = buttonCount % buttonsPerRow;
+                        gbc.gridy = buttonCount / buttonsPerRow;
+                        gbc.fill = GridBagConstraints.HORIZONTAL;
+                        gbc.weightx = 1.0;
+                        add(button, gbc);
+                        buttonCount++;
                     }
                 }
             }
@@ -383,24 +530,31 @@ public class HomeScreen extends JFrame {
             if (value instanceof String[]) {
                 currentActions = (String[]) value;
                 panel.removeAll();
-                panel.setLayout(new FlowLayout(FlowLayout.LEFT, 2, 2));
+                
+                // Usa GridBagLayout per una disposizione più controllata
+                panel.setLayout(new GridBagLayout());
+                GridBagConstraints gbc = new GridBagConstraints();
+                gbc.insets = new Insets(3, 3, 3, 3);
+                gbc.anchor = GridBagConstraints.CENTER;
+                
+                int buttonsPerRow = 2; // Massimo 2 bottoni per riga
+                int buttonCount = 0;
                 
                 for (String action : currentActions) {
                     if (!action.isEmpty()) {
-                        JButton button = new JButton(action);
-                        button.setBackground(Color.ORANGE);
-                        button.setForeground(Color.WHITE);
-                        button.setFont(new Font("Arial", Font.PLAIN, 10));
-                        button.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
-                        button.setFocusPainted(false);
+                        JButton button = HomeScreen.this.createStyledButton(action);
                         
                         button.addActionListener(e -> {
-                            JOptionPane.showMessageDialog(panel, 
-                                "Azione: " + action + " per la conferenza alla riga " + (row + 1));
+                            HomeScreen.this.handleButtonAction(action, row);
                             fireEditingStopped();
                         });
                         
-                        panel.add(button);
+                        gbc.gridx = buttonCount % buttonsPerRow;
+                        gbc.gridy = buttonCount / buttonsPerRow;
+                        gbc.fill = GridBagConstraints.HORIZONTAL;
+                        gbc.weightx = 1.0;
+                        panel.add(button, gbc);
+                        buttonCount++;
                     }
                 }
             }
@@ -414,6 +568,67 @@ public class HomeScreen extends JFrame {
     }
     
     /**
+     * Crea un bottone con stile moderno e accattivante
+     */
+    private JButton createStyledButton(String text) {
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Colore di sfondo con sfumatura
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, new Color(255, 165, 0), // Arancione chiaro
+                    0, getHeight(), new Color(255, 140, 0) // Arancione scuro
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                
+                // Bordo sottile
+                g2d.setColor(new Color(200, 120, 0));
+                g2d.setStroke(new BasicStroke(1));
+                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                
+                g2d.dispose();
+                super.paintComponent(g);
+            }
+            
+            @Override
+            protected void paintBorder(Graphics g) {
+                // Non disegnare il bordo di default
+            }
+        };
+        
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Arial", Font.BOLD, 9));
+        button.setFocusPainted(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setOpaque(false);
+        button.setPreferredSize(new Dimension(145, 28));
+        button.setMinimumSize(new Dimension(145, 28));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Effetto hover
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(new Color(255, 180, 50));
+                button.repaint();
+            }
+            
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(Color.ORANGE);
+                button.repaint();
+            }
+        });
+        
+        return button;
+    }
+
+    /**
      * Metodo main per testing standalone
      */
     public static void main(String[] args) {
@@ -426,6 +641,9 @@ public class HomeScreen extends JFrame {
             
             // Imposta dati utente personalizzati
             homeScreen.setUserData("Mario Rossi", "mario.rossi@universita.it");
+            
+            // Test aggiunta conferenza con generazione automatica bottoni
+            homeScreen.addConferenza("Conferenza Test Automatico", "Chair");
             
             homeScreen.displayUserDashboard();
         });
