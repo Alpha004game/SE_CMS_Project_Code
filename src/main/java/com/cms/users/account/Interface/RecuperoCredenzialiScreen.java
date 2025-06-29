@@ -27,7 +27,7 @@ public class RecuperoCredenzialiScreen extends JFrame {
         
         setTitle("Recupera credenziali");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(500, 300);
+        setSize(600, 400);
         setLocationRelativeTo(null);
         setResizable(false);
         getContentPane().setBackground(Color.WHITE);

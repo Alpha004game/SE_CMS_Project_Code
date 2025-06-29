@@ -1,6 +1,9 @@
 package com.cms.users.account.Interface;
 
 import javax.swing.*;
+
+import com.cms.users.account.Control.RegistrationControl;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -28,18 +31,21 @@ public class RegistrationScreen extends JFrame {
     private String campoUsername;
     private String campoPassword;
     private String campoConfermaPassword;
+
+    private RegistrationControl registrationControl;
     
-    public RegistrationScreen() {
+    public RegistrationScreen(RegistrationControl registrationControl) {
         initializeComponents();
         setupLayout();
         setupEventHandlers();
         
         setTitle("4.4.2 RegistrationScreen");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(500, 450);
+        setSize(500, 750);
         setLocationRelativeTo(null);
         setResizable(false);
         getContentPane().setBackground(Color.WHITE);
+        this.registrationControl = registrationControl;
     }
     
     private void initializeComponents() {
@@ -219,8 +225,8 @@ public class RegistrationScreen extends JFrame {
             return;
         }
         
-        // Validazione password
-        if (campoPassword.length() < 6) {
+        // Validazione password COMPLETARE VALIDAZIONE
+        if (campoPassword.length() < 8) {
             JOptionPane.showMessageDialog(this, 
                 "La password deve essere di almeno 6 caratteri", 
                 "Password troppo corta", 
@@ -228,36 +234,9 @@ public class RegistrationScreen extends JFrame {
             return;
         }
         
-        // Controllo corrispondenza password
-        if (!campoPassword.equals(campoConfermaPassword)) {
-            JOptionPane.showMessageDialog(this, 
-                "Le password non corrispondono", 
-                "Errore password", 
-                JOptionPane.ERROR_MESSAGE);
-            confermaPasswordField.setText("");
-            confermaPasswordField.requestFocus();
-            return;
-        }
+        registrationControl.registra();
         
-        // Validazione username
-        if (campoUsername.length() < 3) {
-            JOptionPane.showMessageDialog(this, 
-                "L'username deve essere di almeno 3 caratteri", 
-                "Username troppo corto", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
         
-        // Qui andrà la logica di registrazione tramite control
-        System.out.println("Tentativo di registrazione per: " + campoUsername + " - " + campoEmail);
-        
-        // Successo
-        JOptionPane.showMessageDialog(this, 
-            "Registrazione completata con successo!\nUsername: " + campoUsername + "\nEmail: " + campoEmail, 
-            "Registrazione completata", 
-            JOptionPane.INFORMATION_MESSAGE);
-        
-        // Pulisci i campi dopo registrazione riuscita
         clearFields();
     }
     
@@ -301,11 +280,6 @@ public class RegistrationScreen extends JFrame {
         usernameField.setText(username);
     }
     
-    // Main per testing
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new RegistrationScreen().create();
-        });
-    }
+    
     
 }

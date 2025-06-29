@@ -1,6 +1,11 @@
 package com.cms.users.account.Interface;
 
 import javax.swing.*;
+
+import com.cms.users.account.Control.LoginControl;
+
+import com.cms.users.account.Control.RegistrationControl;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -26,6 +31,7 @@ public class LoginScreen extends JFrame {
     // Attributi originali
     private String campoUsername;
     private String campoPassword;
+
     
     public LoginScreen() {
         initializeComponents();
@@ -38,6 +44,7 @@ public class LoginScreen extends JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
         getContentPane().setBackground(Color.WHITE);
+
     }
     
     private void initializeComponents() {
@@ -212,14 +219,9 @@ public class LoginScreen extends JFrame {
             return;
         }
         
-        // Qui andrà la logica di autenticazione tramite control
-        System.out.println("Tentativo di login per: " + campoUsername);
+        // LOGICA LOGIN
+        new LoginControl().accedi(this);
         
-        // Esempio di feedback
-        JOptionPane.showMessageDialog(this, 
-            "Login effettuato per: " + campoUsername, 
-            "Login", 
-            JOptionPane.INFORMATION_MESSAGE);
     }
     
     public String getCredenziali() {
@@ -238,10 +240,8 @@ public class LoginScreen extends JFrame {
     
     public void registrationButton() {
         System.out.println("Apertura schermata registrazione");
-        JOptionPane.showMessageDialog(this, 
-            "Apertura schermata registrazione...", 
-            "Registrazione", 
-            JOptionPane.INFORMATION_MESSAGE);
+        new RegistrationControl().create();
+        this.dispose();
     }
     
     public void recuperoCredenzialiButton() {

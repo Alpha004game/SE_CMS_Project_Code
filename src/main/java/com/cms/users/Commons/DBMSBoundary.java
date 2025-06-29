@@ -69,32 +69,12 @@ public class DBMSBoundary {
 
     
     // User Management Methods
-    public boolean checkUsername(String username) { //return false if exists else return true
+    public boolean checkUsername(String username) { //return true if exists else return false
         try
         {
             Connection con=getConnection();
             PreparedStatement stmt=con.prepareStatement("SELECT EXISTS (SELECT 1 FROM utenti WHERE username = ? ) AS esiste");
             stmt.setString(1, username);
-            ResultSet ris=stmt.executeQuery();
-            ris.next();
-            int esito=ris.getInt("esiste");
-            ris.close();
-            stmt.close();
-            con.close();
-            return esito!=1;
-        }
-        catch(Exception e)
-        {
-            return false;
-        }
-    }
-    
-    public boolean checkPassword(String password) { //true if success, false if password not equal
-        try
-        {
-            Connection con=getConnection();
-            PreparedStatement stmt=con.prepareStatement("SELECT EXISTS (SELECT 1 FROM utenti WHERE password = ? ) AS esiste");
-            stmt.setString(1, sha512(password));
             ResultSet ris=stmt.executeQuery();
             ris.next();
             int esito=ris.getInt("esiste");
@@ -109,12 +89,36 @@ public class DBMSBoundary {
         }
     }
     
+    public UtenteE checkPassword(String username, String password) { //true if success, false if password not equal
+        try
+        {
+            UtenteE u=null;
+            Connection con=getConnection();
+            PreparedStatement stmt=con.prepareStatement("SELECT U.id, U.username, U.email FROM utenti as U WHERE U.username= ? AND U.password= ?");
+            stmt.setString(1, username);
+            stmt.setString(2, sha512(password));
+            ResultSet ris=stmt.executeQuery();
+            if(ris.next())
+            {
+                u=new UtenteE(ris.getInt("id"), ris.getString("username"), ris.getString("email"));
+            }
+            ris.close();
+            stmt.close();
+            con.close();
+            return u;
+        }
+        catch(Exception e)
+        {
+            return null;
+        }
+    }
+    
     public LinkedList<String> getListaUsername() {
         try
         {
             LinkedList<String> lista=new LinkedList<>();
             Connection conn=getConnection();
-            PreparedStatement stmt=conn.prepareCall("SELECT U.username as username FROM utenti as U");
+            PreparedStatement stmt=conn.prepareStatement("SELECT U.username FROM utenti as U");
             ResultSet ris=stmt.executeQuery();
             while(ris.next())
             {
@@ -127,6 +131,7 @@ public class DBMSBoundary {
         }
         catch(Exception e)
         {
+            e.printStackTrace();
             return null;
         }
         
