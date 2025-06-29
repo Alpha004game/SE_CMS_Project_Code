@@ -6,6 +6,10 @@ import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
+
+import com.cms.users.Entity.ArticoloE;
+import com.cms.users.submissions.Control.GestioneArticoliControl;
 
 /**
  * <<boundary>>
@@ -23,12 +27,9 @@ public class NewSubmissionScreen extends JFrame {
     private JTextArea abstractTextArea;
     private JTextField coAutoriField;
     
-    // Keywords (8 campi checkbox)
+    // Keywords (checkbox dinamici basati sulla conferenza)
     private JCheckBox[] keywordCheckboxes;
-    private String[] keywordOptions = {
-        "Machine Learning", "Software Engineering", "Artificial Intelligence", "Cloud Computing",
-        "Data Science", "Cybersecurity", "Mobile Development", "Web Development"
-    };
+    private ArrayList<String> keywordOptions;
     
     // File upload
     private JButton caricaArticoloButton;
@@ -40,6 +41,11 @@ public class NewSubmissionScreen extends JFrame {
     private File articoloPdfFile;
     private File allegatoFile;
     
+    // Attributi per l'integrazione con il database
+    private int idConferenza;
+    private int idUtente;
+    private GestioneArticoliControl gestioneArticoliControl;
+    
     // Attributi originali (per compatibilità)
     private String titolo;
     private String abstractText;
@@ -50,9 +56,52 @@ public class NewSubmissionScreen extends JFrame {
     private String allegato;
     
     /**
-     * Costruttore
+     * Costruttore di default (per compatibilità)
      */
     public NewSubmissionScreen() {
+        // Inizializza con keywords di default
+        this.keywordOptions = new ArrayList<>();
+        this.keywordOptions.add("Machine Learning");
+        this.keywordOptions.add("Software Engineering");
+        this.keywordOptions.add("Artificial Intelligence");
+        this.keywordOptions.add("Cloud Computing");
+        this.keywordOptions.add("Data Science");
+        this.keywordOptions.add("Cybersecurity");
+        this.keywordOptions.add("Mobile Development");
+        this.keywordOptions.add("Web Development");
+        
+        this.idConferenza = -1;
+        this.idUtente = -1;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
+     * Costruttore per sottomissione con keywords specifiche della conferenza
+     */
+    public NewSubmissionScreen(int idConferenza, ArrayList<String> keywordsConferenza) {
+        this.idConferenza = idConferenza;
+        this.idUtente = -1; // Sarà impostato quando necessario
+        this.keywordOptions = new ArrayList<>(keywordsConferenza);
+        this.gestioneArticoliControl = new GestioneArticoliControl();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
+     * Costruttore completo con utente, conferenza e keywords
+     */
+    public NewSubmissionScreen(int idUtente, int idConferenza, ArrayList<String> keywordsConferenza) {
+        this.idUtente = idUtente;
+        this.idConferenza = idConferenza;
+        this.keywordOptions = new ArrayList<>(keywordsConferenza);
+        this.gestioneArticoliControl = new GestioneArticoliControl();
+        
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -64,7 +113,7 @@ public class NewSubmissionScreen extends JFrame {
     private void initializeComponents() {
         // Configurazione finestra principale
         setTitle("CMS - Nuova Sottomissione");
-        setSize(700, 800);
+        setSize(1400, 800);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(true);
@@ -98,7 +147,7 @@ public class NewSubmissionScreen extends JFrame {
         initializeFileButtons();
         
         // Bottone principale
-        caricaSottomissioneButton = new JButton("Carica sottomissione");
+        caricaSottomissioneButton = new JButton("Sottometti");
         caricaSottomissioneButton.setBackground(Color.ORANGE);
         caricaSottomissioneButton.setForeground(Color.WHITE);
         caricaSottomissioneButton.setFont(new Font("Arial", Font.BOLD, 14));
@@ -136,9 +185,9 @@ public class NewSubmissionScreen extends JFrame {
         coAutoriField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         coAutoriField.setPreferredSize(new Dimension(400, 35));
         
-        // Keywords (8 checkbox in griglia 2x4)
-        keywordCheckboxes = new JCheckBox[keywordOptions.length];
-        for (int i = 0; i < keywordOptions.length; i++) {
+        // Keywords (checkbox dinamici basati sulla conferenza)
+        keywordCheckboxes = new JCheckBox[keywordOptions.size()];
+        for (int i = 0; i < keywordOptions.size(); i++) {
             keywordCheckboxes[i] = new JCheckBox();
             keywordCheckboxes[i].setBackground(fieldColor);
             keywordCheckboxes[i].setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
@@ -323,13 +372,26 @@ public class NewSubmissionScreen extends JFrame {
         
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
         
-        // Griglia 2x4 per i checkbox
-        JPanel gridPanel = new JPanel(new GridLayout(2, 4, 10, 10));
+        // Calcola il numero di righe necessarie (massimo 4 colonne)
+        int numKeywords = keywordOptions.size();
+        int cols = Math.min(4, numKeywords);
+        int rows = (int) Math.ceil((double) numKeywords / cols);
+        
+        // Griglia per i checkbox
+        JPanel gridPanel = new JPanel(new GridLayout(rows, cols, 10, 10));
         gridPanel.setBackground(Color.WHITE);
-        gridPanel.setMaximumSize(new Dimension(500, 80));
+        gridPanel.setMaximumSize(new Dimension(500, rows * 30 + (rows - 1) * 10));
         
         for (int i = 0; i < keywordCheckboxes.length; i++) {
-            gridPanel.add(keywordCheckboxes[i]);
+            JPanel keywordPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            keywordPanel.setBackground(Color.WHITE);
+            keywordPanel.add(keywordCheckboxes[i]);
+            
+            JLabel keywordLabel = new JLabel(keywordOptions.get(i));
+            keywordLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            keywordPanel.add(keywordLabel);
+            
+            gridPanel.add(keywordPanel);
         }
         
         gridPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -528,19 +590,66 @@ public class NewSubmissionScreen extends JFrame {
             JOptionPane.YES_NO_OPTION);
         
         if (result == JOptionPane.YES_OPTION) {
-            // Simula il caricamento
-            JOptionPane.showMessageDialog(this,
-                "Sottomissione caricata con successo!\n" +
-                "ID Sottomissione: SUB" + (int)(Math.random() * 10000) + "\n" +
-                "La tua sottomissione è stata ricevuta e sarà valutata.",
-                "Successo",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Qui andrà la logica per salvare nel database
-            System.out.println("Sottomissione salvata: " + titolo);
-            
-            // Chiude la schermata
-            dispose();
+            try {
+                // Crea l'ArticoloE secondo il sequence diagram
+                ArticoloE articolo = new ArticoloE();
+                articolo.setTitolo(titolo);
+                articolo.setAbstractText(abstractText);
+                articolo.setStato("Inviato");
+                articolo.setIdConferenza(idConferenza);
+                articolo.setUltimaModifica(java.time.LocalDate.now());
+                
+                // Imposta keywords e co-autori
+                List<String> selectedKeywords = getSelectedKeywords();
+                LinkedList<String> keywordsList = new LinkedList<>(selectedKeywords);
+                articolo.setKeywords(keywordsList);
+                
+                if (!coAutori.trim().isEmpty()) {
+                    String[] coAutoriArray = coAutori.split(",");
+                    LinkedList<String> coAutoriList = new LinkedList<>();
+                    for (String coAutore : coAutoriArray) {
+                        coAutoriList.add(coAutore.trim());
+                    }
+                    articolo.setCoAutori(coAutoriList);
+                }
+                
+                articolo.setDichiarazioneOriginalita(dichiarazioneOriginalitaCheckbox.isSelected());
+                
+                // Gestisce i file (per ora salvando i path, in futuro potrebbero essere blob)
+                if (articoloPdfFile != null) {
+                    articolo.setFileArticolo(articoloPdfFile.getAbsolutePath());
+                }
+                
+                if (allegatoFile != null) {
+                    articolo.setAllegato(allegatoFile.getAbsolutePath());
+                }
+                
+                // Chiama il control per salvare la sottomissione (seguendo il SD)
+                // Nota: per ora usa un ID utente di default, in futuro sarà preso dalla sessione
+                int currentUserId = getCurrentUserId();
+                gestioneArticoliControl.salvaSottomissione(articolo, currentUserId, idConferenza);
+                
+                // Mostra messaggio di successo
+                JOptionPane.showMessageDialog(this,
+                    "Sottomissione caricata con successo!\n" +
+                    "La tua sottomissione è stata ricevuta e sarà valutata.",
+                    "Successo",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Chiude la schermata
+                dispose();
+                
+            } catch (Exception e) {
+                // Gestisce errori durante il salvataggio
+                System.err.println("Errore durante il salvataggio della sottomissione: " + e.getMessage());
+                e.printStackTrace();
+                
+                JOptionPane.showMessageDialog(this,
+                    "Errore durante il salvataggio della sottomissione.\n" +
+                    "Riprova più tardi o contatta il supporto.",
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
@@ -598,7 +707,7 @@ public class NewSubmissionScreen extends JFrame {
         List<String> selectedKeywords = new ArrayList<>();
         for (int i = 0; i < keywordCheckboxes.length; i++) {
             if (keywordCheckboxes[i].isSelected()) {
-                selectedKeywords.add(keywordOptions[i]);
+                selectedKeywords.add(keywordOptions.get(i));
             }
         }
         this.keywords = String.join(", ", selectedKeywords);
@@ -651,8 +760,8 @@ public class NewSubmissionScreen extends JFrame {
             String[] keywordArray = keywords.split(",");
             for (String keyword : keywordArray) {
                 String cleanKeyword = keyword.trim();
-                for (int i = 0; i < keywordOptions.length; i++) {
-                    if (keywordOptions[i].equals(cleanKeyword)) {
+                for (int i = 0; i < keywordOptions.size(); i++) {
+                    if (keywordOptions.get(i).equals(cleanKeyword)) {
                         keywordCheckboxes[i].setSelected(true);
                         break;
                     }
@@ -750,7 +859,7 @@ public class NewSubmissionScreen extends JFrame {
         if (keywordCheckboxes != null) {
             for (int i = 0; i < keywordCheckboxes.length; i++) {
                 if (keywordCheckboxes[i].isSelected()) {
-                    selected.add(keywordOptions[i]);
+                    selected.add(keywordOptions.get(i));
                 }
             }
         }
@@ -786,5 +895,54 @@ public class NewSubmissionScreen extends JFrame {
             NewSubmissionScreen screen = new NewSubmissionScreen();
             screen.create();
         });
+    }
+    
+    /**
+     * Ottiene l'ID dell'utente corrente
+     * In futuro dovrebbe essere ottenuto dalla sessione utente
+     */
+    private int getCurrentUserId() {
+        if (idUtente != -1) {
+            return idUtente;
+        }
+        // Per ora ritorna un ID di default, in futuro sarà gestito tramite sessione
+        // TODO: Implementare gestione della sessione utente
+        return 1; // ID di default per testing
+    }
+    
+    /**
+     * Imposta l'ID dell'utente corrente
+     */
+    public void setIdUtente(int idUtente) {
+        this.idUtente = idUtente;
+    }
+    
+    /**
+     * Ottiene l'ID della conferenza
+     */
+    public int getIdConferenza() {
+        return idConferenza;
+    }
+    
+    /**
+     * Imposta l'ID della conferenza
+     */
+    public void setIdConferenza(int idConferenza) {
+        this.idConferenza = idConferenza;
+    }
+    
+    /**
+     * Imposta le keywords dinamicamente
+     */
+    public void setKeywordOptions(ArrayList<String> keywords) {
+        if (keywords != null) {
+            this.keywordOptions = new ArrayList<>(keywords);
+            // Ricrea i checkbox se necessario
+            if (keywordCheckboxes != null) {
+                // In questo caso bisognerebbe ricreare l'interfaccia
+                // Per ora, stampiamo le keywords
+                System.out.println("Keywords aggiornate: " + keywords);
+            }
+        }
     }
 }

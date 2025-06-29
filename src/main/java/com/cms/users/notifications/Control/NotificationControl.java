@@ -46,7 +46,7 @@ public class NotificationControl {
                 notificationScreen.setNotificationList(notificheAttive);
             } else {
                 // Lista vuota: setNotification(null)
-                notificationScreen.setNotification(null);
+                notificationScreen.setNotificationList(null);
             }
             
             // Mostra la schermata

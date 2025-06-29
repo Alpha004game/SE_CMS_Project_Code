@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cms.AppTest" time="0.013" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cms.AppTest" time="0.014" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="16"/>
     <property name="sun.cpu.isalist" value="amd64"/>
@@ -15,7 +15,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="IT"/>
     <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-16.0.1\bin"/>
-    <property name="sun.java.command" value="C:\Users\Alpha\AppData\Local\Temp\surefire8077230301421131183\surefirebooter-20250629171551372_3.jar C:\Users\Alpha\AppData\Local\Temp\surefire8077230301421131183 2025-06-29T17-15-51_204-jvmRun1 surefire-20250629171551372_1tmp surefire_0-20250629171551372_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\Alpha\AppData\Local\Temp\surefire6955744864285583156\surefirebooter-20250630000430555_3.jar C:\Users\Alpha\AppData\Local\Temp\surefire6955744864285583156 2025-06-30T00-04-30_340-jvmRun1 surefire-20250630000430555_1tmp surefire_0-20250630000430555_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\test-classes;C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\classes;C:\Users\Alpha\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\Alpha\.m2\repository\javax\mail\mail\1.5.0-b01\mail-1.5.0-b01.jar;C:\Users\Alpha\.m2\repository\javax\activation\activation\1.1\activation-1.1.jar;C:\Users\Alpha\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.5.3\mariadb-java-client-3.5.3.jar;C:\Users\Alpha\.m2\repository\com\itextpdf\itextpdf\5.5.13.4\itextpdf-5.5.13.4.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -30,7 +30,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
-    <property name="surefire.real.class.path" value="C:\Users\Alpha\AppData\Local\Temp\surefire8077230301421131183\surefirebooter-20250629171551372_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\Alpha\AppData\Local\Temp\surefire6955744864285583156\surefirebooter-20250630000430555_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="16.0.1+9-24"/>

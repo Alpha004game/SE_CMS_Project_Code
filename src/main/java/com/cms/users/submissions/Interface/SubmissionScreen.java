@@ -4,6 +4,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
+import com.cms.users.Entity.ArticoloE;
+import com.cms.users.submissions.Control.GestioneArticoliControl;
 
 /**
  * <<boundary>>
@@ -23,14 +26,19 @@ public class SubmissionScreen extends JFrame {
     // Dati degli articoli
     private List<String> articoli;
     
-    // Attributo originale (per compatibilità)
-    private String listaSottomissioni;
+    // Informazioni per l'integrazione con il database
+    private int idUtente;
+    private int idConferenza;
+    private GestioneArticoliControl gestioneArticoliControl;
     
     /**
      * Costruttore di default - mostra "Nessun Articolo Trovato"
      */
     public SubmissionScreen() {
         this.articoli = new ArrayList<>();
+        this.idUtente = -1;
+        this.idConferenza = -1;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         
         initializeComponents();
         setupLayout();
@@ -42,6 +50,23 @@ public class SubmissionScreen extends JFrame {
      */
     public SubmissionScreen(List<String> articoli) {
         this.articoli = articoli != null ? new ArrayList<>(articoli) : new ArrayList<>();
+        this.idUtente = -1;
+        this.idConferenza = -1;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
+     * Costruttore con informazioni complete per l'integrazione con il database
+     */
+    public SubmissionScreen(int idUtente, int idConferenza) {
+        this.articoli = new ArrayList<>();
+        this.idUtente = idUtente;
+        this.idConferenza = idConferenza;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         
         initializeComponents();
         setupLayout();
@@ -52,8 +77,10 @@ public class SubmissionScreen extends JFrame {
      * Costruttore con singola stringa (per compatibilità)
      */
     public SubmissionScreen(String listaSottomissioni) {
-        this.listaSottomissioni = listaSottomissioni;
         this.articoli = new ArrayList<>();
+        this.idUtente = -1;
+        this.idConferenza = -1;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         
         // Se la stringa contiene articoli, li parsifica
         if (listaSottomissioni != null && !listaSottomissioni.trim().isEmpty()) {
@@ -349,15 +376,25 @@ public class SubmissionScreen extends JFrame {
     }
     
     private void handleCreaNuovaSottomissione() {
-        dispose();
-        // Apri NewSubmissionScreen
         try {
-            Class<?> newSubmissionClass = Class.forName("com.cms.users.submissions.Interface.NewSubmissionScreen");
-            Object newSubmissionScreen = newSubmissionClass.getDeclaredConstructor().newInstance();
-            java.lang.reflect.Method createMethod = newSubmissionClass.getMethod("create");
-            createMethod.invoke(newSubmissionScreen);
+            // Segue il sequence diagram per la creazione di una nuova sottomissione
+            if (idUtente != -1 && idConferenza != -1) {
+                // Usa il control per aprire la schermata di nuova sottomissione con le keywords corrette
+                gestioneArticoliControl.creaNuovaSottomissione(idUtente, idConferenza);
+                dispose();
+            } else {
+                // Fallback per quando le informazioni non sono disponibili
+                NewSubmissionScreen newSubmissionScreen = new NewSubmissionScreen();
+                newSubmissionScreen.create();
+                dispose();
+            }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Apertura schermata nuova sottomissione...");
+            System.err.println("Errore durante l'apertura della schermata nuova sottomissione: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della schermata nuova sottomissione.\nRiprovare più tardi.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -404,8 +441,6 @@ public class SubmissionScreen extends JFrame {
      * Mostra la schermata con una lista di sottomissioni
      */
     public void mostraSubmissionScreen(String listaSottomissioni) {
-        this.listaSottomissioni = listaSottomissioni;
-        
         // Parsifica la stringa in una lista di articoli
         this.articoli.clear();
         if (listaSottomissioni != null && !listaSottomissioni.trim().isEmpty()) {
@@ -549,5 +584,62 @@ public class SubmissionScreen extends JFrame {
             // SubmissionScreen emptyScreen = new SubmissionScreen();
             // emptyScreen.create();
         });
+    }
+    
+    /**
+     * Mostra la lista delle sottomissioni (ArticoloE) 
+     * Questo metodo è chiamato dal GestioneArticoliControl
+     */
+    public void mostraListaSottomissioni(LinkedList<ArticoloE> listaSottomissioni) {
+        // Converte la lista di ArticoloE in lista di stringhe per la visualizzazione
+        this.articoli.clear();
+        
+        if (listaSottomissioni != null && !listaSottomissioni.isEmpty()) {
+            for (ArticoloE articolo : listaSottomissioni) {
+                String displayText = articolo.getTitolo();
+                if (displayText == null || displayText.isEmpty()) {
+                    displayText = "Articolo senza titolo (ID: " + articolo.getId() + ")";
+                }
+                this.articoli.add(displayText);
+            }
+        }
+        
+        // Aggiorna il contenuto del pannello
+        updateContentPanel();
+        
+        // Se la finestra non è ancora visibile, la crea
+        if (!isDisplayable()) {
+            create();
+        }
+    }
+    
+    /**
+     * Mostra un messaggio di errore
+     */
+    public void mostraErrore(String messaggioErrore) {
+        this.articoli.clear();
+        
+        // Imposta un messaggio di errore nel content panel
+        SwingUtilities.invokeLater(() -> {
+            contentPanel.removeAll();
+            contentPanel.setLayout(new BorderLayout());
+            
+            JLabel errorLabel = new JLabel("<html><div style='text-align: center;'>" +
+                                          "<h2>Errore</h2>" +
+                                          "<p>" + messaggioErrore + "</p>" +
+                                          "</div></html>");
+            errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            errorLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+            errorLabel.setForeground(Color.RED);
+            
+            contentPanel.add(errorLabel, BorderLayout.CENTER);
+            contentPanel.revalidate();
+            contentPanel.repaint();
+        });
+        
+        // Se la finestra non è ancora visibile, la crea
+        if (!isDisplayable()) {
+            create();
+        }
     }
 }

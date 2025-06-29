@@ -43,8 +43,8 @@ public class UtenteE {
         return null;
     }
     
-    public void getId() {
-        
+    public int getId() {
+        return this.id;
     }
     
     // Getter methods

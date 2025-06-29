@@ -1,15 +1,25 @@
 package com.cms.users.conference.Interface;
 
 import javax.swing.*;
+import javax.swing.text.JTextComponent;
+
+import com.cms.App;
+import com.cms.users.conference.Control.CreaConferenzaControl;
+
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
+import java.util.Date;
+import java.util.Calendar;
 
 /**
  * <<boundary>>
  * ConferenceCreationScreen - Schermata per la creazione di una nuova conferenza
  */
 public class ConferenceCreationScreen extends JFrame {
+    
+    // Riferimento al control (seguendo il sequence diagram)
+    private CreaConferenzaControl creaConferenzaControl;
     
     // Componenti dell'interfaccia
     private JButton homeButton;
@@ -21,19 +31,17 @@ public class ConferenceCreationScreen extends JFrame {
     private JTextField titoloField;
     private JTextField annoEdizioneField;
     private JTextArea abstractField;
-    private JTextField dataInizioField;
-    private JTextField dataFineField;
-    private JTextField deadlineSottomissioneField;
-    private JTextField deadlineRitiroField;
-    private JTextField deadlineRevisioniField;
-    private JTextField deadlineVersioneFinaleField;
-    private JTextField deadlineVersionePubblicazioneField;
+    private JSpinner dataInizioField;
+    private JSpinner dataFineField;
+    private JSpinner deadlineSottomissioneField;
+    private JSpinner deadlineRitiroField;
+    private JSpinner deadlineRevisioniField;
+    private JSpinner deadlineVersioneFinaleField;
+    private JSpinner deadlineVersionePubblicazioneField;
     private JTextField luogoField;
-    private JTextField temiPrincipaliField;
     private JTextField keywordsField;
     private JTextField numeroArticoliPrevistiField;
     private JTextField numeroMinimoRevisoriField;
-    private JTextField numeroMassimoRevisoriField;
     private JTextField tassoAccettazioneField;
     
     // Attributi originali
@@ -55,9 +63,20 @@ public class ConferenceCreationScreen extends JFrame {
     private int id;
     
     /**
-     * Costruttore
+     * Costruttore con riferimento al control (seguendo il sequence diagram)
+     */
+    public ConferenceCreationScreen(CreaConferenzaControl creaConferenzaControl) {
+        this.creaConferenzaControl = creaConferenzaControl;
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
+     * Costruttore di default (per compatibilità)
      */
     public ConferenceCreationScreen() {
+        this.creaConferenzaControl = null;
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -69,7 +88,7 @@ public class ConferenceCreationScreen extends JFrame {
     private void initializeComponents() {
         // Configurazione finestra principale
         setTitle("CMS - Creazione Nuova Conferenza");
-        setSize(900, 700);
+        setSize(1200, 900);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(true);
@@ -120,11 +139,9 @@ public class ConferenceCreationScreen extends JFrame {
         titoloField = createTextField(fieldFont, fieldColor);
         annoEdizioneField = createTextField(fieldFont, fieldColor);
         luogoField = createTextField(fieldFont, fieldColor);
-        temiPrincipaliField = createTextField(fieldFont, fieldColor);
         keywordsField = createTextField(fieldFont, fieldColor);
         numeroArticoliPrevistiField = createTextField(fieldFont, fieldColor);
         numeroMinimoRevisoriField = createTextField(fieldFont, fieldColor);
-        numeroMassimoRevisoriField = createTextField(fieldFont, fieldColor);
         tassoAccettazioneField = createTextField(fieldFont, fieldColor);
         
         // Campo Abstract (più grande)
@@ -135,37 +152,14 @@ public class ConferenceCreationScreen extends JFrame {
         abstractField.setLineWrap(true);
         abstractField.setWrapStyleWord(true);
         
-        // Campi data (con placeholder per formato)
-        dataInizioField = createTextField(fieldFont, fieldColor);
-        dataInizioField.setText("dd/MM/yyyy");
-        dataInizioField.setForeground(Color.GRAY);
-        
-        dataFineField = createTextField(fieldFont, fieldColor);
-        dataFineField.setText("dd/MM/yyyy");
-        dataFineField.setForeground(Color.GRAY);
-        
-        deadlineSottomissioneField = createTextField(fieldFont, fieldColor);
-        deadlineSottomissioneField.setText("dd/MM/yyyy");
-        deadlineSottomissioneField.setForeground(Color.GRAY);
-        
-        deadlineRitiroField = createTextField(fieldFont, fieldColor);
-        deadlineRitiroField.setText("dd/MM/yyyy");
-        deadlineRitiroField.setForeground(Color.GRAY);
-        
-        deadlineRevisioniField = createTextField(fieldFont, fieldColor);
-        deadlineRevisioniField.setText("dd/MM/yyyy");
-        deadlineRevisioniField.setForeground(Color.GRAY);
-        
-        deadlineVersioneFinaleField = createTextField(fieldFont, fieldColor);
-        deadlineVersioneFinaleField.setText("dd/MM/yyyy");
-        deadlineVersioneFinaleField.setForeground(Color.GRAY);
-        
-        deadlineVersionePubblicazioneField = createTextField(fieldFont, fieldColor);
-        deadlineVersionePubblicazioneField.setText("dd/MM/yyyy");
-        deadlineVersionePubblicazioneField.setForeground(Color.GRAY);
-        
-        // Aggiungi focus listeners per gestire i placeholder
-        setupDateFieldPlaceholders();
+        // Campi data (con JSpinner)
+        dataInizioField = createDateField();
+        dataFineField = createDateField();
+        deadlineSottomissioneField = createDateField();
+        deadlineRitiroField = createDateField();
+        deadlineRevisioniField = createDateField();
+        deadlineVersioneFinaleField = createDateField();
+        deadlineVersionePubblicazioneField = createDateField();
     }
     
     /**
@@ -178,6 +172,32 @@ public class ConferenceCreationScreen extends JFrame {
         field.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         field.setPreferredSize(new Dimension(150, 30));
         return field;
+    }
+    
+    /**
+     * Crea un campo data con JSpinner
+     */
+    private JSpinner createDateField() {
+        // Crea un modello per la data con data corrente come default
+        Date today = new Date();
+        SpinnerDateModel dateModel = new SpinnerDateModel(today, null, null, Calendar.DAY_OF_MONTH);
+        
+        JSpinner dateSpinner = new JSpinner(dateModel);
+        
+        // Imposta il formato della data
+        JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy");
+        dateSpinner.setEditor(dateEditor);
+        
+        // Imposta dimensioni e stile
+        dateSpinner.setPreferredSize(new Dimension(150, 30));
+        dateSpinner.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+        
+        // Imposta il background del campo di testo interno
+        JFormattedTextField textField = ((JSpinner.DateEditor) dateSpinner.getEditor()).getTextField();
+        textField.setBackground(Color.LIGHT_GRAY);
+        textField.setFont(new Font("Arial", Font.PLAIN, 12));
+        
+        return dateSpinner;
     }
     
     /**
@@ -297,22 +317,17 @@ public class ConferenceCreationScreen extends JFrame {
         addFormField(formPanel, gbc, "Data limite per l'invio della versione da pubblicare:", deadlineVersionePubblicazioneField, 0, row, 3);
         row++;
         
-        // Settima riga: Luogo e Temi principali
+        // Settima riga: Luogo e Keywords
         addFormField(formPanel, gbc, "Luogo:", luogoField, 0, row, 1);
-        addFormField(formPanel, gbc, "Temi principali:", temiPrincipaliField, 2, row, 1);
+        addFormField(formPanel, gbc, "Keywords:", keywordsField, 2, row, 1);
         row++;
         
-        // Ottava riga: Keywords e Numero articoli previsti
-        addFormField(formPanel, gbc, "Keywords:", keywordsField, 0, row, 1);
-        addFormField(formPanel, gbc, "Numero di articoli previsti:", numeroArticoliPrevistiField, 2, row, 1);
+        // Ottava riga: Numero articoli previsti e Numero minimo revisori
+        addFormField(formPanel, gbc, "Numero di articoli previsti:", numeroArticoliPrevistiField, 0, row, 1);
+        addFormField(formPanel, gbc, "Numero minimo di revisori per articolo:", numeroMinimoRevisoriField, 2, row, 1);
         row++;
         
-        // Nona riga: Numero revisori min e max
-        addFormField(formPanel, gbc, "Numero minimo di revisori per articolo:", numeroMinimoRevisoriField, 0, row, 1);
-        addFormField(formPanel, gbc, "Numero massimo di articoli per revisore:", numeroMassimoRevisoriField, 2, row, 1);
-        row++;
-        
-        // Decima riga: Tasso accettazione
+        // Nona riga: Tasso accettazione
         addFormField(formPanel, gbc, "Tasso di accettazione previsto:", tassoAccettazioneField, 0, row, 1);
         
         return formPanel;
@@ -411,19 +426,21 @@ public class ConferenceCreationScreen extends JFrame {
         abstractField.setText(abstractText);
         annoEdizioneField.setText(anno);
         luogoField.setText(luogo);
-        temiPrincipaliField.setText(temi);
         keywordsField.setText(keyword);
         numeroMinimoRevisoriField.setText(numeroRevisori);
-        numeroMassimoRevisoriField.setText(numeroArticoliMassimo);
         numeroArticoliPrevistiField.setText(numeroArticoliPrevisti);
         tassoAccettazioneField.setText(tassoAccettazione);
         
         // Qui andrà la logica per salvare la conferenza
+        
         return "Conferenza creata: " + titolo;
     }
     
     /**
      * Gestisce il salvataggio della conferenza
+     */
+    /**
+     * Gestisce il salvataggio della conferenza seguendo il sequence diagram
      */
     public void saveButton() {
         // Validazione dei campi obbligatori
@@ -431,8 +448,30 @@ public class ConferenceCreationScreen extends JFrame {
             return;
         }
         
-        // Raccoglie tutti i dati dai campi
-        collectFormData();
+        // Verifica che il control sia disponibile
+        if (creaConferenzaControl == null) {
+            showError("Errore: sistema non inizializzato correttamente!");
+            return;
+        }
+        
+        // Raccoglie tutti i dati dai campi per passarli al control
+        String titolo = titoloField.getText().trim();
+        String abstractText = abstractField.getText().trim();
+        String annoEdizione = annoEdizioneField.getText().trim();
+        String luogo = luogoField.getText().trim();
+        String keywords = keywordsField.getText().trim();
+        String numeroRevisori = numeroMinimoRevisoriField.getText().trim();
+        String numeroArticoliPrevisti = numeroArticoliPrevistiField.getText().trim();
+        String tassoAccettazione = tassoAccettazioneField.getText().trim();
+        
+        // Raccoglie le date dai JSpinner
+        Date dataInizio = (Date) dataInizioField.getValue();
+        Date dataFine = (Date) dataFineField.getValue();
+        Date deadlineSottomissione = (Date) deadlineSottomissioneField.getValue();
+        Date deadlineRitiro = (Date) deadlineRitiroField.getValue();
+        Date deadlineRevisioni = (Date) deadlineRevisioniField.getValue();
+        Date deadlineVersioneFinale = (Date) deadlineVersioneFinaleField.getValue();
+        Date deadlineVersionePubblicazione = (Date) deadlineVersionePubblicazioneField.getValue();
         
         // Conferma salvataggio
         int result = JOptionPane.showConfirmDialog(this,
@@ -443,18 +482,26 @@ public class ConferenceCreationScreen extends JFrame {
             JOptionPane.YES_NO_OPTION);
         
         if (result == JOptionPane.YES_OPTION) {
-            // Simula il salvataggio
-            JOptionPane.showMessageDialog(this,
-                "Conferenza creata con successo!\n" +
-                "ID: " + generateConferenceId(),
-                "Successo",
-                JOptionPane.INFORMATION_MESSAGE);
+            // Seguendo il sequence diagram: ConferenceCreationScreen -> CreaConferenzaControl -> DBMSBoundary
+            boolean successo = creaConferenzaControl.salvaConferenza(
+                titolo, abstractText, annoEdizione, 
+                dataInizio, dataFine, deadlineSottomissione, deadlineRitiro, 
+                deadlineRevisioni, deadlineVersioneFinale, deadlineVersionePubblicazione,
+                luogo, keywords, numeroRevisori, numeroArticoliPrevisti, tassoAccettazione
+            );
             
-            // Qui andrà la logica per salvare nel database
-            System.out.println("Conferenza salvata: " + titolo);
-            
-            // Torna alla home
-            handleHomeAction();
+            if (successo) {
+                JOptionPane.showMessageDialog(this,
+                    "Conferenza creata con successo!\n" +
+                    "Titolo: " + titolo,
+                    "Successo",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Torna alla home
+                handleHomeAction();
+            } else {
+                showError("Errore durante il salvataggio della conferenza!");
+            }
         }
     }
     
@@ -478,24 +525,23 @@ public class ConferenceCreationScreen extends JFrame {
             return false;
         }
         
-        if (dataInizioField.getText().trim().isEmpty() || dataInizioField.getText().equals("dd/MM/yyyy")) {
-            showError("La data di inizio è obbligatoria!");
+        // Validazione date (sempre valide con JSpinner)
+        if (!isValidDateSpinner(dataInizioField)) {
+            showError("La data di inizio non è valida!");
             return false;
         }
         
-        if (dataFineField.getText().trim().isEmpty() || dataFineField.getText().equals("dd/MM/yyyy")) {
-            showError("La data di fine è obbligatoria!");
+        if (!isValidDateSpinner(dataFineField)) {
+            showError("La data di fine non è valida!");
             return false;
         }
         
-        // Validazione formato date
-        if (!isValidDate(dataInizioField.getText().trim())) {
-            showError("La data di inizio deve essere nel formato dd/MM/yyyy!");
-            return false;
-        }
+        // Verifica che la data di fine sia successiva alla data di inizio
+        Date dataInizio = (Date) dataInizioField.getValue();
+        Date dataFine = (Date) dataFineField.getValue();
         
-        if (!isValidDate(dataFineField.getText().trim())) {
-            showError("La data di fine deve essere nel formato dd/MM/yyyy!");
+        if (dataFine.before(dataInizio)) {
+            showError("La data di fine deve essere successiva alla data di inizio!");
             return false;
         }
         
@@ -514,24 +560,14 @@ public class ConferenceCreationScreen extends JFrame {
         this.numeroArticoliPrevisti = numeroArticoliPrevistiField.getText().trim();
         this.tassoAccettazione = tassoAccettazioneField.getText().trim();
         
-        // Raccoglie le date
-        if (!dataInizioField.getText().equals("dd/MM/yyyy")) {
-            this.dataInizio = dataInizioField.getText().trim();
-        }
-        if (!dataFineField.getText().equals("dd/MM/yyyy")) {
-            this.dataFine = dataFineField.getText().trim();
-        }
+        // Raccoglie le date usando JSpinner
+        this.dataInizio = getDateFromSpinner(dataInizioField);
+        this.dataFine = getDateFromSpinner(dataFineField);
         
         // Raccoglie le altre deadline se compilate
-        if (!deadlineSottomissioneField.getText().equals("dd/MM/yyyy")) {
-            this.deadlineSottomissione = deadlineSottomissioneField.getText().trim();
-        }
-        if (!deadlineRevisioniField.getText().equals("dd/MM/yyyy")) {
-            this.deadlineRevisioni = deadlineRevisioniField.getText().trim();
-        }
-        if (!deadlineVersioneFinaleField.getText().equals("dd/MM/yyyy")) {
-            this.deadlineVersioneFinale = deadlineVersioneFinaleField.getText().trim();
-        }
+        this.deadlineSottomissione = getDateFromSpinner(deadlineSottomissioneField);
+        this.deadlineRevisioni = getDateFromSpinner(deadlineRevisioniField);
+        this.deadlineVersioneFinale = getDateFromSpinner(deadlineVersioneFinaleField);
     }
     
     /**
@@ -577,27 +613,20 @@ public class ConferenceCreationScreen extends JFrame {
         annoEdizioneField.setText("");
         abstractField.setText("");
         luogoField.setText("");
-        temiPrincipaliField.setText("");
         keywordsField.setText("");
         numeroArticoliPrevistiField.setText("");
         numeroMinimoRevisoriField.setText("");
-        numeroMassimoRevisoriField.setText("");
         tassoAccettazioneField.setText("");
         
-        dataInizioField.setText("dd/MM/yyyy");
-        dataInizioField.setForeground(Color.GRAY);
-        dataFineField.setText("dd/MM/yyyy");
-        dataFineField.setForeground(Color.GRAY);
-        deadlineSottomissioneField.setText("dd/MM/yyyy");
-        deadlineSottomissioneField.setForeground(Color.GRAY);
-        deadlineRitiroField.setText("dd/MM/yyyy");
-        deadlineRitiroField.setForeground(Color.GRAY);
-        deadlineRevisioniField.setText("dd/MM/yyyy");
-        deadlineRevisioniField.setForeground(Color.GRAY);
-        deadlineVersioneFinaleField.setText("dd/MM/yyyy");
-        deadlineVersioneFinaleField.setForeground(Color.GRAY);
-        deadlineVersionePubblicazioneField.setText("dd/MM/yyyy");
-        deadlineVersionePubblicazioneField.setForeground(Color.GRAY);
+        // Reset date spinners to today's date
+        Date today = new Date();
+        dataInizioField.setValue(today);
+        dataFineField.setValue(today);
+        deadlineSottomissioneField.setValue(today);
+        deadlineRitiroField.setValue(today);
+        deadlineRevisioniField.setValue(today);
+        deadlineVersioneFinaleField.setValue(today);
+        deadlineVersionePubblicazioneField.setValue(today);
     }
     
     /**
@@ -608,35 +637,6 @@ public class ConferenceCreationScreen extends JFrame {
             ConferenceCreationScreen screen = new ConferenceCreationScreen();
             screen.create();
         });
-    }
-    
-    /**
-     * Configura i placeholder per i campi data
-     */
-    private void setupDateFieldPlaceholders() {
-        JTextField[] dateFields = {
-            dataInizioField, dataFineField, deadlineSottomissioneField,
-            deadlineRitiroField, deadlineRevisioniField, 
-            deadlineVersioneFinaleField, deadlineVersionePubblicazioneField
-        };
-        
-        for (JTextField field : dateFields) {
-            field.addFocusListener(new java.awt.event.FocusAdapter() {
-                public void focusGained(java.awt.event.FocusEvent evt) {
-                    if (field.getText().equals("dd/MM/yyyy")) {
-                        field.setText("");
-                        field.setForeground(Color.BLACK);
-                    }
-                }
-                
-                public void focusLost(java.awt.event.FocusEvent evt) {
-                    if (field.getText().isEmpty()) {
-                        field.setText("dd/MM/yyyy");
-                        field.setForeground(Color.GRAY);
-                    }
-                }
-            });
-        }
     }
     
     /**
@@ -653,6 +653,43 @@ public class ConferenceCreationScreen extends JFrame {
             sdf.parse(date);
             return true;
         } catch (ParseException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Ottiene la data formattata da un JSpinner
+     */
+    private String getDateFromSpinner(JSpinner dateSpinner) {
+        Date date = (Date) dateSpinner.getValue();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        return sdf.format(date);
+    }
+    
+    /**
+     * Imposta una data in un JSpinner da una stringa
+     */
+    private void setDateToSpinner(JSpinner dateSpinner, String dateString) {
+        if (dateString != null && !dateString.trim().isEmpty()) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+                Date date = sdf.parse(dateString);
+                dateSpinner.setValue(date);
+            } catch (ParseException e) {
+                // Se il parsing fallisce, mantieni la data corrente
+                System.err.println("Errore nel parsing della data: " + dateString);
+            }
+        }
+    }
+    
+    /**
+     * Controlla se una data JSpinner è valida
+     */
+    private boolean isValidDateSpinner(JSpinner dateSpinner) {
+        try {
+            Date date = (Date) dateSpinner.getValue();
+            return date != null;
+        } catch (Exception e) {
             return false;
         }
     }

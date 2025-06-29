@@ -6,6 +6,12 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedList;
+
+import com.cms.users.Entity.ConferenzaE;
+import com.cms.users.conference.Control.CreaConferenzaControl;
+import com.cms.users.submissions.Control.GestioneArticoliControl;
+import com.cms.App;
 
 /**
  * <<boundary>>
@@ -24,8 +30,12 @@ public class HomeScreen extends JFrame {
     private String welcomeMessage;
     private List<String> availableFeatures;
     private boolean isUserLoggedIn;
+    private int currentUserId; // ID dell'utente corrente
     
-    // Dati di esempio per le conferenze
+    // Componenti per il database
+    private DBMSBoundary dbmsBoundary;
+    
+    // Dati delle conferenze
     private List<ConferenzaData> conferenze;
     
     // Costruttore
@@ -33,6 +43,8 @@ public class HomeScreen extends JFrame {
         this.availableFeatures = new ArrayList<>();
         this.conferenze = new ArrayList<>();
         this.isUserLoggedIn = true;
+        this.currentUserId = 1; // ID di default per test
+        this.dbmsBoundary = new DBMSBoundary();
         
         // Inizializza HeaderScreen
         this.headerScreen = new HeaderScreen();
@@ -40,7 +52,7 @@ public class HomeScreen extends JFrame {
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        loadSampleData();
+        loadConferenzeFromDatabase();
     }
     
     /**
@@ -50,6 +62,8 @@ public class HomeScreen extends JFrame {
         this.availableFeatures = new ArrayList<>();
         this.conferenze = new ArrayList<>();
         this.isUserLoggedIn = true;
+        this.currentUserId = 1; // ID di default per test, andrebbe passato come parametro
+        this.dbmsBoundary = new DBMSBoundary();
         
         // Inizializza HeaderScreen con dati utente
         this.headerScreen = new HeaderScreen(userName, userRole);
@@ -57,7 +71,26 @@ public class HomeScreen extends JFrame {
         initializeComponents();
         setupLayout();
         setupEventHandlers();
-        loadSampleData();
+        loadConferenzeFromDatabase();
+    }
+    
+    /**
+     * Costruttore con ID utente
+     */
+    public HomeScreen(int userId) {
+        this.availableFeatures = new ArrayList<>();
+        this.conferenze = new ArrayList<>();
+        this.isUserLoggedIn = true;
+        this.currentUserId = userId;
+        this.dbmsBoundary = new DBMSBoundary();
+        
+        // Inizializza HeaderScreen
+        this.headerScreen = new HeaderScreen();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+        loadConferenzeFromDatabase();
     }
     
     /**
@@ -188,30 +221,57 @@ public class HomeScreen extends JFrame {
     }
     
     /**
-     * Carica dati di esempio per le conferenze
+     * Carica le conferenze attive dal database
      */
-    private void loadSampleData() {
-        // Chair: "Revisore", "Chair", "Selezione specifiche competenze", "Modifica Preferenze Articolo"
-        conferenze.add(new ConferenzaData("Conferenza AI 2025", "Chair", 
-            new String[]{"Revisore", "Chair", "Selezione specifiche competenze", "Modifica Preferenze Articolo"}));
-        
-        // Editore: "Editore"
-        conferenze.add(new ConferenzaData("Conferenza Software Engineering", "Editore", 
-            new String[]{"Editore"}));
-        
-        // Revisore: "Revisore", "Selezione Specifiche Competenze", "Modifica preferenze articolo"
-        conferenze.add(new ConferenzaData("Conferenza Machine Learning", "Revisore", 
-            new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo"}));
-        
-        // Sotto-revisore: "Sotto-revisore"
-        conferenze.add(new ConferenzaData("Conferenza Data Science", "Sotto-revisore", 
-            new String[]{"Sotto-revisore"}));
-        
-        // Autore: "Autore"
-        conferenze.add(new ConferenzaData("Conferenza Cybersecurity", "Autore", 
-            new String[]{"Autore"}));
-        
-        refreshTable();
+    private void loadConferenzeFromDatabase() {
+        try {
+            conferenze.clear();
+            
+            // Ottieni tutte le conferenze attive dal database
+            LinkedList<ConferenzaE> conferenzeDB = dbmsBoundary.getConferenzeAttive();
+            
+            if (conferenzeDB != null && !conferenzeDB.isEmpty()) {
+                for (ConferenzaE conferenza : conferenzeDB) {
+                    // Converti ConferenzaE in ConferenzaData per la tabella
+                    String nomeCompleto = conferenza.getTitolo() + " " + conferenza.getAnnoEdizione();
+                    
+                    // Ottieni il ruolo dell'utente per questa conferenza
+                    String ruolo = getRuoloUtenteConferenza(currentUserId, conferenza.getId());
+                    
+                    // Solo se l'utente ha un ruolo nella conferenza, la aggiungiamo alla lista
+                    if (ruolo != null && !ruolo.isEmpty() && !ruolo.equalsIgnoreCase("nessun ruolo")) {
+                        // Genera le azioni in base al ruolo
+                        String[] azioni = generateActionsForRole(ruolo);
+                        
+                        conferenze.add(new ConferenzaData(conferenza.getId(), nomeCompleto, ruolo, azioni));
+                    }
+                }
+            }
+            
+            refreshTable();
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il caricamento delle conferenze dal database: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra un messaggio di errore all'utente
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante il caricamento delle conferenze.\nControllare la connessione al database.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Ottiene il ruolo dell'utente per una specifica conferenza
+     */
+    private String getRuoloUtenteConferenza(int idUtente, int idConferenza) {
+        try {
+            return dbmsBoundary.getRuoloUtenteConferenza(idUtente, idConferenza);
+        } catch (Exception e) {
+            System.err.println("Errore nel recupero del ruolo utente: " + e.getMessage());
+            return "Utente";
+        }
     }
     
     /**
@@ -231,7 +291,10 @@ public class HomeScreen extends JFrame {
     }
     
     private void handleCreaNuovaConferenzaAction() {
-        JOptionPane.showMessageDialog(this, "Apertura schermata creazione nuova conferenza...");
+        // Seguendo il sequence diagram: HomeScreen -> CreaConferenzaControl
+        CreaConferenzaControl creaConferenzaControl = new CreaConferenzaControl();
+        creaConferenzaControl.creaConferenza();
+        this.dispose();
     }
     
     private void handleMostraTutteConferenzeAction() {
@@ -259,7 +322,8 @@ public class HomeScreen extends JFrame {
                 JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Sotto-revisore...");
                 break;
             case "autore":
-                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Autore...");
+                // Implementazione del sequence diagram "Visualizza Sottomissioni"
+                visualizzaSottomissioni(conferenza.id);
                 break;
             case "selezione specifiche competenze":
                 JOptionPane.showMessageDialog(this, message + "\n\nApertura selezione competenze...");
@@ -270,6 +334,34 @@ public class HomeScreen extends JFrame {
             default:
                 JOptionPane.showMessageDialog(this, message);
                 break;
+        }
+    }
+    
+    /**
+     * Visualizza le sottomissioni dell'utente per una conferenza specifica
+     * Implementa il flusso del sequence diagram "Visualizza Sottomissioni"
+     */
+    private void visualizzaSottomissioni(int idConferenza) {
+        try {
+            // Ottieni l'ID dell'utente corrente dall'App (seguendo il sequence diagram)
+            int idUtente = App.utenteAccesso.getId();
+            
+            // Crea il controller per la gestione degli articoli
+            GestioneArticoliControl gestioneArticoliControl = new GestioneArticoliControl();
+            
+            // Invoca il metodo per visualizzare le sottomissioni
+            gestioneArticoliControl.visualizzaSottomissioni(idUtente, idConferenza);
+            this.dispose();
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura delle sottomissioni: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra un messaggio di errore all'utente
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura delle sottomissioni.\nRiprovare più tardi.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -306,7 +398,7 @@ public class HomeScreen extends JFrame {
     }
     
     public void refreshScreen() {
-        refreshTable();
+        loadConferenzeFromDatabase();
         repaint();
     }
     
@@ -324,7 +416,7 @@ public class HomeScreen extends JFrame {
     }
     
     public void addConferenza(String nome, String ruolo, String[] azioni) {
-        conferenze.add(new ConferenzaData(nome, ruolo, azioni));
+        conferenze.add(new ConferenzaData(-1, nome, ruolo, azioni)); // ID fittizio per compatibilità
         refreshTable();
     }
     
@@ -333,7 +425,7 @@ public class HomeScreen extends JFrame {
      */
     public void addConferenza(String nome, String ruolo) {
         String[] azioni = generateActionsForRole(ruolo);
-        conferenze.add(new ConferenzaData(nome, ruolo, azioni));
+        conferenze.add(new ConferenzaData(-1, nome, ruolo, azioni)); // ID fittizio per compatibilità
         refreshTable();
     }
     
@@ -343,17 +435,17 @@ public class HomeScreen extends JFrame {
     private String[] generateActionsForRole(String ruolo) {
         switch (ruolo.toLowerCase()) {
             case "chair":
-                return new String[]{"Revisore", "Chair", "Selezione specifiche competenze", "Modifica Preferenze Articolo"};
+                return new String[]{"Chair", "Autore"};
             case "editore":
-                return new String[]{"Editore"};
+                return new String[]{"Editore", "Autore"};
             case "revisore":
-                return new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo"};
+                return new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo", "Autore"};
             case "sotto-revisore":
-                return new String[]{"Sotto-revisore"};
+                return new String[]{"Sotto-revisore", "Autore"};
             case "autore":
                 return new String[]{"Autore"};
             default:
-                return new String[]{}; // Nessun bottone per ruoli non riconosciuti
+                return new String[]{"Autore"}; // Default: almeno il ruolo Autore per ruoli non riconosciuti
         }
     }
     
@@ -396,11 +488,13 @@ public class HomeScreen extends JFrame {
 
     // Classe interna per i dati delle conferenze
     private static class ConferenzaData {
+        int id;
         String nome;
         String ruolo;
         String[] azioni;
         
-        ConferenzaData(String nome, String ruolo, String[] azioni) {
+        ConferenzaData(int id, String nome, String ruolo, String[] azioni) {
+            this.id = id;
             this.nome = nome;
             this.ruolo = ruolo;
             this.azioni = azioni;
@@ -572,15 +666,9 @@ public class HomeScreen extends JFrame {
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            // Test con dati utente
-            HomeScreen homeScreen = new HomeScreen("Mario Rossi", "Chair");
+            // Test con utente reale dal database
+            HomeScreen homeScreen = new HomeScreen(1); // ID utente 1
             homeScreen.setWelcomeMessage("Benvenuto nel sistema CMS!");
-            homeScreen.addAvailableFeature("Gestione Conferenze");
-            homeScreen.addAvailableFeature("Revisione Articoli");
-            homeScreen.addAvailableFeature("Pubblicazione");
-            
-            // Test aggiunta conferenza con generazione automatica bottoni
-            homeScreen.addConferenza("Conferenza Test Automatico", "Chair");
             
             homeScreen.displayUserDashboard();
         });

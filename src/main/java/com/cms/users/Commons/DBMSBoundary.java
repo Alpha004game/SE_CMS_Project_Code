@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
+import com.cms.App;
 import com.cms.users.Entity.ArticoloE;
 import com.cms.users.Entity.ConferenzaE;
 import com.cms.users.Entity.NotificaE;
@@ -24,7 +25,7 @@ import com.cms.users.Entity.UtenteE;
 public class DBMSBoundary {
     
     // Constructor
-    private final String DB_URL = "jdbc:mariadb://192.168.1.28:3306/CMS";
+    private final String DB_URL = "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS";
     private final String DB_USER = "ids";
     private final String DB_PASSWORD = "IngegneriaDelSoftware";
     public DBMSBoundary() {
@@ -340,7 +341,7 @@ public class DBMSBoundary {
     
     
     
-    public NotificaE getNotifica(int idNotifica) { //DA CONTOLLARE
+    public NotificaE getNotifica(int idNotifica) { //DA CONTROLLARE
         try
         {
             NotificaE notifica=null;
@@ -602,6 +603,17 @@ public class DBMSBoundary {
             }
             
             stmt.close();
+
+            stmt=con.prepareStatement("INSERT INTO ruoli VALUES (?, ?, 1, 1, CURRENT_DATE, CURRENT_DATE, NULL)");
+            stmt.setInt(1, App.utenteAccesso.getId());
+            stmt.setInt(2, getLastInsertedConferenceId(con));
+            int rowsInsertedRuolo = stmt.executeUpdate();
+            if (rowsInsertedRuolo > 0) {
+                System.out.println("Ruolo assegnato con successo all'utente per la conferenza: " + titolo);
+            } else {
+                System.err.println("Errore: nessun ruolo assegnato");
+            }
+
             con.close();
             
         } catch (SQLException e) {
@@ -851,12 +863,203 @@ public class DBMSBoundary {
         
     }
     
-    public LinkedList<UtenteE> getListaSottomissioni(int idUtente, int idConferenza) {
-        return null;
+    public LinkedList<ArticoloE> getListaSottomissioni(int idUtente, int idConferenza) {
+        LinkedList<ArticoloE> listaSottomissioni = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database");
+                return listaSottomissioni;
+            }
+            
+            // Query aggiornata per la nuova struttura della tabella
+            // Assumendo che ci sia una relazione tra articoli e autori (potrebbe essere in una tabella separata)
+            // Per ora utilizziamo solo idConferenza dalla tabella articoli
+            String query = "SELECT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, " +
+                          "a.stato, a.idConferenza, a.ultimaModifica " +
+                          "FROM articoli a, utenti u " +
+                          "WHERE a.idConferenza = ? " +
+                          "AND u.id = ?";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idConferenza);
+            stmt.setInt(2, idUtente);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setAbstractText(rs.getString("abstract"));
+                articolo.setFileArticolo(rs.getObject("fileArticolo"));
+                articolo.setAllegato(rs.getObject("allegato"));
+                articolo.setStato(rs.getString("stato"));
+                articolo.setIdConferenza(rs.getInt("idConferenza"));
+                
+                // Gestione della data
+                java.sql.Date sqlDate = rs.getDate("ultimaModifica");
+                if (sqlDate != null) {
+                    articolo.setUltimaModifica(sqlDate.toLocalDate());
+                }
+                
+                listaSottomissioni.add(articolo);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante il recupero delle sottomissioni: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Se la tabella autori_articoli non esiste, proviamo una query più semplice
+            if (e.getMessage().contains("autori_articoli")) {
+                System.out.println("Tabella autori_articoli non trovata, provo query semplificata...");
+                return getListaSottomissioniSemplificata(idUtente, idConferenza);
+            }
+            
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        return listaSottomissioni;
     }
     
-    public void setSottomissione(Object articolo, Object data, String status) { //SPECIFICARE PARAMETRI
+    /**
+     * Metodo di fallback per quando non esiste la tabella di relazione autori_articoli
+     */
+    private LinkedList<ArticoloE> getListaSottomissioniSemplificata(int idUtente, int idConferenza) {
+        LinkedList<ArticoloE> listaSottomissioni = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
         
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database");
+                return listaSottomissioni;
+            }
+            
+            // Query semplificata - mostra tutti gli articoli della conferenza
+            // TODO: In futuro sarà necessario filtrare per utente quando avremo la relazione corretta
+            String query = "SELECT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, " +
+                          "a.stato, a.idConferenza, a.ultimaModifica " +
+                          "FROM articoli a " +
+                          "WHERE a.idConferenza = ?";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setAbstractText(rs.getString("abstract"));
+                articolo.setFileArticolo(rs.getObject("fileArticolo"));
+                articolo.setAllegato(rs.getObject("allegato"));
+                articolo.setStato(rs.getString("stato"));
+                articolo.setIdConferenza(rs.getInt("idConferenza"));
+                
+                // Gestione della data
+                java.sql.Date sqlDate = rs.getDate("ultimaModifica");
+                if (sqlDate != null) {
+                    articolo.setUltimaModifica(sqlDate.toLocalDate());
+                }
+                
+                listaSottomissioni.add(articolo);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante il recupero delle sottomissioni (query semplificata): " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        return listaSottomissioni;
+    }
+    
+    public void setSottomissione(ArticoloE articolo, int idUtente, int idConferenza) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database");
+                return;
+            }
+            
+            // Insert dell'articolo nella tabella articoli
+            String query = "INSERT INTO articoli (titolo, abstract, fileArticolo, allegato, stato, idConferenza, ultimaModifica) " +
+                          "VALUES (?, ?, ?, ?, ?, ?, CURRENT_DATE)";
+            
+            stmt = conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
+            stmt.setString(1, articolo.getTitolo());
+            stmt.setString(2, articolo.getAbstractText());
+            stmt.setObject(3, articolo.getFileArticolo());
+            stmt.setObject(4, articolo.getAllegato());
+            stmt.setString(5, articolo.getStato() != null ? articolo.getStato() : "Inviato");
+            stmt.setInt(6, idConferenza);
+            
+            int rowsInserted = stmt.executeUpdate();
+            if (rowsInserted > 0) {
+                // Ottieni l'ID dell'articolo appena inserito
+                ResultSet generatedKeys = stmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    int idArticolo = generatedKeys.getInt(1);
+                    
+                    // Inserisci la relazione autore-articolo (se esiste una tabella separata)
+                    try {
+                        PreparedStatement authorStmt = conn.prepareStatement(
+                            "INSERT INTO autori_articoli (id_articolo, id_utente) VALUES (?, ?)"
+                        );
+                        authorStmt.setInt(1, idArticolo);
+                        authorStmt.setInt(2, idUtente);
+                        authorStmt.executeUpdate();
+                        authorStmt.close();
+                    } catch (SQLException e) {
+                        // Se la tabella autori_articoli non esiste, ignora
+                        System.out.println("Tabella autori_articoli non presente, relazione non inserita");
+                    }
+                    
+                    System.out.println("Sottomissione creata con successo. ID: " + idArticolo);
+                } else {
+                    System.err.println("Errore nel recupero dell'ID della sottomissione");
+                }
+            } else {
+                System.err.println("Errore: nessuna riga inserita per la sottomissione");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante la creazione della sottomissione: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
     }
     
     public void modificaSottomissione(int idArticolo, Object datiArticolo, Object data, String status) { //SPECIFICARE PARAMETRI
@@ -1012,5 +1215,118 @@ public class DBMSBoundary {
         return null;
     }
 
+    /**
+     * Ottiene la lista delle conferenze per un utente specifico con i rispettivi ruoli
+     */
+    public LinkedList<ConferenzaE> getConferenzeUtente(int idUtente) {
+        try {
+            LinkedList<ConferenzaE> conferenze = new LinkedList<>();
+            Connection con = getConnection();
+            if (con == null) {
+                System.err.println("Errore: impossibile stabilire connessione al database");
+                return conferenze;
+            }
+            
+            // Query per ottenere le conferenze e i ruoli dell'utente
+            // Assumendo che esista una tabella ruoli che collega utenti e conferenze
+            String sql = "SELECT DISTINCT c.id, c.titolo, c.abstract, c.edizione, c.dataInizio, c.dataFine, " +
+                        "c.deadlineSottomissione, c.deadlineRitiro, c.deadlineRevisioni, c.deadlineVersioneFinale, " +
+                        "c.deadlineVersionePubblicazione, c.luogo, c.numRevisoriPerArticolo, c.numeroArticoliPrevisti, " +
+                        "c.tassoAccettazione, r.ruolo " +
+                        "FROM conferenze c " +
+                        "JOIN ruoli r ON c.id = r.idConferenza " +
+                        "WHERE r.idUtente = ?";
+            
+            PreparedStatement stmt = con.prepareStatement(sql);
+            stmt.setInt(1, idUtente);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                // Ottieni le keywords per questa conferenza
+                ArrayList<String> keywordsConferenza = getKeywordsConferenza(con, rs.getInt("id"));
+                
+                // Crea la conferenza usando il costruttore con tutti i parametri
+                ConferenzaE conferenza = new ConferenzaE(
+                    rs.getInt("id"),
+                    rs.getString("titolo"),
+                    rs.getInt("edizione"),
+                    rs.getString("abstract"),
+                    rs.getDate("dataInizio").toLocalDate(),
+                    rs.getDate("dataFine").toLocalDate(),
+                    rs.getDate("deadlineSottomissione").toLocalDate(),
+                    rs.getDate("deadlineRitiro").toLocalDate(),
+                    rs.getDate("deadlineRevisioni").toLocalDate(),
+                    rs.getDate("deadlineVersioneFinale").toLocalDate(),
+                    rs.getDate("deadlineVersionePubblicazione").toLocalDate(),
+                    rs.getString("luogo"),
+                    rs.getInt("numRevisoriPerArticolo"),
+                    rs.getInt("numeroArticoliPrevisti"),
+                    false, // assegnazioneAutomatica (non presente nella tabella, default false)
+                    keywordsConferenza
+                );
+                
+                conferenze.add(conferenza);
+            }
+            
+            rs.close();
+            stmt.close();
+            con.close();
+            
+            return conferenze;
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il recupero delle conferenze utente: " + e.getMessage());
+            e.printStackTrace();
+            return new LinkedList<>();
+        }
+    }
     
+    /**
+     * Ottiene il ruolo di un utente in una specifica conferenza
+     */
+    public String getRuoloUtenteConferenza(int idUtente, int idConferenza) {
+        try {
+            Connection con = getConnection();
+            if (con == null) {
+                return "Utente";
+            }
+            
+            String sql = "SELECT r.ruolo FROM ruoli r WHERE r.idUtente = ? AND r.idConferenza = ?";
+            PreparedStatement stmt = con.prepareStatement(sql);
+            stmt.setInt(1, idUtente);
+            stmt.setInt(2, idConferenza);
+            ResultSet rs = stmt.executeQuery();
+            
+            String ruolo = "Utente"; // Default
+            if (rs.next()) {
+                int ruoloId = rs.getInt("ruolo");
+                // Converte l'ID del ruolo in stringa
+                ruolo = convertRuoloIdToString(ruoloId);
+            }
+            
+            rs.close();
+            stmt.close();
+            con.close();
+            
+            return ruolo;
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il recupero del ruolo utente: " + e.getMessage());
+            return "Utente";
+        }
+    }
+    
+    /**
+     * Converte l'ID del ruolo nella stringa corrispondente
+     */
+    private String convertRuoloIdToString(int ruoloId) {
+        switch (ruoloId) {
+            case 1: return "Chair";
+            case 2: return "Revisore";
+            case 3: return "Editore";
+            case 4: return "Sotto-revisore";
+            case 5: return "Autore";
+            default: return "Utente";
+        }
+    }
 }

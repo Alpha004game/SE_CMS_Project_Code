@@ -17,6 +17,7 @@ C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\account\Interface\UserMenu.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Commons\DBMSBoundary.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Commons\ErrorScreen.java
+C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Commons\ExampleWithHeaderScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Commons\HeaderScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Commons\HomeScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Commons\ListScreen.java
@@ -31,7 +32,9 @@ C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\conference\Interface\ReviewerScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\conference\Interface\ReviewSubmissionScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\conference\Interface\RevisionOverviewScreen.java
+C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\conference\Interface\SendCustomNotificationScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Entity\ArticoloE.java
+C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Entity\ConferenzaData.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Entity\ConferenzaE.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Entity\NotificaE.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\Entity\UtenteE.java
@@ -43,6 +46,7 @@ C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\publications\Control\PubblicazioneControl.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\publications\Interface\SendCustomNotificationScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\revisions\Control\GestioneRevisioneControl.java
+C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\revisions\Interface\MemberListScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\revisions\Interface\ReviewSubmissionScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\revisions\Interface\RevisionOverviewScreen.java
 C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\src\main\java\com\cms\users\revisions\Interface\SubRevisionScreen.java

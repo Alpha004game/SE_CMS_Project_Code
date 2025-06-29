@@ -9,15 +9,12 @@ com\cms\users\submissions\Interface\NewSubmissionScreen.class
 com\cms\users\conference\Control\CreaConferenzaControl.class
 com\cms\users\account\Interface\RecuperoCredenzialiScreen$1.class
 com\cms\users\Entity\UtenteE.class
-com\cms\users\notifications\Control\NotificationControl.class
 com\cms\users\account\Interface\UserMenu$3.class
 com\cms\users\conference\Interface\MemberListScreen.class
-com\cms\users\conference\Interface\ConferenceCreationScreen$1.class
 com\cms\users\account\Interface\LoginScreen$4.class
 com\cms\users\account\Control\GestioneUtenteControl.class
 com\cms\users\notifications\Interface\DemoneBoundary.class
 com\cms\users\Commons\ListScreen$6.class
-com\cms\users\notifications\Interface\NotificationScreen.class
 com\cms\users\publications\Control\PubblicazioneControl.class
 com\cms\users\account\Control\LoginControl.class
 com\cms\users\conference\Interface\MemberListScreen$2.class

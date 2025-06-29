@@ -33,15 +33,13 @@ public class NotificationScreen extends JFrame {
      * Classe per rappresentare i dati di una notifica
      */
     public static class NotificationData {
-        public String id;
+        public int id;
         public String message;
-        public String date;
         public boolean isRead;
         
-        public NotificationData(String id, String message, String date, boolean isRead) {
+        public NotificationData(int id, String message, boolean isRead) {
             this.id = id;
             this.message = message;
-            this.date = date;
             this.isRead = isRead;
         }
     }
@@ -54,8 +52,8 @@ public class NotificationScreen extends JFrame {
         this.hasNotifications = true;
         this.selectedNotification = null;
         
-        // Popola con dati di esempio
-        populateExampleData();
+        // Popola con dati
+        
         
         initializeComponents();
         setupLayout();
@@ -66,12 +64,9 @@ public class NotificationScreen extends JFrame {
     /**
      * Popola con dati di esempio
      */
-    private void populateExampleData() {
-        notifications.add(new NotificationData("1", "Nuova submission ricevuta per la conferenza AI 2025", "2025-06-28", false));
-        notifications.add(new NotificationData("2", "Revisione assegnata: Articolo 'Machine Learning Trends'", "2025-06-27", true));
-        notifications.add(new NotificationData("3", "Scadenza submission: 5 giorni rimanenti", "2025-06-26", false));
-        notifications.add(new NotificationData("4", "Conferenza 'Data Science Summit' creata con successo", "2025-06-25", true));
-        notifications.add(new NotificationData("5", "Nuovo revisore aggiunto alla conferenza", "2025-06-24", true));
+    private void populateTable(LinkedList<NotificaE> notificheList) {
+        //notifications.add(new NotificationData("1", "Nuova submission ricevuta per la conferenza AI 2025", "2025-06-28", false));
+            
     }
     
     /**
@@ -317,18 +312,7 @@ public class NotificationScreen extends JFrame {
     /**
      * Imposta la lista delle notifiche
      */
-    public void setNotification(String listNotification) {
-        // Per compatibilità con l'interfaccia originale
-        // In una implementazione reale, questo dovrebbe parsare la stringa
-        if (listNotification == null || listNotification.trim().isEmpty()) {
-            hasNotifications = false;
-            notifications.clear();
-        } else {
-            hasNotifications = true;
-            // Qui si potrebbe implementare il parsing della stringa
-        }
-        updateDisplay();
-    }
+    
     
     /**
      * Imposta la lista delle notifiche da NotificaE entities
@@ -341,14 +325,8 @@ public class NotificationScreen extends JFrame {
             
             // Converti NotificaE in NotificationData
             for (NotificaE notifica : notificheList) {
-                String status = notifica.getStatus() != null ? " (" + notifica.getStatus() + ")" : "";
-                NotificationData notificationData = new NotificationData(
-                    String.valueOf(notifica.getId()),
-                    notifica.getText() + status,
-                    "ID: " + notifica.getId(), // Placeholder per la data
-                    notifica.getStatus() != null // Se ha uno status, è stata letta
-                );
-                notifications.add(notificationData);
+                notifications.add(new NotificationData(notifica.getId(), notifica.getText(), notifica.getStatus()!=null));
+          
             }
         } else {
             hasNotifications = false;
@@ -416,8 +394,7 @@ public class NotificationScreen extends JFrame {
             // Fallback: mostra dettagli in dialog
             String details = "Dettagli notifica:\n\n" + 
                             "ID: " + notification.id + "\n" +
-                            "Messaggio: " + notification.message + "\n" +
-                            "Data: " + notification.date;
+                            "Messaggio: " + notification.message + "\n";
             
             JOptionPane.showMessageDialog(this, details, "Dettagli Notifica", JOptionPane.INFORMATION_MESSAGE);
         }
@@ -456,14 +433,7 @@ public class NotificationScreen extends JFrame {
         updateDisplay();
     }
     
-    /**
-     * Aggiunge una notifica
-     */
-    public void addNotification(String id, String message, String date, boolean isRead) {
-        notifications.add(new NotificationData(id, message, date, isRead));
-        hasNotifications = true;
-        updateDisplay();
-    }
+   
     
     /**
      * Pulisce tutte le notifiche
@@ -490,5 +460,18 @@ public class NotificationScreen extends JFrame {
             screen2.setLocation(450, 0);
             screen2.setVisible(true);
         });
+    }
+
+    public void setNotification(String listNotification) {
+        // Per compatibilità con l'interfaccia originale
+        // In una implementazione reale, questo dovrebbe parsare la stringa
+        if (listNotification == null || listNotification.trim().isEmpty()) {
+            hasNotifications = false;
+            notifications.clear();
+        } else {
+            hasNotifications = true;
+            // Qui si potrebbe implementare il parsing della stringa
+        }
+        updateDisplay();
     }
 }
