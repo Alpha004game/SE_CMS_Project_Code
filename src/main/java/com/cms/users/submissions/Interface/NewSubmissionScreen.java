@@ -4,6 +4,8 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
@@ -604,6 +606,9 @@ public class NewSubmissionScreen extends JFrame {
                 LinkedList<String> keywordsList = new LinkedList<>(selectedKeywords);
                 articolo.setKeywords(keywordsList);
                 
+                // Debug: Mostra le keywords selezionate
+                System.out.println("Keywords selezionate per l'articolo: " + selectedKeywords);
+                
                 if (!coAutori.trim().isEmpty()) {
                     String[] coAutoriArray = coAutori.split(",");
                     LinkedList<String> coAutoriList = new LinkedList<>();
@@ -615,13 +620,35 @@ public class NewSubmissionScreen extends JFrame {
                 
                 articolo.setDichiarazioneOriginalita(dichiarazioneOriginalitaCheckbox.isSelected());
                 
-                // Gestisce i file (per ora salvando i path, in futuro potrebbero essere blob)
+                // Gestisce i file convertendoli in BLOB per il database
                 if (articoloPdfFile != null) {
-                    articolo.setFileArticolo(articoloPdfFile.getAbsolutePath());
+                    try {
+                        byte[] fileContent = readFileToByteArray(articoloPdfFile);
+                        articolo.setFileArticolo(fileContent);
+                        System.out.println("File articolo convertito in BLOB: " + fileContent.length + " bytes");
+                    } catch (IOException e) {
+                        System.err.println("Errore nella lettura del file articolo: " + e.getMessage());
+                        JOptionPane.showMessageDialog(this,
+                            "Errore durante la lettura del file articolo. Riprova.",
+                            "Errore File",
+                            JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
                 }
                 
                 if (allegatoFile != null) {
-                    articolo.setAllegato(allegatoFile.getAbsolutePath());
+                    try {
+                        byte[] allegatoContent = readFileToByteArray(allegatoFile);
+                        articolo.setAllegato(allegatoContent);
+                        System.out.println("File allegato convertito in BLOB: " + allegatoContent.length + " bytes");
+                    } catch (IOException e) {
+                        System.err.println("Errore nella lettura del file allegato: " + e.getMessage());
+                        JOptionPane.showMessageDialog(this,
+                            "Errore durante la lettura del file allegato. Riprova.",
+                            "Errore File",
+                            JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
                 }
                 
                 // Chiama il control per salvare la sottomissione (seguendo il SD)
@@ -943,6 +970,59 @@ public class NewSubmissionScreen extends JFrame {
                 // Per ora, stampiamo le keywords
                 System.out.println("Keywords aggiornate: " + keywords);
             }
+        }
+    }
+    
+    /**
+     * Utility method to read file content as byte array for BLOB storage
+     */
+    private byte[] readFileToByteArray(File file) throws IOException {
+        if (file == null || !file.exists()) {
+            return null;
+        }
+        
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] buffer = new byte[(int) file.length()];
+            fis.read(buffer);
+            return buffer;
+        }
+    }
+    
+    /**
+     * Test method to verify file reading as byte array
+     */
+    public void testFileReading() {
+        System.out.println("=== TEST FILE READING ===");
+        
+        // Test with a sample text file (create one if needed)
+        try {
+            // Create a small test file
+            String testContent = "This is a test file content for BLOB testing.";
+            File testFile = new File("test_sample.txt");
+            
+            try (java.io.FileWriter writer = new java.io.FileWriter(testFile)) {
+                writer.write(testContent);
+            }
+            
+            // Test reading the file as byte array
+            byte[] fileBytes = readFileToByteArray(testFile);
+            if (fileBytes != null) {
+                String readContent = new String(fileBytes);
+                System.out.println("File read successfully as BLOB:");
+                System.out.println("Original content: " + testContent);
+                System.out.println("Read content: " + readContent);
+                System.out.println("Size: " + fileBytes.length + " bytes");
+                System.out.println("Content matches: " + testContent.equals(readContent));
+            } else {
+                System.out.println("Failed to read file as byte array");
+            }
+            
+            // Clean up test file
+            testFile.delete();
+            
+        } catch (Exception e) {
+            System.err.println("Error in file reading test: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

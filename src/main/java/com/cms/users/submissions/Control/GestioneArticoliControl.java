@@ -50,10 +50,6 @@ public class GestioneArticoliControl {
         }
     }
     
-    public void creaNuovaSottomissione() {
-        // Implementazione da definire
-    }
-    
     /**
      * Crea una nuova sottomissione seguendo il sequence diagram
      */
@@ -79,6 +75,9 @@ public class GestioneArticoliControl {
         try {
             // Chiama il DBMSBoundary per salvare la sottomissione
             dbmsBoundary.setSottomissione(articolo, idUtente, idConferenza);
+            SubmissionScreen submissionScreen = new SubmissionScreen(idUtente, idConferenza);
+            submissionScreen.mostraListaSottomissioni(dbmsBoundary.getListaSottomissioni(idUtente, idConferenza));
+            submissionScreen.setVisible(true);
             
         } catch (Exception e) {
             System.err.println("Errore durante il salvataggio della sottomissione: " + e.getMessage());
@@ -111,14 +110,13 @@ public class GestioneArticoliControl {
                 System.out.println("DEBUG: Articolo trovato: " + articolo.getTitolo());
                 
                 // Passo 2: Crea ViewDetailsSubmissionScreen seguendo il sequence diagram
-                System.out.println("DEBUG: Creazione ViewDetailsSubmissionScreen");
-                ViewDetailsSubmissionScreen viewDetailsScreen = new ViewDetailsSubmissionScreen();
+                System.out.println("DEBUG: Creazione ViewDetailsSubmissionScreen con ID articolo: " + idArticolo);
+                ViewDetailsSubmissionScreen viewDetailsScreen = new ViewDetailsSubmissionScreen(idArticolo);
                 
-                // Passo 3: Popola la schermata con i dati reali dell'articolo
-                System.out.println("DEBUG: Popolamento dati articolo");
-                viewDetailsScreen.setArticoloData(articolo);
+                // La schermata ora carica automaticamente i dati dal database, incluse le keywords
+                System.out.println("DEBUG: Dati caricati automaticamente dal database");
                 
-                // Passo 4: Mostra la schermata
+                // Passo 3: Mostra la schermata
                 System.out.println("DEBUG: Mostra schermata dettagli");
                 viewDetailsScreen.setVisible(true);
                 

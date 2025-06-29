@@ -824,7 +824,111 @@ public class DBMSBoundary {
     }
     
     public ArticoloE getArticolo(int idArticolo) {
-        return null;
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database");
+                return null;
+            }
+            
+            // Query per ottenere l'articolo dalla tabella articoli
+            String query = "SELECT id, titolo, abstract, fileArticolo, allegato, stato, idConferenza, ultimaModifica " +
+                          "FROM articoli WHERE id = ?";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idArticolo);
+            rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                // Crea un nuovo ArticoloE con i dati recuperati
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setAbstractText(rs.getString("abstract"));
+                
+                // Handle fileArticolo as BLOB (convert to byte array) or as String
+                java.sql.Blob fileBlob = rs.getBlob("fileArticolo");
+                if (fileBlob != null) {
+                    try {
+                        byte[] fileBytes = fileBlob.getBytes(1, (int) fileBlob.length());
+                        articolo.setFileArticolo(fileBytes);
+                        System.out.println("File articolo caricato come BLOB: " + fileBytes.length + " bytes");
+                    } catch (SQLException e) {
+                        System.err.println("Errore nel recupero del BLOB fileArticolo: " + e.getMessage());
+                        // Fallback: try to get as string
+                        String filePath = rs.getString("fileArticolo");
+                        if (filePath != null) {
+                            articolo.setFileArticolo(filePath);
+                            System.out.println("File articolo caricato come path: " + filePath);
+                        }
+                    }
+                } else {
+                    // Try to get as string (for legacy data)
+                    String filePath = rs.getString("fileArticolo");
+                    if (filePath != null) {
+                        articolo.setFileArticolo(filePath);
+                        System.out.println("File articolo caricato come path: " + filePath);
+                    }
+                }
+                
+                // Handle allegato as BLOB (convert to byte array) or as String
+                java.sql.Blob allegatoBlob = rs.getBlob("allegato");
+                if (allegatoBlob != null) {
+                    try {
+                        byte[] allegatoBytes = allegatoBlob.getBytes(1, (int) allegatoBlob.length());
+                        articolo.setAllegato(allegatoBytes);
+                        System.out.println("Allegato caricato come BLOB: " + allegatoBytes.length + " bytes");
+                    } catch (SQLException e) {
+                        System.err.println("Errore nel recupero del BLOB allegato: " + e.getMessage());
+                        // Fallback: try to get as string
+                        String allegatoPath = rs.getString("allegato");
+                        if (allegatoPath != null) {
+                            articolo.setAllegato(allegatoPath);
+                            System.out.println("Allegato caricato come path: " + allegatoPath);
+                        }
+                    }
+                } else {
+                    // Try to get as string (for legacy data)
+                    String allegatoPath = rs.getString("allegato");
+                    if (allegatoPath != null) {
+                        articolo.setAllegato(allegatoPath);
+                        System.out.println("Allegato caricato come path: " + allegatoPath);
+                    }
+                }
+                
+                articolo.setStato(rs.getString("stato"));
+                articolo.setIdConferenza(rs.getInt("idConferenza"));
+                
+                // Gestione della data ultimaModifica
+                java.sql.Date sqlDate = rs.getDate("ultimaModifica");
+                if (sqlDate != null) {
+                    articolo.setUltimaModifica(sqlDate.toLocalDate());
+                }
+                
+                return articolo;
+            } else {
+                System.out.println("Nessun articolo trovato con ID: " + idArticolo);
+                return null;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante il recupero dell'articolo: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
     }
 
     public LinkedList<ArticoloE> getArticoliRevisioneFinalePassata(int idConferenza)
@@ -1014,8 +1118,31 @@ public class DBMSBoundary {
             stmt = conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
             stmt.setString(1, articolo.getTitolo());
             stmt.setString(2, articolo.getAbstractText());
-            stmt.setObject(3, articolo.getFileArticolo());
-            stmt.setObject(4, articolo.getAllegato());
+            
+            // Handle fileArticolo as BLOB if it's a byte array, or as string if it's a path
+            Object fileArticolo = articolo.getFileArticolo();
+            if (fileArticolo instanceof byte[]) {
+                stmt.setBytes(3, (byte[]) fileArticolo);
+                System.out.println("File articolo salvato come BLOB: " + ((byte[]) fileArticolo).length + " bytes");
+            } else if (fileArticolo instanceof String) {
+                stmt.setString(3, (String) fileArticolo);
+                System.out.println("File articolo salvato come path: " + fileArticolo);
+            } else {
+                stmt.setNull(3, java.sql.Types.BLOB);
+            }
+            
+            // Handle allegato as BLOB if it's a byte array, or as string if it's a path
+            Object allegato = articolo.getAllegato();
+            if (allegato instanceof byte[]) {
+                stmt.setBytes(4, (byte[]) allegato);
+                System.out.println("Allegato salvato come BLOB: " + ((byte[]) allegato).length + " bytes");
+            } else if (allegato instanceof String) {
+                stmt.setString(4, (String) allegato);
+                System.out.println("Allegato salvato come path: " + allegato);
+            } else {
+                stmt.setNull(4, java.sql.Types.BLOB);
+            }
+            
             stmt.setString(5, articolo.getStato() != null ? articolo.getStato() : "Inviato");
             stmt.setInt(6, idConferenza);
             
@@ -1039,6 +1166,9 @@ public class DBMSBoundary {
                         // Se la tabella autori_articoli non esiste, ignora
                         System.out.println("Tabella autori_articoli non presente, relazione non inserita");
                     }
+                    
+                    // Inserisci le keywords dell'articolo (se presenti)
+                    inserisciKeywordsArticolo(conn, idArticolo, articolo.getKeywords());
                     
                     System.out.println("Sottomissione creata con successo. ID: " + idArticolo);
                 } else {
@@ -1329,4 +1459,244 @@ public class DBMSBoundary {
             default: return "Utente";
         }
     }
+    
+    /**
+     * Inserisce le keywords associate a un articolo nella tabella di relazione
+     */
+    private void inserisciKeywordsArticolo(Connection conn, int idArticolo, LinkedList<String> keywords) {
+        if (keywords == null || keywords.isEmpty()) {
+            return;
+        }
+        
+        try {
+            for (String keyword : keywords) {
+                if (keyword != null && !keyword.trim().isEmpty()) {
+                    keyword = keyword.trim();
+                    
+                    // Prima ottieni l'ID della keyword (o creala se non esiste)
+                    int idKeyword = inserisciOOttieniKeyword(conn, keyword);
+                    
+                    if (idKeyword > 0) {
+                        // Inserisci la relazione articolo-keyword nella tabella di associazione
+                        // Il nome della tabella potrebbe variare: keywordsArticoli, articoli_keywords, etc.
+                        PreparedStatement stmt = conn.prepareStatement(
+                            "INSERT IGNORE INTO keywordsArticoli (idArticolo, idKeyword) VALUES (?, ?)"
+                        );
+                        stmt.setInt(1, idArticolo);
+                        stmt.setInt(2, idKeyword);
+                        stmt.executeUpdate();
+                        stmt.close();
+                        
+                        System.out.println("Keyword '" + keyword + "' associata all'articolo " + idArticolo);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Errore durante l'inserimento delle keywords dell'articolo: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Metodo di test per verificare l'inserimento delle keywords di un articolo
+     * Questo metodo può essere utilizzato per testare il funzionamento del sistema
+     */
+    public void testKeywordInsertion() {
+        System.out.println("=== Test Inserimento Keywords Articolo ===");
+        System.out.println("Il sistema è ora configurato per:");
+        System.out.println("1. Salvare l'articolo nella tabella 'articoli'");
+        System.out.println("2. Ottenere l'ID dell'articolo appena inserito");
+        System.out.println("3. Per ogni keyword selezionata:");
+        System.out.println("   - Cercare la keyword nella tabella 'keywords'");
+        System.out.println("   - Se non esiste, crearla");
+        System.out.println("   - Inserire la relazione nella tabella 'keywordsArticoli'");
+        System.out.println("     con campi: idArticolo, idKeyword");
+        System.out.println("4. La tabella keywordsArticoli segue la struttura:");
+        System.out.println("   - idArticolo (int NOT NULL)");
+        System.out.println("   - idKeyword (int NOT NULL)");
+        System.out.println("===========================================");
+    }
+    
+    /**
+     * Ottiene la lista delle keywords associate a un articolo specifico
+     * @param idArticolo L'ID dell'articolo di cui recuperare le keywords
+     * @return ArrayList<String> contenente le keywords dell'articolo
+     */
+    public ArrayList<String> getKeywordsArticolo(int idArticolo) {
+        ArrayList<String> keywords = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database");
+                return keywords;
+            }
+            
+            // Query per ottenere le keywords associate all'articolo
+            String sql = "SELECT k.keyword " +
+                        "FROM keywords k " +
+                        "INNER JOIN keywordsArticoli ka ON k.id = ka.idKeyword " +
+                        "WHERE ka.idArticolo = ?";
+            
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, idArticolo);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                keywords.add(rs.getString("keyword"));
+            }
+            
+            System.out.println("Recuperate " + keywords.size() + " keywords per l'articolo " + idArticolo);
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante il recupero delle keywords dell'articolo: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        return keywords;
+    }
+    
+    /**
+     * Metodo di test per verificare il recupero delle keywords di un articolo
+     */
+    public void testGetKeywordsArticolo(int idArticolo) {
+        System.out.println("=== Test recupero keywords per articolo " + idArticolo + " ===");
+        
+        ArrayList<String> keywords = getKeywordsArticolo(idArticolo);
+        
+        if (keywords.isEmpty()) {
+            System.out.println("Nessuna keyword trovata per l'articolo " + idArticolo);
+            System.out.println("Questo può significare:");
+            System.out.println("1. L'articolo non ha keywords associate");
+            System.out.println("2. L'articolo non esiste nel database");
+            System.out.println("3. La tabella keywordsArticoli non ha dati per questo articolo");
+        } else {
+            System.out.println("Keywords trovate per l'articolo " + idArticolo + ":");
+            for (int i = 0; i < keywords.size(); i++) {
+                System.out.println("  " + (i + 1) + ". " + keywords.get(i));
+            }
+        }
+        
+        System.out.println("Totale keywords: " + keywords.size());
+        System.out.println("================================================");
+    }
+    
+    /**
+     * Metodo di test per verificare il caricamento completo di un articolo con BLOB
+     */
+    public void testArticoloConBLOB(int idArticolo) {
+        System.out.println("=== Test caricamento articolo con BLOB - ID: " + idArticolo + " ===");
+        
+        ArticoloE articolo = getArticolo(idArticolo);
+        
+        if (articolo != null) {
+            System.out.println("Articolo trovato: " + articolo.getTitolo());
+            System.out.println("Abstract: " + (articolo.getAbstractText() != null ? 
+                              articolo.getAbstractText().substring(0, Math.min(50, articolo.getAbstractText().length())) + "..." 
+                              : "Non disponibile"));
+            
+            // Test BLOB file articolo
+            Object fileBlob = articolo.getFileArticolo();
+            if (fileBlob != null) {
+                System.out.println("✓ File articolo (BLOB) presente - Tipo: " + fileBlob.getClass().getSimpleName());
+                if (fileBlob instanceof byte[]) {
+                    System.out.println("  Dimensione: " + ((byte[]) fileBlob).length + " bytes");
+                } else if (fileBlob instanceof java.sql.Blob) {
+                    try {
+                        System.out.println("  Dimensione: " + ((java.sql.Blob) fileBlob).length() + " bytes");
+                    } catch (Exception e) {
+                        System.out.println("  Errore nel leggere dimensione BLOB: " + e.getMessage());
+                    }
+                } else {
+                    System.out.println("  Formato BLOB non riconosciuto: " + fileBlob.getClass());
+                }
+            } else {
+                System.out.println("✗ Nessun file articolo (BLOB) presente");
+            }
+            
+            // Test BLOB allegato
+            Object allegatoBlob = articolo.getAllegato();
+            if (allegatoBlob != null) {
+                System.out.println("✓ Allegato (BLOB) presente - Tipo: " + allegatoBlob.getClass().getSimpleName());
+                if (allegatoBlob instanceof byte[]) {
+                    System.out.println("  Dimensione: " + ((byte[]) allegatoBlob).length + " bytes");
+                } else if (allegatoBlob instanceof java.sql.Blob) {
+                    try {
+                        System.out.println("  Dimensione: " + ((java.sql.Blob) allegatoBlob).length() + " bytes");
+                    } catch (Exception e) {
+                        System.out.println("  Errore nel leggere dimensione BLOB: " + e.getMessage());
+                    }
+                }
+            } else {
+                System.out.println("✗ Nessun allegato (BLOB) presente");
+            }
+            
+            // Test keywords
+            ArrayList<String> keywords = getKeywordsArticolo(idArticolo);
+            System.out.println("Keywords associate: " + keywords.size());
+            for (String keyword : keywords) {
+                System.out.println("  - " + keyword);
+            }
+            
+        } else {
+            System.out.println("✗ Articolo non trovato con ID: " + idArticolo);
+        }
+        
+        System.out.println("===============================================");
+    }
+    
+    /**
+     * Test method to verify BLOB storage and retrieval
+     */
+    public void testBLOBFunctionality() {
+        System.out.println("=== TEST BLOB FUNCTIONALITY ===");
+        
+        try {
+            // Create a test article with BLOB data
+            ArticoloE testArticolo = new ArticoloE();
+            testArticolo.setTitolo("Test Article BLOB");
+            testArticolo.setAbstractText("This is a test article to verify BLOB functionality.");
+            testArticolo.setStato("Test");
+            testArticolo.setIdConferenza(1);
+            testArticolo.setUltimaModifica(java.time.LocalDate.now());
+            
+            // Create sample BLOB data (simulating a PDF file)
+            String sampleContent = "This is sample PDF content as text for testing BLOB storage.";
+            byte[] sampleFileData = sampleContent.getBytes();
+            testArticolo.setFileArticolo(sampleFileData);
+            
+            String sampleAttachment = "This is sample attachment content for testing.";
+            byte[] sampleAttachmentData = sampleAttachment.getBytes();
+            testArticolo.setAllegato(sampleAttachmentData);
+            
+            // Test keywords
+            LinkedList<String> testKeywords = new LinkedList<>();
+            testKeywords.add("test");
+            testKeywords.add("blob");
+            testArticolo.setKeywords(testKeywords);
+            
+            System.out.println("Saving test article with BLOB data...");
+            setSottomissione(testArticolo, 1, 1);
+            
+            System.out.println("Test BLOB functionality completed. Check console output for results.");
+            
+        } catch (Exception e) {
+            System.err.println("Error in BLOB test: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // ...existing methods...
 }

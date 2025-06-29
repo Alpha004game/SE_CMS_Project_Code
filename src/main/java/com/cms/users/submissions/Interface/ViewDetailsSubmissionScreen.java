@@ -2,8 +2,16 @@ package com.cms.users.submissions.Interface;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.sql.Blob;
 import java.util.LinkedList;
+import java.util.ArrayList;
 import com.cms.users.Entity.ArticoloE;
+import com.cms.users.Commons.DBMSBoundary;
 
 /**
  * <<boundary>>
@@ -21,17 +29,13 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     private JTextArea abstractTextArea;
     private JTextField coAutoriField;
     
-    // Keywords (8 campi checkbox - readonly)
+    // Keywords (checkbox dinamici - readonly)
     private JCheckBox[] keywordCheckboxes;
-    private String[] keywordOptions = {
-        "Machine Learning", "Software Engineering", "Artificial Intelligence", "Cloud Computing",
-        "Data Science", "Cybersecurity", "Mobile Development", "Web Development"
-    };
+    private ArrayList<String> keywordOptions;
     
     // Sezione file (readonly)
     private JButton formatoPdfButton;
     private JButton caricaFileButton;
-    private JCheckBox dichiaraOriginalitaCheckbox;
     
     // Bottoni azione
     private JButton ritiraSottomissioneButton;
@@ -47,6 +51,10 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     private String filePath;
     private String allegatoPath;
     private boolean originalitaDichiarata;
+    
+    // BLOB data per i file
+    private Object fileArticoloBLOB;
+    private Object allegatoBLOB;
     
     /**
      * Costruttore di default
@@ -93,6 +101,18 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     }
     
     /**
+     * Costruttore con ID articolo (carica dati dal database)
+     */
+    public ViewDetailsSubmissionScreen(int idArticolo) {
+        this.submissionId = "SUB" + idArticolo;
+        loadSubmissionDataFromDatabase(idArticolo);
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+        populateFields();
+    }
+    
+    /**
      * Inizializza con dati di default per il testing
      */
     private void initializeWithDefaultData() {
@@ -103,6 +123,16 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         this.filePath = "paper_ml_testing.pdf";
         this.allegatoPath = "supplementary_material.zip";
         this.originalitaDichiarata = true;
+        
+        // Inizializza keywords di default per i checkbox
+        this.keywordOptions = new ArrayList<>();
+        this.keywordOptions.add("Machine Learning");
+        this.keywordOptions.add("Software Engineering");
+        this.keywordOptions.add("Artificial Intelligence");
+        
+        // Per i test, imposta BLOB come null (nessun file di default)
+        this.fileArticoloBLOB = null;
+        this.allegatoBLOB = null;
     }
     
     /**
@@ -114,15 +144,78 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     }
     
     /**
+     * Carica i dati della sottomissione dal database
+     */
+    private void loadSubmissionDataFromDatabase(int idArticolo) {
+        DBMSBoundary dbms = new DBMSBoundary();
+        
+        try {
+            // Carica i dati dell'articolo dal database
+            ArticoloE articolo = dbms.getArticolo(idArticolo);
+            
+            if (articolo != null) {
+                this.titolo = articolo.getTitolo();
+                this.abstractText = articolo.getAbstractText();
+                
+                // Carica le keywords dal database e salva come string per la visualizzazione
+                ArrayList<String> keywordsList = dbms.getKeywordsArticolo(idArticolo);
+                this.keywords = String.join(", ", keywordsList);
+                
+                // Salva anche la lista per i checkbox
+                this.keywordOptions = keywordsList;
+                
+                // Costruisci la stringa dei co-autori
+                if (articolo.getCoAutori() != null && !articolo.getCoAutori().isEmpty()) {
+                    this.coAutori = String.join(", ", articolo.getCoAutori());
+                } else {
+                    this.coAutori = "";
+                }
+                
+                // Carica i BLOB dei file dal database
+                this.fileArticoloBLOB = articolo.getFileArticolo();
+                this.allegatoBLOB = articolo.getAllegato();
+                
+                // Imposta nomi descrittivi per l'interfaccia utente
+                if (this.fileArticoloBLOB != null) {
+                    this.filePath = "Articolo_" + idArticolo + ".pdf";
+                } else {
+                    this.filePath = "";
+                }
+                
+                if (this.allegatoBLOB != null) {
+                    this.allegatoPath = "Allegato_" + idArticolo + ".zip";
+                } else {
+                    this.allegatoPath = "";
+                }
+                this.originalitaDichiarata = articolo.isDichiarazioneOriginalita();
+                
+                System.out.println("DEBUG: Caricati dati per articolo " + idArticolo + 
+                                 " - Keywords: " + this.keywords);
+            } else {
+                System.err.println("Articolo con ID " + idArticolo + " non trovato nel database");
+                // Fallback ai dati di default
+                initializeWithDefaultData();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il caricamento dell'articolo: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback ai dati di default
+            initializeWithDefaultData();
+        }
+    }
+    
+    /**
      * Inizializza i componenti dell'interfaccia
      */
     private void initializeComponents() {
         // Configurazione finestra principale
         setTitle("CMS - Dettagli Sottomissione");
-        setSize(700, 800);
+        setSize(800, 700); // Più largo e meno alto
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(true);
+        setMinimumSize(new Dimension(750, 650)); // Dimensione minima
         
         // Bottoni header
         homeButton = new JButton("🏠");
@@ -167,15 +260,15 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         titoloField = new JTextField();
         titoloField.setBackground(fieldColor);
         titoloField.setFont(fieldFont);
-        titoloField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        titoloField.setPreferredSize(new Dimension(400, 35));
+        titoloField.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8)); // Padding ridotto
+        titoloField.setPreferredSize(new Dimension(350, 30)); // Dimensioni ridotte
         titoloField.setEditable(false);
         
         // Abstract (readonly)
-        abstractTextArea = new JTextArea(4, 30);
+        abstractTextArea = new JTextArea(3, 25); // Righe ridotte
         abstractTextArea.setBackground(fieldColor);
         abstractTextArea.setFont(fieldFont);
-        abstractTextArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        abstractTextArea.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8)); // Padding ridotto
         abstractTextArea.setLineWrap(true);
         abstractTextArea.setWrapStyleWord(true);
         abstractTextArea.setEditable(false);
@@ -184,26 +277,25 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         coAutoriField = new JTextField();
         coAutoriField.setBackground(fieldColor);
         coAutoriField.setFont(fieldFont);
-        coAutoriField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        coAutoriField.setPreferredSize(new Dimension(400, 35));
+        coAutoriField.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8)); // Padding ridotto
+        coAutoriField.setPreferredSize(new Dimension(350, 30)); // Dimensioni ridotte
         coAutoriField.setEditable(false);
         
-        // Keywords (8 checkbox readonly)
-        keywordCheckboxes = new JCheckBox[keywordOptions.length];
-        for (int i = 0; i < keywordOptions.length; i++) {
-            keywordCheckboxes[i] = new JCheckBox(keywordOptions[i]);
-            keywordCheckboxes[i].setBackground(fieldColor);
-            keywordCheckboxes[i].setFont(new Font("Arial", Font.PLAIN, 12));
-            keywordCheckboxes[i].setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-            keywordCheckboxes[i].setPreferredSize(new Dimension(160, 30));
-            keywordCheckboxes[i].setEnabled(false); // Readonly
+        // Keywords (checkbox dinamici readonly)
+        if (keywordOptions != null && !keywordOptions.isEmpty()) {
+            keywordCheckboxes = new JCheckBox[keywordOptions.size()];
+            for (int i = 0; i < keywordOptions.size(); i++) {
+                keywordCheckboxes[i] = new JCheckBox(keywordOptions.get(i));
+                keywordCheckboxes[i].setBackground(fieldColor);
+                keywordCheckboxes[i].setFont(new Font("Arial", Font.PLAIN, 12));
+                keywordCheckboxes[i].setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+                keywordCheckboxes[i].setPreferredSize(new Dimension(160, 30));
+                keywordCheckboxes[i].setEnabled(false); // Readonly
+            }
+        } else {
+            // Se non ci sono keywords, crea un array vuoto
+            keywordCheckboxes = new JCheckBox[0];
         }
-        
-        // Checkbox originalità (readonly)
-        dichiaraOriginalitaCheckbox = new JCheckBox("Dichiara l'originalità");
-        dichiaraOriginalitaCheckbox.setFont(new Font("Arial", Font.PLAIN, 12));
-        dichiaraOriginalitaCheckbox.setBackground(Color.WHITE);
-        dichiaraOriginalitaCheckbox.setEnabled(false); // Readonly
     }
     
     /**
@@ -214,20 +306,19 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         formatoPdfButton = new JButton("Formato PDF");
         formatoPdfButton.setBackground(Color.WHITE);
         formatoPdfButton.setForeground(Color.BLACK);
-        formatoPdfButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        formatoPdfButton.setFont(new Font("Arial", Font.PLAIN, 11)); // Font più piccolo
         formatoPdfButton.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         formatoPdfButton.setFocusPainted(false);
-        formatoPdfButton.setPreferredSize(new Dimension(120, 50));
-        formatoPdfButton.setEnabled(false); // Readonly
+        formatoPdfButton.setPreferredSize(new Dimension(140, 35)); // Dimensioni ridotte
         
         // Bottone carica file (readonly)
         caricaFileButton = new JButton("Carica file");
         caricaFileButton.setBackground(Color.WHITE);
         caricaFileButton.setForeground(Color.BLACK);
-        caricaFileButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        caricaFileButton.setFont(new Font("Arial", Font.PLAIN, 11)); // Font più piccolo
         caricaFileButton.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         caricaFileButton.setFocusPainted(false);
-        caricaFileButton.setPreferredSize(new Dimension(120, 50));
+        caricaFileButton.setPreferredSize(new Dimension(140, 35)); // Dimensioni ridotte
         caricaFileButton.setEnabled(false); // Readonly
     }
     
@@ -239,28 +330,28 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         ritiraSottomissioneButton = new JButton("Ritira sottomissione");
         ritiraSottomissioneButton.setBackground(Color.ORANGE);
         ritiraSottomissioneButton.setForeground(Color.WHITE);
-        ritiraSottomissioneButton.setFont(new Font("Arial", Font.BOLD, 12));
-        ritiraSottomissioneButton.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        ritiraSottomissioneButton.setFont(new Font("Arial", Font.BOLD, 11)); // Font più piccolo
+        ritiraSottomissioneButton.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12)); // Padding ridotto
         ritiraSottomissioneButton.setFocusPainted(false);
-        ritiraSottomissioneButton.setPreferredSize(new Dimension(160, 35));
+        ritiraSottomissioneButton.setPreferredSize(new Dimension(140, 30)); // Dimensioni ridotte
         
         // Bottone scarica rapporto
         scaricaRapportoButton = new JButton("Scarica rapporto valutazione");
         scaricaRapportoButton.setBackground(Color.ORANGE);
         scaricaRapportoButton.setForeground(Color.WHITE);
-        scaricaRapportoButton.setFont(new Font("Arial", Font.BOLD, 12));
-        scaricaRapportoButton.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        scaricaRapportoButton.setFont(new Font("Arial", Font.BOLD, 11)); // Font più piccolo
+        scaricaRapportoButton.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12)); // Padding ridotto
         scaricaRapportoButton.setFocusPainted(false);
-        scaricaRapportoButton.setPreferredSize(new Dimension(200, 35));
+        scaricaRapportoButton.setPreferredSize(new Dimension(180, 30)); // Dimensioni ridotte
         
         // Bottone modifica sottomissione
         modificaSottomissioneButton = new JButton("Modifica sottomissione");
         modificaSottomissioneButton.setBackground(Color.ORANGE);
         modificaSottomissioneButton.setForeground(Color.WHITE);
-        modificaSottomissioneButton.setFont(new Font("Arial", Font.BOLD, 12));
-        modificaSottomissioneButton.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        modificaSottomissioneButton.setFont(new Font("Arial", Font.BOLD, 11)); // Font più piccolo
+        modificaSottomissioneButton.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12)); // Padding ridotto
         modificaSottomissioneButton.setFocusPainted(false);
-        modificaSottomissioneButton.setPreferredSize(new Dimension(180, 35));
+        modificaSottomissioneButton.setPreferredSize(new Dimension(150, 30)); // Dimensioni ridotte
     }
     
     /**
@@ -287,7 +378,7 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     private JPanel createHeader() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(Color.ORANGE);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15)); // Padding ridotto
         
         // Bottone home a sinistra
         JPanel leftHeaderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -313,34 +404,52 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30)); // Margini ridotti
         
         // Titolo
         JLabel titleLabel = new JLabel("Visualizza sottomissione");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20)); // Font più piccolo
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0)); // Margine ridotto
         mainPanel.add(titleLabel);
         
+        // Usa un layout a due colonne per ottimizzare lo spazio
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        contentPanel.setBackground(Color.WHITE);
+        
+        // Colonna sinistra
+        JPanel leftColumn = new JPanel();
+        leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
+        leftColumn.setBackground(Color.WHITE);
+        
         // Sezione titolo articolo
-        mainPanel.add(createTitoloSection());
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        leftColumn.add(createTitoloSection());
+        leftColumn.add(Box.createRigidArea(new Dimension(0, 15))); // Spazio ridotto
         
         // Sezione abstract
-        mainPanel.add(createAbstractSection());
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-        
-        // Sezione keywords
-        mainPanel.add(createKeywordsSection());
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        leftColumn.add(createAbstractSection());
+        leftColumn.add(Box.createRigidArea(new Dimension(0, 15)));
         
         // Sezione co-autori
-        mainPanel.add(createCoAutoriSection());
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        leftColumn.add(createCoAutoriSection());
+        
+        // Colonna destra
+        JPanel rightColumn = new JPanel();
+        rightColumn.setLayout(new BoxLayout(rightColumn, BoxLayout.Y_AXIS));
+        rightColumn.setBackground(Color.WHITE);
+        
+        // Sezione keywords
+        rightColumn.add(createKeywordsSection());
+        rightColumn.add(Box.createRigidArea(new Dimension(0, 15)));
         
         // Sezione file
-        mainPanel.add(createFileSection());
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        rightColumn.add(createFileSection());
+        
+        contentPanel.add(leftColumn);
+        contentPanel.add(rightColumn);
+        
+        mainPanel.add(contentPanel);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         
         // Bottoni azione
         mainPanel.add(createActionButtonsPanel());
@@ -364,7 +473,8 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         panel.add(Box.createRigidArea(new Dimension(0, 8)));
         
         titoloField.setAlignmentX(Component.LEFT_ALIGNMENT);
-        titoloField.setMaximumSize(new Dimension(500, 35));
+        titoloField.setMaximumSize(new Dimension(350, 30)); // Dimensioni ridotte
+        titoloField.setPreferredSize(new Dimension(350, 30));
         panel.add(titoloField);
         
         return panel;
@@ -387,8 +497,8 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         
         JScrollPane scrollPane = new JScrollPane(abstractTextArea);
         scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
-        scrollPane.setMaximumSize(new Dimension(500, 100));
-        scrollPane.setPreferredSize(new Dimension(500, 100));
+        scrollPane.setMaximumSize(new Dimension(350, 80)); // Dimensioni ridotte
+        scrollPane.setPreferredSize(new Dimension(350, 80));
         panel.add(scrollPane);
         
         return panel;
@@ -402,17 +512,17 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
         
-        JLabel label = new JLabel("Seleziona keywords:");
+        JLabel label = new JLabel("Keywords articolo:");
         label.setFont(new Font("Arial", Font.PLAIN, 14));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(label);
         
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
         
-        // Griglia 2x4 per i checkbox
-        JPanel gridPanel = new JPanel(new GridLayout(2, 4, 10, 10));
+        // Layout più compatto per le keywords
+        JPanel gridPanel = new JPanel(new GridLayout(0, 2, 5, 5)); // 2 colonne invece di 4
         gridPanel.setBackground(Color.WHITE);
-        gridPanel.setMaximumSize(new Dimension(500, 80));
+        gridPanel.setMaximumSize(new Dimension(350, 120)); // Dimensioni ridotte
         
         for (int i = 0; i < keywordCheckboxes.length; i++) {
             gridPanel.add(keywordCheckboxes[i]);
@@ -440,7 +550,8 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         panel.add(Box.createRigidArea(new Dimension(0, 8)));
         
         coAutoriField.setAlignmentX(Component.LEFT_ALIGNMENT);
-        coAutoriField.setMaximumSize(new Dimension(500, 35));
+        coAutoriField.setMaximumSize(new Dimension(350, 30)); // Dimensioni ridotte
+        coAutoriField.setPreferredSize(new Dimension(350, 30));
         panel.add(coAutoriField);
         
         return panel;
@@ -454,8 +565,9 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
         
-        // Riga per carica articolo e allegato
-        JPanel fileButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 0));
+        // Layout più compatto per i file
+        JPanel fileButtonsPanel = new JPanel();
+        fileButtonsPanel.setLayout(new BoxLayout(fileButtonsPanel, BoxLayout.Y_AXIS));
         fileButtonsPanel.setBackground(Color.WHITE);
         
         // Carica articolo
@@ -463,11 +575,12 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         articoloPanel.setLayout(new BoxLayout(articoloPanel, BoxLayout.Y_AXIS));
         articoloPanel.setBackground(Color.WHITE);
         JLabel articoloLabel = new JLabel("Carica articolo:");
-        articoloLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        articoloLabel.setFont(new Font("Arial", Font.PLAIN, 12)); // Font più piccolo
         articoloLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         articoloPanel.add(articoloLabel);
-        articoloPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        articoloPanel.add(Box.createRigidArea(new Dimension(0, 3)));
         formatoPdfButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        formatoPdfButton.setPreferredSize(new Dimension(140, 35)); // Dimensioni ridotte
         articoloPanel.add(formatoPdfButton);
         
         // Carica allegato
@@ -475,24 +588,17 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         allegatoPanel.setLayout(new BoxLayout(allegatoPanel, BoxLayout.Y_AXIS));
         allegatoPanel.setBackground(Color.WHITE);
         JLabel allegatoLabel = new JLabel("Carica allegato:");
-        allegatoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        allegatoLabel.setFont(new Font("Arial", Font.PLAIN, 12)); // Font più piccolo
         allegatoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         allegatoPanel.add(allegatoLabel);
-        allegatoPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        allegatoPanel.add(Box.createRigidArea(new Dimension(0, 3)));
         caricaFileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        caricaFileButton.setPreferredSize(new Dimension(140, 35)); // Dimensioni ridotte
         allegatoPanel.add(caricaFileButton);
         
-        // Checkbox originalità
-        JPanel originalitaPanel = new JPanel();
-        originalitaPanel.setLayout(new BoxLayout(originalitaPanel, BoxLayout.Y_AXIS));
-        originalitaPanel.setBackground(Color.WHITE);
-        originalitaPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-        dichiaraOriginalitaCheckbox.setAlignmentX(Component.CENTER_ALIGNMENT);
-        originalitaPanel.add(dichiaraOriginalitaCheckbox);
-        
         fileButtonsPanel.add(articoloPanel);
+        fileButtonsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         fileButtonsPanel.add(allegatoPanel);
-        fileButtonsPanel.add(originalitaPanel);
         
         panel.add(fileButtonsPanel);
         
@@ -507,20 +613,20 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
         
-        // Prima riga: Ritira sottomissione
-        JPanel firstRowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        firstRowPanel.setBackground(Color.WHITE);
-        firstRowPanel.add(ritiraSottomissioneButton);
+        // Layout più compatto per i bottoni
+        JPanel buttonRowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        buttonRowPanel.setBackground(Color.WHITE);
         
-        // Seconda riga: Scarica rapporto e Modifica
-        JPanel secondRowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
-        secondRowPanel.setBackground(Color.WHITE);
-        secondRowPanel.add(scaricaRapportoButton);
-        secondRowPanel.add(modificaSottomissioneButton);
+        // Ridimensiona i bottoni
+        ritiraSottomissioneButton.setPreferredSize(new Dimension(140, 30));
+        scaricaRapportoButton.setPreferredSize(new Dimension(180, 30));
+        modificaSottomissioneButton.setPreferredSize(new Dimension(150, 30));
         
-        panel.add(firstRowPanel);
-        panel.add(Box.createRigidArea(new Dimension(0, 10)));
-        panel.add(secondRowPanel);
+        buttonRowPanel.add(ritiraSottomissioneButton);
+        buttonRowPanel.add(scaricaRapportoButton);
+        buttonRowPanel.add(modificaSottomissioneButton);
+        
+        panel.add(buttonRowPanel);
         
         return panel;
     }
@@ -542,31 +648,63 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         }
         
         // Imposta keywords
-        if (keywords != null && !keywords.trim().isEmpty()) {
+        if (keywords != null && !keywords.trim().isEmpty() && keywordOptions != null) {
             String[] keywordArray = keywords.split(",");
             for (String keyword : keywordArray) {
                 String cleanKeyword = keyword.trim();
-                for (int i = 0; i < keywordOptions.length; i++) {
-                    if (keywordOptions[i].equalsIgnoreCase(cleanKeyword)) {
-                        keywordCheckboxes[i].setSelected(true);
+                for (int i = 0; i < keywordOptions.size(); i++) {
+                    if (keywordOptions.get(i).equalsIgnoreCase(cleanKeyword)) {
+                        if (i < keywordCheckboxes.length) {
+                            keywordCheckboxes[i].setSelected(true);
+                        }
                         break;
                     }
                 }
             }
         }
         
-        // Imposta file
-        if (filePath != null && !filePath.trim().isEmpty()) {
-            formatoPdfButton.setText("✓ " + filePath);
+        // Imposta file PDF dell'articolo
+        if (fileArticoloBLOB != null) {
+            formatoPdfButton.setText("📄 " + (filePath != null ? filePath : "Articolo.pdf"));
             formatoPdfButton.setBackground(new Color(200, 255, 200));
+            formatoPdfButton.setEnabled(true);
+            formatoPdfButton.setToolTipText("Clicca per scaricare l'articolo");
+            
+            // Aggiungi listener per il download
+            formatoPdfButton.addActionListener(e -> {
+                String filename = filePath != null ? filePath : "Articolo_" + submissionId + ".pdf";
+                downloadBLOB(fileArticoloBLOB, filename);
+            });
+        } else {
+            formatoPdfButton.setText("Nessun file PDF");
+            formatoPdfButton.setBackground(Color.LIGHT_GRAY);
+            formatoPdfButton.setEnabled(false);
+            formatoPdfButton.setToolTipText("Nessun file disponibile");
         }
         
-        if (allegatoPath != null && !allegatoPath.trim().isEmpty()) {
+        // Imposta file allegato
+        if (allegatoBLOB != null) {
+            caricaFileButton.setText("📎 " + (allegatoPath != null ? allegatoPath : "Allegato.zip"));
+            caricaFileButton.setBackground(new Color(200, 255, 200));
+            caricaFileButton.setEnabled(true);
+            caricaFileButton.setToolTipText("Clicca per scaricare l'allegato");
+            
+            // Aggiungi listener per il download
+            caricaFileButton.addActionListener(e -> {
+                String filename = allegatoPath != null ? allegatoPath : "Allegato_" + submissionId + ".zip";
+                downloadBLOB(allegatoBLOB, filename);
+            });
+        } else if (allegatoPath != null && !allegatoPath.trim().isEmpty()) {
+            // Caso di fallback per visualizzazione legacy
             caricaFileButton.setText("✓ " + allegatoPath);
             caricaFileButton.setBackground(new Color(200, 255, 200));
+            caricaFileButton.setEnabled(false);
+        } else {
+            caricaFileButton.setText("Nessun allegato");
+            caricaFileButton.setBackground(Color.LIGHT_GRAY);
+            caricaFileButton.setEnabled(false);
+            caricaFileButton.setToolTipText("Nessun allegato disponibile");
         }
-        
-        dichiaraOriginalitaCheckbox.setSelected(originalitaDichiarata);
     }
     
     /**
@@ -850,10 +988,26 @@ public class ViewDetailsSubmissionScreen extends JFrame {
                 this.coAutori = "";
             }
             
-            // Per ora imposta valori di default per filePath e allegatoPath
-            // (possono essere gestiti in futuro se aggiunti all'entity)
-            this.filePath = "articolo_" + articolo.getId() + ".pdf";
-            this.allegatoPath = "allegato_" + articolo.getId() + ".zip";
+            // Carica i BLOB dei file dall'articolo
+            this.fileArticoloBLOB = articolo.getFileArticolo();
+            this.allegatoBLOB = articolo.getAllegato();
+            
+            // Imposta nomi descrittivi per l'interfaccia utente
+            if (this.fileArticoloBLOB != null) {
+                this.filePath = "Articolo_" + articolo.getId() + ".pdf";
+            } else {
+                this.filePath = "";
+            }
+            
+            if (this.allegatoBLOB != null) {
+                this.allegatoPath = "Allegato_" + articolo.getId() + ".zip";
+            } else {
+                this.allegatoPath = "";
+            }
+            
+            // Imposta keywordOptions per i checkbox
+            this.keywordOptions = articolo.getKeywords() != null ? 
+                new ArrayList<>(articolo.getKeywords()) : new ArrayList<>();
             
             // Usa il metodo corretto per la dichiarazione di originalità
             this.originalitaDichiarata = articolo.isDichiarazioneOriginalita();
@@ -885,5 +1039,61 @@ public class ViewDetailsSubmissionScreen extends JFrame {
             );
             screen.create();
         });
+    }
+    
+    /**
+     * Scarica un BLOB come file
+     */
+    private void downloadBLOB(Object blobData, String filename) {
+        if (blobData == null) {
+            JOptionPane.showMessageDialog(this, "Nessun file disponibile per il download.", 
+                                        "File non trovato", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
+            // Apri un file chooser per selezionare dove salvare
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setSelectedFile(new File(filename));
+            
+            int userSelection = fileChooser.showSaveDialog(this);
+            
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+                
+                // Gestisci diversi tipi di BLOB
+                if (blobData instanceof Blob) {
+                    // Se è un java.sql.Blob
+                    Blob sqlBlob = (Blob) blobData;
+                    try (FileOutputStream fos = new FileOutputStream(fileToSave)) {
+                        byte[] bytes = sqlBlob.getBytes(1, (int) sqlBlob.length());
+                        fos.write(bytes);
+                    }
+                } else if (blobData instanceof byte[]) {
+                    // Se è un array di byte
+                    byte[] bytes = (byte[]) blobData;
+                    try (FileOutputStream fos = new FileOutputStream(fileToSave)) {
+                        fos.write(bytes);
+                    }
+                } else {
+                    // Altri tipi - prova a convertire a stringa e poi a byte
+                    String data = blobData.toString();
+                    try (FileOutputStream fos = new FileOutputStream(fileToSave)) {
+                        fos.write(data.getBytes());
+                    }
+                }
+                
+                JOptionPane.showMessageDialog(this, "File salvato con successo in:\n" + fileToSave.getAbsolutePath(),
+                                            "Download completato", JOptionPane.INFORMATION_MESSAGE);
+                
+                System.out.println("DEBUG: File scaricato: " + fileToSave.getAbsolutePath());
+                
+            }
+        } catch (Exception e) {
+            System.err.println("Errore durante il download del file: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Errore durante il download del file:\n" + e.getMessage(),
+                                        "Errore download", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

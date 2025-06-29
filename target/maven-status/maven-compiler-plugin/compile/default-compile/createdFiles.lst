@@ -14,8 +14,10 @@ com\cms\users\conference\Interface\MemberListScreen.class
 com\cms\users\account\Interface\LoginScreen$4.class
 com\cms\users\account\Control\GestioneUtenteControl.class
 com\cms\users\notifications\Interface\DemoneBoundary.class
+com\cms\users\Commons\ListScreen$6.class
 com\cms\users\publications\Control\PubblicazioneControl.class
 com\cms\users\account\Control\LoginControl.class
+com\cms\users\conference\Interface\MemberListScreen$2.class
 com\cms\users\Commons\ListScreen.class
 com\cms\users\account\Control\LogoutControl.class
 com\cms\users\account\Interface\RegistrationScreen$1.class

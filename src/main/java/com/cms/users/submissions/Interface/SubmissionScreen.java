@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.LinkedList;
 import com.cms.users.Entity.ArticoloE;
 import com.cms.users.submissions.Control.GestioneArticoliControl;
+import com.cms.users.Commons.DBMSBoundary;
 
 /**
  * <<boundary>>
@@ -600,17 +601,22 @@ public class SubmissionScreen extends JFrame {
         SwingUtilities.invokeLater(() -> {
             // Test con articoli reali (ArticoloE) invece di stringhe
             LinkedList<ArticoloE> articoliTest = new LinkedList<>();
+            DBMSBoundary dbms = new DBMSBoundary();
             
             // Crea alcuni articoli di test
             ArticoloE articolo1 = new ArticoloE();
             articolo1.setId(1);
             articolo1.setTitolo("Machine Learning Algorithms for Software Testing");
             articolo1.setAbstractText("Questo articolo presenta algoritmi di machine learning per il testing del software...");
-            LinkedList<String> keywords1 = new LinkedList<>();
-            keywords1.add("Machine Learning");
-            keywords1.add("Software Testing");
-            keywords1.add("Algorithms");
-            articolo1.setKeywords(keywords1);
+            // Usa le keywords dal database invece di hardcoded
+            ArrayList<String> keywords1 = dbms.getKeywordsArticolo(1);
+            if (keywords1.isEmpty()) {
+                // Fallback alle keywords di test se non ci sono nel DB
+                keywords1.add("Machine Learning");
+                keywords1.add("Software Testing");
+                keywords1.add("Algorithms");
+            }
+            articolo1.setKeywords(new LinkedList<>(keywords1));
             LinkedList<String> coAutori1 = new LinkedList<>();
             coAutori1.add("Mario Rossi");
             coAutori1.add("Luigi Verdi");
@@ -621,11 +627,15 @@ public class SubmissionScreen extends JFrame {
             articolo2.setId(2);
             articolo2.setTitolo("Agile Methodologies in Large Scale Projects");
             articolo2.setAbstractText("Studio delle metodologie agili applicato a progetti di larga scala...");
-            LinkedList<String> keywords2 = new LinkedList<>();
-            keywords2.add("Agile");
-            keywords2.add("Software Engineering");
-            keywords2.add("Project Management");
-            articolo2.setKeywords(keywords2);
+            // Usa le keywords dal database invece di hardcoded
+            ArrayList<String> keywords2 = dbms.getKeywordsArticolo(2);
+            if (keywords2.isEmpty()) {
+                // Fallback alle keywords di test se non ci sono nel DB
+                keywords2.add("Agile");
+                keywords2.add("Software Engineering");
+                keywords2.add("Project Management");
+            }
+            articolo2.setKeywords(new LinkedList<>(keywords2));
             LinkedList<String> coAutori2 = new LinkedList<>();
             coAutori2.add("Anna Bianchi");
             coAutori2.add("Giuseppe Neri");
@@ -636,11 +646,15 @@ public class SubmissionScreen extends JFrame {
             articolo3.setId(3);
             articolo3.setTitolo("Cloud Computing Architecture Patterns");
             articolo3.setAbstractText("Analisi dei pattern architetturali per il cloud computing...");
-            LinkedList<String> keywords3 = new LinkedList<>();
-            keywords3.add("Cloud Computing");
-            keywords3.add("Architecture");
-            keywords3.add("Design Patterns");
-            articolo3.setKeywords(keywords3);
+            // Usa le keywords dal database invece di hardcoded
+            ArrayList<String> keywords3 = dbms.getKeywordsArticolo(3);
+            if (keywords3.isEmpty()) {
+                // Fallback alle keywords di test se non ci sono nel DB
+                keywords3.add("Cloud Computing");
+                keywords3.add("Architecture");
+                keywords3.add("Design Patterns");
+            }
+            articolo3.setKeywords(new LinkedList<>(keywords3));
             LinkedList<String> coAutori3 = new LinkedList<>();
             coAutori3.add("Francesco Blu");
             articolo3.setCoAutori(coAutori3);
