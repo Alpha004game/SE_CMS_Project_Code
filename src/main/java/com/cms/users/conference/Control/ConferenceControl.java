@@ -1091,6 +1091,102 @@ public class ConferenceControl {
     }
     
     /**
+     * Ottiene le assegnazioni esistenti revisori-articoli dal database
+     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary
+     */
+    public boolean[][] ottieniAssegnazioniEsistenti(int idConferenza, 
+            java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> reviewers,
+            java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> articles) {
+        
+        boolean[][] assignments = new boolean[reviewers.size()][articles.size()];
+        
+        try {
+            // Per ogni combinazione revisore-articolo, controlla se esiste un'assegnazione
+            for (int i = 0; i < reviewers.size(); i++) {
+                for (int j = 0; j < articles.size(); j++) {
+                    int idRevisore = Integer.parseInt(reviewers.get(i).id);
+                    int idArticolo = Integer.parseInt(articles.get(j).id);
+                    
+                    // Verifica se esiste l'assegnazione nel database
+                    boolean assegnato = verificaAssegnazioneEsistente(idArticolo, idRevisore);
+                    assignments[i][j] = assegnato;
+                    
+                    if (assegnato) {
+                        System.out.println("Assegnazione esistente trovata: Revisore " + 
+                            reviewers.get(i).name + " (ID:" + idRevisore + ") -> Articolo " + 
+                            articles.get(j).title + " (ID:" + idArticolo + ")");
+                    }
+                }
+            }
+            
+            // Conta le assegnazioni trovate
+            int totaleAssegnazioni = 0;
+            for (int i = 0; i < assignments.length; i++) {
+                for (int j = 0; j < assignments[i].length; j++) {
+                    if (assignments[i][j]) totaleAssegnazioni++;
+                }
+            }
+            
+            System.out.println("Caricate " + totaleAssegnazioni + " assegnazioni esistenti per conferenza ID: " + idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il caricamento delle assegnazioni esistenti: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return assignments;
+    }
+    
+    /**
+     * Verifica se esiste un'assegnazione tra un articolo e un revisore
+     * Controlla direttamente nel database nella tabella revisiona
+     */
+    private boolean verificaAssegnazioneEsistente(int idArticolo, int idRevisore) {
+        try {
+            // Usa una query diretta per verificare l'esistenza dell'assegnazione
+            java.sql.Connection conn = null;
+            java.sql.PreparedStatement stmt = null;
+            java.sql.ResultSet rs = null;
+            
+            try {
+                // Accede direttamente al database (stessa connessione di DBMSBoundary)
+                conn = java.sql.DriverManager.getConnection(
+                    "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS", 
+                    "ids", 
+                    "IngegneriaDelSoftware"
+                );
+                
+                String sql = "SELECT COUNT(*) FROM revisiona WHERE idRevisore = ? AND idArticolo = ?";
+                stmt = conn.prepareStatement(sql);
+                stmt.setInt(1, idRevisore);
+                stmt.setInt(2, idArticolo);
+                
+                rs = stmt.executeQuery();
+                if (rs.next()) {
+                    boolean assegnato = rs.getInt(1) > 0;
+                    if (assegnato) {
+                        System.out.println("Assegnazione trovata nel DB: Revisore " + idRevisore + 
+                                         " -> Articolo " + idArticolo);
+                    }
+                    return assegnato;
+                }
+                
+            } finally {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            System.err.println("Errore nella verifica dell'assegnazione per articolo " + idArticolo + 
+                             " e revisore " + idRevisore + ": " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
      * Assegna automaticamente i revisori agli articoli
      * Segue il sequence diagram: ConferenceControl -> assegnazione automatica -> DBMSBoundary
      */

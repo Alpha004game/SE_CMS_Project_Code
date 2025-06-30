@@ -182,11 +182,11 @@ public class ReviewerScreen extends JFrame {
      * Inizializza la tabella
      */
     private void initializeTable() {
-        // Crea le colonne: "Revisore" + una colonna per ogni articolo
+        // Crea le colonne: "Revisore" + una colonna per ogni articolo con il suo titolo
         List<String> columnNames = new ArrayList<>();
         columnNames.add("Revisore");
         for (int i = 0; i < articles.size(); i++) {
-            columnNames.add("Articolo"); // Come nel mockup, tutte le colonne articolo hanno lo stesso nome
+            columnNames.add(articles.get(i).title); // Usa il titolo specifico dell'articolo
         }
         
         tableModel = new DefaultTableModel(columnNames.toArray(new String[0]), 0) {
@@ -519,8 +519,11 @@ public class ReviewerScreen extends JFrame {
                 // Carica articoli reali
                 this.articles = conferenceControl.ottieniArticoli(idConferenza);
                 
-                // Reinizializza la matrice delle assegnazioni
+                // Carica le assegnazioni esistenti dal database
                 if (!reviewers.isEmpty() && !articles.isEmpty()) {
+                    assignments = conferenceControl.ottieniAssegnazioniEsistenti(idConferenza, reviewers, articles);
+                    System.out.println("Caricate " + contaAssegnazioniAttive() + " assegnazioni esistenti");
+                } else {
                     assignments = new boolean[reviewers.size()][articles.size()];
                 }
                 
@@ -545,11 +548,11 @@ public class ReviewerScreen extends JFrame {
      * Aggiorna la struttura della tabella quando cambiano i dati
      */
     private void updateTableStructure() {
-        // Crea le colonne: "Revisore" + una colonna per ogni articolo
+        // Crea le colonne: "Revisore" + una colonna per ogni articolo con il suo titolo
         List<String> columnNames = new ArrayList<>();
         columnNames.add("Revisore");
         for (int i = 0; i < articles.size(); i++) {
-            columnNames.add("Articolo"); // Come nel mockup, tutte le colonne articolo hanno lo stesso nome
+            columnNames.add(articles.get(i).title); // Usa il titolo specifico dell'articolo
         }
         
         tableModel = new DefaultTableModel(columnNames.toArray(new String[0]), 0) {
@@ -578,6 +581,23 @@ public class ReviewerScreen extends JFrame {
                 assignmentTable.getColumnModel().getColumn(i).setCellRenderer(new GrayCheckboxRenderer());
             }
         }
+    }
+    
+    /**
+     * Conta il numero di assegnazioni attive nella matrice
+     */
+    private int contaAssegnazioniAttive() {
+        int count = 0;
+        if (assignments != null) {
+            for (int i = 0; i < assignments.length; i++) {
+                for (int j = 0; j < assignments[i].length; j++) {
+                    if (assignments[i][j]) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
     }
     
     /**
