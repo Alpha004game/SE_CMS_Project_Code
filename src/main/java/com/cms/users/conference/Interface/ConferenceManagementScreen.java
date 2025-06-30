@@ -728,20 +728,12 @@ public class ConferenceManagementScreen extends JFrame {
     
     /**
      * Invia una comunicazione
+     * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl
      */
     public void sendCommunicationButton() {
-        String messaggio = JOptionPane.showInputDialog(this, 
-            "Inserisci il messaggio da inviare:", 
-            "Invia Comunicazione", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (messaggio != null && !messaggio.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Comunicazione inviata a tutti i partecipanti della conferenza: " + titolo, 
-                "Comunicazione Inviata", 
-                JOptionPane.INFORMATION_MESSAGE);
-            // Qui andrà la logica per inviare la comunicazione
-        }
+        // Segue il sequence diagram: crea ConferenceControl e chiama sendCommunication
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.sendCommunication(this.id);
     }
     
     /**

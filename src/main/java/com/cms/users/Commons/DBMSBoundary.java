@@ -1490,7 +1490,24 @@ public class DBMSBoundary {
     }
     
     public LinkedList<UtenteE> getListaAutori(int idConferenza) {
-        return null;
+        try
+        {
+            Connection con=getConnection();
+            PreparedStatement stmt=con.prepareStatement("SELECT DISTINCT U.id, U.username, U.email FROM utenti AS U, sottomette AS S, articoli AS A WHERE U.id=S.idUtente AND S.idArticolo=A.id AND A.idConferenza= ?");
+            //SELECT DISTINCT U.id, U.username, U.email FROM utenti AS U, sottomette AS S, articoli AS A WHERE U.id=S.idUtente AND S.idArticolo=A.id AND A.idConferenza= ?
+            stmt.setInt(1, idConferenza);
+            ResultSet ris=stmt.executeQuery();
+            LinkedList<UtenteE> autori=new LinkedList<>();
+            while(ris.next())
+            {
+                autori.add(new UtenteE(ris.getInt("id"), ris.getString("username"), ris.getString("email")));
+            }
+            return autori;
+        }
+        catch(Exception e)
+        {
+            return null;
+        }
     }
     
     public LinkedList<UtenteE> getListaAutoriVersioneFinaleMancante(int idConferenza) {
