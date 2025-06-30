@@ -25,7 +25,8 @@ public class MemberListScreen extends JFrame {
     public enum Action {
         ADD_REVIEWER,       // Chair - Aggiungi revisore
         REMOVE_REVIEWER,    // Chair - Rimuovi revisore
-        SUMMON_SUB_REVIEWER // Revisore - Convoca sotto revisore
+        SUMMON_SUB_REVIEWER, // Revisore - Convoca sotto revisore
+        ADD_COCHAIR         // Chair - Aggiungi co-chair
     }
     
     // Classe per dati utente generico
@@ -108,6 +109,9 @@ public class MemberListScreen extends JFrame {
             case SUMMON_SUB_REVIEWER:
                 screenTitle = "Seleziona utente";
                 break;
+            case ADD_COCHAIR:
+                screenTitle = "Seleziona Co-Chair";
+                break;
             default:
                 screenTitle = "Seleziona utente";
                 break;
@@ -115,34 +119,65 @@ public class MemberListScreen extends JFrame {
     }
     
     /**
-     * Inizializza i dati di esempio
+     * Inizializza i dati di esempio o reali dal database
      */
     private void initializeData() {
         userData = new ArrayList<>();
         
-        // Simula se ci sono dati o meno (70% probabilità di avere dati)
-        hasData = Math.random() > 0.3;
-        
-        if (hasData) {
-            switch (action) {
-                case ADD_REVIEWER:
-                case SUMMON_SUB_REVIEWER:
-                    // Lista di utenti generici
-                    userData.add(new UserData("U001", "Utente", "Utente"));
-                    userData.add(new UserData("U002", "Utente", "Utente"));
-                    userData.add(new UserData("U003", "Utente", "Utente"));
-                    userData.add(new UserData("U004", "Utente", "Utente"));
-                    userData.add(new UserData("U005", "Utente", "Utente"));
-                    break;
-                case REMOVE_REVIEWER:
-                    // Lista di revisori
-                    userData.add(new UserData("R001", "Revisore", "Revisore"));
-                    userData.add(new UserData("R002", "Revisore", "Revisore"));
-                    userData.add(new UserData("R003", "Revisore", "Revisore"));
-                    userData.add(new UserData("R004", "Revisore", "Revisore"));
-                    userData.add(new UserData("R005", "Revisore", "Revisore"));
-                    break;
+        if (action == Action.REMOVE_REVIEWER) {
+            // Carica i revisori reali dal database
+            loadReviewersFromDatabase();
+        } else {
+            // Simula se ci sono dati o meno (70% probabilità di avere dati)
+            hasData = Math.random() > 0.3;
+            
+            if (hasData) {
+                switch (action) {
+                    case ADD_REVIEWER:
+                    case SUMMON_SUB_REVIEWER:
+                    case ADD_COCHAIR:
+                        // Lista di utenti generici
+                        userData.add(new UserData("U001", "Utente", "Utente"));
+                        userData.add(new UserData("U002", "Utente", "Utente"));
+                        userData.add(new UserData("U003", "Utente", "Utente"));
+                        userData.add(new UserData("U004", "Utente", "Utente"));
+                        userData.add(new UserData("U005", "Utente", "Utente"));
+                        break;
+                    case REMOVE_REVIEWER:
+                        // Questo caso è gestito sopra
+                        break;
+                }
             }
+        }
+    }
+    
+    /**
+     * Carica i revisori reali dal database per la conferenza corrente
+     */
+    private void loadReviewersFromDatabase() {
+        try {
+            if (conferenceControl != null && ConferenceControl.getConferenza() != null) {
+                java.util.LinkedList<com.cms.users.Entity.UtenteE> revisori = 
+                    com.cms.App.dbms.getRevisori(ConferenceControl.getConferenza().getId());
+                
+                if (revisori != null && !revisori.isEmpty()) {
+                    hasData = true;
+                    for (com.cms.users.Entity.UtenteE revisore : revisori) {
+                        userData.add(new UserData(
+                            String.valueOf(revisore.getId()), 
+                            revisore.getUsername(), 
+                            "Revisore"
+                        ));
+                    }
+                } else {
+                    hasData = false;
+                }
+            } else {
+                hasData = false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            hasData = false;
         }
     }
     
@@ -215,6 +250,8 @@ public class MemberListScreen extends JFrame {
                 return "REMOVE_REVIEWER";
             case SUMMON_SUB_REVIEWER:
                 return "SUMMON_SUB_REVIEWER";
+            case ADD_COCHAIR:
+                return "ADD_COCHAIR";
             default:
                 return "Conferma";
         }
@@ -442,10 +479,16 @@ public class MemberListScreen extends JFrame {
         {
             case "ADD_REVIEWER":
                 conferenceControl.assegnaRevisore(Integer.parseInt(selectedUser.id));
+                break;
+            case "ADD_COCHAIR":
+                conferenceControl.selezionaCoChair(Integer.parseInt(selectedUser.id));
+                break;
             case "REMOVE_REVIEWER":
-                
+                conferenceControl.selezionaRevisore(Integer.parseInt(selectedUser.id));
+                break;
             case "SUMMON_SUB_REVIEWER":
                 
+                break;
             default:
                     //DEFINIRE
                 break;

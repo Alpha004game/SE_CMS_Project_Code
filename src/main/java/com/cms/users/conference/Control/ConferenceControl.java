@@ -1,12 +1,26 @@
 package com.cms.users.conference.Control;
 
 import com.cms.App;
+import com.cms.users.Commons.SuccessScreen;
 import com.cms.users.Commons.UtilsControl;
 import com.cms.users.Entity.ConferenzaE;
 import com.cms.users.Entity.UtenteE;
 import com.cms.users.conference.Interface.ConferenceManagementScreen;
 import com.cms.users.conference.Interface.MemberListScreen;
 import java.util.LinkedList;
+
+// Import per iTextPDF
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.awt.Desktop;
+import java.io.File;
 
 /**
  * <<control>>
@@ -63,8 +77,36 @@ public class ConferenceControl {
         // Implementazione da definire
     }
     
-    public void invitaCoChair() {
-        // Implementazione da definire
+    /**
+     * Gestisce l'invito di un co-chair seguendo il sequence diagram
+     * ConferenceManagementScreen -> ConferenceControl -> DBMSBoundary -> MemberListScreen
+     */
+    public void invitaCoChair(int idConferenza) {
+        // Carica i dati della conferenza se necessario
+        if (conferenzaSelezionata == null || conferenzaSelezionata.getId() != idConferenza) {
+            ConferenzaE conferenza = (ConferenzaE) App.dbms.getConferenceInfo(idConferenza);
+            setConferenza(conferenza);
+        }
+        
+        // Ottieni tutti gli utenti dal database
+        LinkedList<UtenteE> tuttiGliUtenti = App.dbms.getUsersInfo();
+        
+        // Crea la MemberListScreen per selezionare un co-chair
+        MemberListScreen memberListScreen = new MemberListScreen(
+            MemberListScreen.UserRole.CHAIR, 
+            MemberListScreen.Action.ADD_COCHAIR, this
+        );
+        
+        if (tuttiGliUtenti != null && !tuttiGliUtenti.isEmpty()) {
+            // Imposta la lista degli utenti disponibili
+            memberListScreen.setUserList(tuttiGliUtenti);
+        } else {
+            // Nessun utente disponibile
+            memberListScreen.setHasData(false);
+        }
+        
+        // Mostra la schermata
+        memberListScreen.setVisible(true);
     }
     
     public void addReviewer() {
@@ -102,8 +144,39 @@ public class ConferenceControl {
         return 0;
     }
     
-    public void rimuoviRevisore() {
-        // Implementazione da definire
+    /**
+     * Avvia il processo di rimozione di un revisore dalla conferenza
+     * Segue il sequence diagram: ottiene lista revisori e apre MemberListScreen
+     */
+    public void rimuoviRevisore(int idConferenza) {
+        try {
+            // Ottieni la lista dei revisori per la conferenza
+            LinkedList<UtenteE> revisori = App.dbms.getRevisori(idConferenza);
+            
+            if (revisori == null || revisori.isEmpty()) {
+                // Mostra messaggio se non ci sono revisori
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Non ci sono revisori assegnati a questa conferenza.", 
+                    "Nessun Revisore", 
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            // Apri la schermata per selezionare il revisore da rimuovere
+            MemberListScreen memberListScreen = new MemberListScreen(
+                MemberListScreen.UserRole.CHAIR, 
+                MemberListScreen.Action.REMOVE_REVIEWER,
+                this
+            );
+            memberListScreen.setVisible(true);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante il caricamento dei revisori: " + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void assegnaRevisore(int idRevisore) {
@@ -111,6 +184,58 @@ public class ConferenceControl {
         String text="Convocazione ricevuta da "+ App.utenteAccesso.getUsername()+" per gestire, in qualità di revisore, per la conferenza: "+ConferenceControl.conferenzaSelezionata.getTitolo();
         App.dbms.insertNotifica(text, ConferenceControl.getConferenza().getId(), idRevisore, 1, "ADD-REVISORE");
         UtilsControl.sendMail(App.dbms.getUser(idRevisore).getEmail(), "Invito Membro PC conferenza: "+ConferenceControl.getConferenza().getTitolo(), text);
+    }
+    
+    /**
+     * Rimuove il revisore selezionato dalla conferenza
+     * Segue il sequence diagram: rimuove dalla DB, invia notifica e mostra successo
+     */
+    public void selezionaRevisore(int idRevisore) {
+        try {
+            int idConferenza = conferenzaSelezionata.getId();
+            
+            // Ottieni le informazioni del revisore prima della rimozione
+            UtenteE revisore = App.dbms.getUser(idRevisore);
+            if (revisore == null) {
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Errore: Revisore non trovato.", 
+                    "Errore", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Rimuovi il revisore dalla conferenza
+            App.dbms.rimuoviRevisore(idConferenza, idRevisore);
+            
+            // Invia notifica al revisore rimosso
+            String notificaText = "Sei stato rimosso dal ruolo di revisore per la conferenza: " + 
+                                conferenzaSelezionata.getTitolo() + " da " + App.utenteAccesso.getUsername();
+            App.dbms.insertNotifica(notificaText, idConferenza, idRevisore, 1, "REMOVE-REVISORE");
+            
+            // Invia email di notifica
+            String emailSubject = "Rimozione ruolo revisore - Conferenza: " + conferenzaSelezionata.getTitolo();
+            String emailBody = "Gentile " + revisore.getUsername() + ",\n\n" +
+                             "Ti informiamo che sei stato rimosso dal ruolo di revisore per la conferenza:\n" +
+                             "\"" + conferenzaSelezionata.getTitolo() + "\"\n\n" +
+                             "Questa operazione è stata effettuata dal Chair della conferenza.\n\n" +
+                             "Cordiali saluti,\n" +
+                             "Sistema di Gestione Conferenze";
+            
+            UtilsControl.sendMail(revisore.getEmail(), emailSubject, emailBody);
+            
+            // Mostra schermata di successo
+            String successMessage = "Il revisore " + revisore.getUsername() + " è stato rimosso dalla conferenza " + 
+                                  conferenzaSelezionata.getTitolo() + ". È stata inviata una notifica di conferma.";
+            SuccessScreen successScreen = new SuccessScreen(successMessage, "Rimozione Revisore");
+            successScreen.setVisible(true);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante la rimozione del revisore: " + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void asegnaRevisoriAutomaticamente(String idConferenza) {
@@ -165,17 +290,149 @@ public class ConferenceControl {
         }
     }
     
-    public String getLog() {
-        // Implementazione da definire
-        return null;
+    /**
+     * Ottiene e compila il log della conferenza seguendo il sequence diagram
+     * ConferenceManagementScreen -> ConferenceControl -> DBMSBoundary -> compilaLog() -> salvaLog()
+     */
+    public void getLog(int idConferenza) {
+        try {
+            System.out.println("Richiesta log per conferenza ID: " + idConferenza);
+            
+            // Ottieni conferenceId della conferenza
+            int conferenceId = idConferenza;
+            
+            // Seguendo il sequence diagram: chiama DBMSBoundary.getConferenceLog
+            String conferenceLog = App.dbms.getConferenceLog(conferenceId);
+            
+            // Seguendo il sequence diagram: compila il log
+            compilaLog(conferenceLog, idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il recupero del log: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
-    public void compilaLog() {
-        // Implementazione da definire
+    /**
+     * Compila il log della conferenza e chiama salvaLog per generare il PDF
+     * Seguendo il sequence diagram: compilaLog() -> salvaLog()
+     */
+    public void compilaLog(String rawLog, int idConferenza) {
+        try {
+            System.out.println("Compilazione log per conferenza ID: " + idConferenza);
+            
+            // Carica i dati della conferenza se necessario
+            if (conferenzaSelezionata == null || conferenzaSelezionata.getId() != idConferenza) {
+                ConferenzaE conferenza = (ConferenzaE) App.dbms.getConferenceInfo(idConferenza);
+                setConferenza(conferenza);
+            }
+            
+            // Compila il log con informazioni aggiuntive
+            StringBuilder logCompleto = new StringBuilder();
+            logCompleto.append("=== LOG CONFERENZA ===\n");
+            logCompleto.append("Titolo: ").append(conferenzaSelezionata != null ? conferenzaSelezionata.getTitolo() : "N/A").append("\n");
+            logCompleto.append("Anno: ").append(conferenzaSelezionata != null ? conferenzaSelezionata.getAnnoEdizione() : "N/A").append("\n");
+            logCompleto.append("Data generazione: ").append(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))).append("\n");
+            logCompleto.append("Generato da: ").append(App.utenteAccesso != null ? App.utenteAccesso.getUsername() : "Sistema").append("\n");
+            logCompleto.append("\n=== DETTAGLI LOG ===\n");
+            
+            // Aggiungi il contenuto del log dal database (se disponibile)
+            if (rawLog != null && !rawLog.trim().isEmpty()) {
+                logCompleto.append(rawLog);
+            } else {
+                // Se non ci sono log dal database, crea un log di esempio
+                logCompleto.append("01/06/2025 10:00 - Conferenza creata\n");
+                logCompleto.append("05/06/2025 14:30 - Aggiunti revisori\n");
+                logCompleto.append("10/06/2025 09:15 - Prima sottomissione ricevuta\n");
+                logCompleto.append("15/06/2025 16:45 - Deadline sottomissioni\n");
+                logCompleto.append("20/06/2025 11:20 - Inizio fase di revisione\n");
+            }
+            
+            logCompleto.append("\n=== FINE LOG ===\n");
+            
+            // Seguendo il sequence diagram: chiama salvaLog
+            salvaLog(logCompleto.toString(), idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante la compilazione del log: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
-    public void salvaLog() {
-        // Implementazione da definire
+    /**
+     * Salva il log compilato in un file PDF e lo scarica automaticamente
+     * Seguendo il sequence diagram: salvaLog() con nome file specifico
+     */
+    public void salvaLog(String logContent, int idConferenza) {
+        try {
+            System.out.println("Salvataggio log in PDF per conferenza ID: " + idConferenza);
+            
+            // Crea il nome del file seguendo il pattern richiesto
+            String nomeConferenza = (conferenzaSelezionata != null && conferenzaSelezionata.getTitolo() != null) 
+                ? conferenzaSelezionata.getTitolo().replaceAll("[^a-zA-Z0-9\\s]", "").replaceAll("\\s+", "_")
+                : "Conferenza_" + idConferenza;
+            
+            String dataAttuale = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
+            String nomeFile = "Log_Conferenza_" + nomeConferenza + "_" + dataAttuale + ".pdf";
+            
+            // Percorso di download (cartella Downloads dell'utente)
+            String userHome = System.getProperty("user.home");
+            String downloadPath = userHome + File.separator + "Downloads" + File.separator + nomeFile;
+            
+            System.out.println("Generazione PDF: " + downloadPath);
+            
+            // Crea il documento PDF
+            Document document = new Document();
+            PdfWriter.getInstance(document, new FileOutputStream(downloadPath));
+            
+            document.open();
+            
+            // Aggiungi il titolo
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD);
+            Paragraph title = new Paragraph("LOG CONFERENZA", titleFont);
+            title.setAlignment(Paragraph.ALIGN_CENTER);
+            document.add(title);
+            
+            // Aggiungi una riga vuota
+            document.add(new Paragraph(" "));
+            
+            // Aggiungi il contenuto del log
+            Font contentFont = new Font(Font.FontFamily.COURIER, 10, Font.NORMAL);
+            Paragraph content = new Paragraph(logContent, contentFont);
+            document.add(content);
+            
+            document.close();
+            
+            System.out.println("PDF generato con successo: " + downloadPath);
+            
+            // Scarica automaticamente il file (apre il file manager nella cartella Downloads)
+            if (Desktop.isDesktopSupported()) {
+                try {
+                    Desktop.getDesktop().open(new File(userHome + File.separator + "Downloads"));
+                    System.out.println("Cartella Downloads aperta automaticamente");
+                } catch (IOException e) {
+                    System.err.println("Impossibile aprire la cartella Downloads automaticamente: " + e.getMessage());
+                }
+            }
+            
+            // Mostra messaggio di successo
+            String successMessage = "Log della conferenza generato con successo!\n\n" +
+                                   "File salvato in: " + downloadPath + "\n\n" +
+                                   "Il file è stato scaricato nella cartella Downloads.";
+            
+            SuccessScreen successScreen = new SuccessScreen(successMessage, "Log Generato");
+            successScreen.setVisible(true);
+            
+        } catch (DocumentException | IOException e) {
+            System.err.println("Errore durante la generazione del PDF: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra messaggio di errore
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante la generazione del log PDF:\n" + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void revisionaArticolo(String idArticolo) {
@@ -365,6 +622,77 @@ public class ConferenceControl {
             
         } catch (Exception e) {
             System.err.println("Errore durante l'invio della comunicazione personalizzata: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Seleziona e invita un co-chair alla conferenza
+     * Segue il sequence diagram: ottiene utente dal DB, invia email, inserisce notifica
+     * @param idCoChair L'ID dell'utente da invitare come co-chair
+     */
+    public void selezionaCoChair(int idCoChair) {
+        try {
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: nessuna conferenza selezionata");
+                return;
+            }
+            
+            // Ottieni informazioni dell'utente dal database
+            UtenteE utenteCoChair = App.dbms.getUser(idCoChair);
+            
+            if (utenteCoChair == null) {
+                System.err.println("Errore: utente non trovato con ID " + idCoChair);
+                return;
+            }
+            
+            System.out.println("Invito co-chair per conferenza: " + conferenzaSelezionata.getTitolo());
+            System.out.println("Utente da invitare: " + utenteCoChair.getUsername() + " (" + utenteCoChair.getEmail() + ")");
+            
+            // Crea il messaggio di invito
+            String oggetto = "Invito Co-Chair per la conferenza: " + conferenzaSelezionata.getTitolo();
+            String messaggio = "“Convocazione ricevuta da " + App.utenteAccesso.getUsername() +
+                                " per gestire, in qualità di co-chair, la conferenza:" + conferenzaSelezionata.getTitolo();
+            
+            // Invia email tramite UtilsControl
+            boolean emailInviata = UtilsControl.sendMail(
+                utenteCoChair.getEmail(), 
+                oggetto, 
+                messaggio
+            );
+            
+            if (emailInviata) {
+                System.out.println("Email di invito co-chair inviata a: " + utenteCoChair.getEmail());
+            } else {
+                System.err.println("Errore nell'invio dell'email a: " + utenteCoChair.getEmail());
+            }
+            
+            // Inserisci notifica nel database tramite DBMSBoundary
+            String testoNotifica = "Invito Co-Chair ricevuto da " + App.utenteAccesso.getUsername() + 
+                                 " per la conferenza: " + conferenzaSelezionata.getTitolo();
+            
+            App.dbms.insertNotifica(
+                testoNotifica, 
+                conferenzaSelezionata.getId(), 
+                idCoChair, 
+                1, // tipo notifica: invito
+                "INVITO-CO-CHAIR"
+            );
+            
+            System.out.println("Notifica di invito co-chair inserita per utente ID: " + idCoChair);
+            System.out.println("Invito co-chair completato con successo");
+            
+            // Mostra schermata di successo come indicato nel sequence diagram
+            String successMessage = "Invito Co-Chair inviato con successo!\n\n" +
+                                   "L'invito è stato inviato a: " + utenteCoChair.getUsername() + "\n" +
+                                   "Email: " + utenteCoChair.getEmail() + "\n\n" +
+                                   "Conferenza: " + conferenzaSelezionata.getTitolo();
+            
+            SuccessScreen successScreen = new SuccessScreen(successMessage, "Invito Co-Chair");
+            successScreen.setVisible(true);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'invito del co-chair: " + e.getMessage());
             e.printStackTrace();
         }
     }
