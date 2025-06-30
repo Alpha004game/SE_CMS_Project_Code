@@ -1,59 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cms.AppTest" time="0.017" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.cms.AppTest" time="0.024" tests="1" errors="0" skipped="0" failures="0">
   <properties>
-    <property name="java.specification.version" value="16"/>
+    <property name="java.specification.version" value="21"/>
     <property name="sun.cpu.isalist" value="amd64"/>
     <property name="sun.jnu.encoding" value="Cp1252"/>
-    <property name="java.class.path" value="C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\test-classes;C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\classes;C:\Users\Alpha\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\Alpha\.m2\repository\javax\mail\mail\1.5.0-b01\mail-1.5.0-b01.jar;C:\Users\Alpha\.m2\repository\javax\activation\activation\1.1\activation-1.1.jar;C:\Users\Alpha\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.5.3\mariadb-java-client-3.5.3.jar;C:\Users\Alpha\.m2\repository\com\itextpdf\itextpdf\5.5.13.4\itextpdf-5.5.13.4.jar;"/>
+    <property name="java.class.path" value="C:\Users\lucia\Documents\GitHub\SE_CMS_Project_Code\target\test-classes;C:\Users\lucia\Documents\GitHub\SE_CMS_Project_Code\target\classes;C:\Users\lucia\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\lucia\.m2\repository\javax\mail\mail\1.5.0-b01\mail-1.5.0-b01.jar;C:\Users\lucia\.m2\repository\javax\activation\activation\1.1\activation-1.1.jar;C:\Users\lucia\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.5.3\mariadb-java-client-3.5.3.jar;C:\Users\lucia\.m2\repository\com\itextpdf\itextpdf\5.5.13.4\itextpdf-5.5.13.4.jar;"/>
     <property name="java.vm.vendor" value="Oracle Corporation"/>
     <property name="sun.arch.data.model" value="64"/>
     <property name="user.variant" value=""/>
     <property name="java.vendor.url" value="https://java.oracle.com/"/>
     <property name="user.timezone" value="Europe/Rome"/>
-    <property name="os.name" value="Windows 10"/>
-    <property name="java.vm.specification.version" value="16"/>
+    <property name="os.name" value="Windows 11"/>
+    <property name="java.vm.specification.version" value="21"/>
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="IT"/>
-    <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-16.0.1\bin"/>
-    <property name="sun.java.command" value="C:\Users\Alpha\AppData\Local\Temp\surefire2336293665269141235\surefirebooter-20250630171519477_3.jar C:\Users\Alpha\AppData\Local\Temp\surefire2336293665269141235 2025-06-30T17-15-19_325-jvmRun1 surefire-20250630171519477_1tmp surefire_0-20250630171519477_2tmp"/>
+    <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-21\bin"/>
+    <property name="sun.java.command" value="C:\Users\lucia\AppData\Local\Temp\surefire13859045283593076996\surefirebooter-20250630180154754_3.jar C:\Users\lucia\AppData\Local\Temp\surefire13859045283593076996 2025-06-30T18-01-54_496-jvmRun1 surefire-20250630180154754_1tmp surefire_0-20250630180154754_2tmp"/>
     <property name="jdk.debug" value="release"/>
-    <property name="surefire.test.class.path" value="C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\test-classes;C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\classes;C:\Users\Alpha\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\Alpha\.m2\repository\javax\mail\mail\1.5.0-b01\mail-1.5.0-b01.jar;C:\Users\Alpha\.m2\repository\javax\activation\activation\1.1\activation-1.1.jar;C:\Users\Alpha\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.5.3\mariadb-java-client-3.5.3.jar;C:\Users\Alpha\.m2\repository\com\itextpdf\itextpdf\5.5.13.4\itextpdf-5.5.13.4.jar;"/>
+    <property name="surefire.test.class.path" value="C:\Users\lucia\Documents\GitHub\SE_CMS_Project_Code\target\test-classes;C:\Users\lucia\Documents\GitHub\SE_CMS_Project_Code\target\classes;C:\Users\lucia\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\lucia\.m2\repository\javax\mail\mail\1.5.0-b01\mail-1.5.0-b01.jar;C:\Users\lucia\.m2\repository\javax\activation\activation\1.1\activation-1.1.jar;C:\Users\lucia\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.5.3\mariadb-java-client-3.5.3.jar;C:\Users\lucia\.m2\repository\com\itextpdf\itextpdf\5.5.13.4\itextpdf-5.5.13.4.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
-    <property name="user.home" value="C:\Users\Alpha"/>
+    <property name="user.home" value="C:\Users\lucia"/>
     <property name="user.language" value="it"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
-    <property name="java.version.date" value="2021-04-20"/>
-    <property name="java.home" value="C:\Program Files\Java\jdk-16.0.1"/>
+    <property name="java.version.date" value="2024-01-16"/>
+    <property name="java.home" value="C:\Program Files\Java\jdk-21"/>
     <property name="file.separator" value="\"/>
-    <property name="basedir" value="C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code"/>
+    <property name="basedir" value="C:\Users\lucia\Documents\GitHub\SE_CMS_Project_Code"/>
     <property name="java.vm.compressedOopsMode" value="Zero based"/>
     <property name="line.separator" value="&#10;"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
-    <property name="surefire.real.class.path" value="C:\Users\Alpha\AppData\Local\Temp\surefire2336293665269141235\surefirebooter-20250630171519477_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\lucia\AppData\Local\Temp\surefire13859045283593076996\surefirebooter-20250630180154754_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
-    <property name="java.runtime.version" value="16.0.1+9-24"/>
-    <property name="user.name" value="Alpha"/>
+    <property name="java.runtime.version" value="21.0.2+13-LTS-58"/>
+    <property name="user.name" value="lucia"/>
+    <property name="stdout.encoding" value="Cp1252"/>
     <property name="path.separator" value=";"/>
     <property name="os.version" value="10.0"/>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
-    <property name="file.encoding" value="Cp1252"/>
+    <property name="file.encoding" value="UTF-8"/>
     <property name="java.vm.name" value="Java HotSpot(TM) 64-Bit Server VM"/>
-    <property name="localRepository" value="C:\Users\Alpha\.m2\repository"/>
+    <property name="localRepository" value="C:\Users\lucia\.m2\repository"/>
     <property name="java.vendor.url.bug" value="https://bugreport.java.com/bugreport/"/>
-    <property name="java.io.tmpdir" value="C:\Users\Alpha\AppData\Local\Temp\"/>
-    <property name="java.version" value="16.0.1"/>
-    <property name="user.dir" value="C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code"/>
+    <property name="java.io.tmpdir" value="C:\Users\lucia\AppData\Local\Temp\"/>
+    <property name="java.version" value="21.0.2"/>
+    <property name="user.dir" value="C:\Users\lucia\Documents\GitHub\SE_CMS_Project_Code"/>
     <property name="os.arch" value="amd64"/>
     <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
     <property name="sun.os.patch.level" value=""/>
-    <property name="java.library.path" value="C:\Program Files\Java\jdk-16.0.1\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Razer\ChromaBroadcast\bin;C:\Program Files\Razer\ChromaBroadcast\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Users\Alpha\AppData\Local\Microsoft\WindowsApps;C:\Windows\system32\config\systemprofile\AppData\Local\Microsoft\WindowsApps;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\MATLAB\R2024b\bin;C:\Program Files\Git\cmd;C:\Program Files\PuTTY\;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.10\bin;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\java8path;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Razer\ChromaBroadcast\bin;C:\Program Files\Razer\ChromaBroadcast\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Users\Alpha\AppData\Local\Microsoft\WindowsApps;C:\Windows\system32\config\systemprofile\AppData\Local\Microsoft\WindowsApps;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\MATLAB\R2024b\bin;C:\Program Files\Git\cmd;C:\Program Files\PuTTY\;C:\Users\Alpha\AppData\Local\Programs\Microsoft VS Code\bin;C:\MinGW\bin;C:\Users\Alpha\AppData\Local\JetBrains\Toolbox\scripts;C:\Users\Alpha\AppData\Local\Muse Hub\lib;c:\users\alpha\.loc;C:\Users\Alpha\AppData\Local\Muse Hub\lib;c:\users\alpha\.local\bin;c:\users\alpha\appdata\local\packages\pythonsoftwarefoundation.python.3.9_qbz5n2kfra8p0\localcache\local-packages\python39\scripts;C:\Users\Alpha\AppData\Local\Microsoft\WindowsApps;C:\Users\Alpha\AppData\Roaming\npm;C:\Users\Alpha\AppData\Local\GitHubDesktop\bin;c:\Users\Alpha\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\debugCommand;."/>
+    <property name="native.encoding" value="Cp1252"/>
+    <property name="java.library.path" value="C:\Program Files\Java\jdk-21\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Python313\Scripts\;C:\Python313\;C:\Program Files (x86)\Razer Chroma SDK\bin;C:\Program Files\Razer Chroma SDK\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Windows\system32\config\systemprofile\AppData\Local\Microsoft\WindowsApps;C:\Program Files (x86)\Razer\ChromaBroadcast\bin;C:\Program Files\Razer\ChromaBroadcast\bin;C:\Users\lucia\AppData\Local\Microsoft\WindowsApps;C:\Users\lucia\AppData\Local\JetBrains\Toolbox\scripts;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\Git\cmd;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;c:\Users\lucia\AppData\Local\Programs\cursor\resources\app\bin;C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.10\bin;C:\Users\lucia\AppData\Roaming\krita\ai_diffusion\server\uv;C:\Program Files (x86)\hashcat-6.2.6\hashcat-6.2.6;C:\Program Files (x86)\hashcat-6.2.6\hashcat-6.2.6\OpenCL;c:\users\lucia\.local\bin;c:\users\lucia\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\scripts;C:\Users\lucia\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\lucia\AppData\Roaming\npm;C:\Users\lucia\AppData\Local\GitHubDesktop\bin;c:\Users\lucia\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\debugCommand;."/>
     <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="Cp1252"/>
     <property name="java.vendor" value="Oracle Corporation"/>
-    <property name="java.vm.version" value="16.0.1+9-24"/>
+    <property name="java.vm.version" value="21.0.2+13-LTS-58"/>
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
-    <property name="java.class.version" value="60.0"/>
+    <property name="java.class.version" value="65.0"/>
   </properties>
   <testcase name="testApp" classname="com.cms.AppTest" time="0.002"/>
 </testsuite>

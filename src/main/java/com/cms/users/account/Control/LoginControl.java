@@ -35,7 +35,7 @@ public class LoginControl {
             {
                 App.utenteAccesso=u;
                 loginScreen.dispose();
-                new HomeScreen().show();;
+                new HomeScreen(u.getId()).show();
 
                 return true; 
             }
