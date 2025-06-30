@@ -199,12 +199,19 @@ public class NotificationScreen extends JFrame {
      * Aggiorna la visualizzazione in base ai dati
      */
     private void updateDisplay() {
+        System.out.println("DEBUG NotificationScreen: === INIZIO updateDisplay ===");
+        System.out.println("DEBUG NotificationScreen: hasNotifications = " + hasNotifications);
+        System.out.println("DEBUG NotificationScreen: notifications.isEmpty() = " + notifications.isEmpty());
+        System.out.println("DEBUG NotificationScreen: notifications.size() = " + notifications.size());
+        
         centerPanel.removeAll();
         
         if (!hasNotifications || notifications.isEmpty()) {
+            System.out.println("DEBUG NotificationScreen: Mostrando messaggio vuoto");
             // Mostra messaggio vuoto
             centerPanel.add(emptyLabel, BorderLayout.CENTER);
         } else {
+            System.out.println("DEBUG NotificationScreen: Creando tabella notifiche");
             // Mostra tabella notifiche
             createNotificationTable();
             JScrollPane scrollPane = new JScrollPane(notificationTable);
@@ -215,6 +222,7 @@ public class NotificationScreen extends JFrame {
         
         centerPanel.revalidate();
         centerPanel.repaint();
+        System.out.println("DEBUG NotificationScreen: === FINE updateDisplay ===");
     }
     
     /**
@@ -318,21 +326,36 @@ public class NotificationScreen extends JFrame {
      * Imposta la lista delle notifiche da NotificaE entities
      */
     public void setNotificationList(LinkedList<NotificaE> notificheList) {
+        System.out.println("DEBUG NotificationScreen: === INIZIO setNotificationList ===");
+        System.out.println("DEBUG NotificationScreen: notificheList ricevuto: " + (notificheList != null ? "lista con " + notificheList.size() + " elementi" : "null"));
+        
         notifications.clear();
         
         if (notificheList != null && !notificheList.isEmpty()) {
+            System.out.println("DEBUG NotificationScreen: Lista NON vuota, conversione in corso");
             hasNotifications = true;
             
             // Converti NotificaE in NotificationData
-            for (NotificaE notifica : notificheList) {
+            for (int i = 0; i < notificheList.size(); i++) {
+                NotificaE notifica = notificheList.get(i);
+                System.out.println("DEBUG NotificationScreen: Convertendo notifica " + i + ":");
+                System.out.println("  - ID: " + notifica.getId());
+                System.out.println("  - Testo: '" + notifica.getText() + "'");
+                System.out.println("  - Status: '" + notifica.getStatus() + "'");
+                System.out.println("  - isRead: " + (notifica.getStatus() != null));
+                
                 notifications.add(new NotificationData(notifica.getId(), notifica.getText(), notifica.getStatus()!=null));
-          
             }
+            System.out.println("DEBUG NotificationScreen: Conversione completata. notifications.size() = " + notifications.size());
         } else {
+            System.out.println("DEBUG NotificationScreen: Lista vuota o null");
             hasNotifications = false;
         }
         
+        System.out.println("DEBUG NotificationScreen: hasNotifications = " + hasNotifications);
+        System.out.println("DEBUG NotificationScreen: Chiamando updateDisplay()");
         updateDisplay();
+        System.out.println("DEBUG NotificationScreen: === FINE setNotificationList ===");
     }
     
     /**

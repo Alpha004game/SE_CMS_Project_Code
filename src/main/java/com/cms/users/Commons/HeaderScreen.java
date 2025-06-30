@@ -323,9 +323,17 @@ public class HeaderScreen extends JPanel {
      * Mostra la schermata delle notifiche seguendo il sequence diagram
      */
     private void showNotificationScreen() {
+        System.out.println("DEBUG HeaderScreen: === INIZIO showNotificationScreen ===");
+        System.out.println("DEBUG HeaderScreen: Click sul pulsante notifiche rilevato");
+        
         // Segue il sequence diagram: viewNotification() -> crea NotificationControl
+        System.out.println("DEBUG HeaderScreen: Creando NotificationControl");
         NotificationControl notificationControl = new NotificationControl();
+        
+        System.out.println("DEBUG HeaderScreen: Chiamando notificationControl.create()");
         notificationControl.create(); // Questo eseguirà il flusso completo del sequence diagram
+        
+        System.out.println("DEBUG HeaderScreen: === FINE showNotificationScreen ===");
     }
     
     public void logout() {

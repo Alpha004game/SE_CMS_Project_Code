@@ -314,32 +314,66 @@ public class DBMSBoundary {
 
     //RIVEDERE
     public LinkedList<NotificaE> ottieniNotificheAttive(String username) {
+        System.out.println("DEBUG: === INIZIO ottieniNotificheAttive ===");
+        System.out.println("DEBUG: Username ricevuto: '" + username + "'");
+        
         try
         {
             LinkedList<NotificaE> notifiche=new LinkedList<>();
             Connection con=getConnection();
-            PreparedStatement stmt=con.prepareStatement("SELECT N.id, N.idConferenza, N.idUtente, N.testo, N.tipo, N.dettagli, N.esito FROM notifiche AS N, utenti AS U WHERE N.idUtente=U.id AND U.username= ? AND N.esito IS NULL");
+            
+            if (con == null) {
+                System.err.println("DEBUG: Connessione al database fallita!");
+                return null;
+            }
+            System.out.println("DEBUG: Connessione al database stabilita con successo");
+            
+            String sql = "SELECT N.id, N.idConferenza, N.idUtente, N.testo, N.tipo, N.dettagli, N.esito FROM notifiche AS N, utenti AS U WHERE N.idUtente=U.id AND U.username= ? AND N.esito IS NULL";
+            System.out.println("DEBUG: Query SQL: " + sql);
+            System.out.println("DEBUG: Parametro username: '" + username + "'");
+            
+            PreparedStatement stmt=con.prepareStatement(sql);
             stmt.setString(1, username);
             ResultSet ris=stmt.executeQuery();
+            
+            int count = 0;
             while(ris.next())
             {
-                notifiche.add(new NotificaE(
-                    ris.getInt("id"), 
-                    ris.getInt("idConferenza"), 
-                    ris.getInt("idUtente"), 
-                    ris.getString("testo"), 
-                    ris.getInt("tipo"), 
-                    ris.getString("dettagli"), 
-                    ris.getString("esito")
-                ));
+                count++;
+                int id = ris.getInt("id");
+                int idConferenza = ris.getInt("idConferenza");
+                int idUtente = ris.getInt("idUtente");
+                String testo = ris.getString("testo");
+                int tipo = ris.getInt("tipo");
+                String dettagli = ris.getString("dettagli");
+                String esito = ris.getString("esito");
+                
+                System.out.println("DEBUG: Notifica #" + count + " trovata:");
+                System.out.println("  - ID: " + id);
+                System.out.println("  - ID Conferenza: " + idConferenza);
+                System.out.println("  - ID Utente: " + idUtente);
+                System.out.println("  - Testo: '" + testo + "'");
+                System.out.println("  - Tipo: " + tipo);
+                System.out.println("  - Dettagli: '" + dettagli + "'");
+                System.out.println("  - Esito: '" + esito + "'");
+                
+                notifiche.add(new NotificaE(id, idConferenza, idUtente, testo, tipo, dettagli, esito));
             }
+            
+            System.out.println("DEBUG: Totale notifiche trovate: " + count);
+            System.out.println("DEBUG: Dimensione lista notifiche: " + notifiche.size());
+            
             ris.close();
             stmt.close();
             con.close();
+            
+            System.out.println("DEBUG: === FINE ottieniNotificheAttive ===");
             return notifiche;
         }
         catch(Exception e)
         {
+            System.err.println("DEBUG: Errore durante il recupero delle notifiche: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
         
@@ -1965,5 +1999,55 @@ public class DBMSBoundary {
         }
     }
     
+    /**
+     * Metodo di debug per verificare tutte le notifiche presenti nel database
+     */
+    public void debugTutteLeNotifiche() {
+        System.out.println("DEBUG: === VERIFICA TUTTE LE NOTIFICHE NEL DATABASE ===");
+        
+        try {
+            Connection con = getConnection();
+            if (con == null) {
+                System.err.println("DEBUG: Connessione al database fallita!");
+                return;
+            }
+            
+            // Query per tutte le notifiche
+            String sql = "SELECT N.id, N.idConferenza, N.idUtente, N.testo, N.tipo, N.dettagli, N.esito, U.username " +
+                        "FROM notifiche N LEFT JOIN utenti U ON N.idUtente = U.id ORDER BY N.id";
+            
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+            
+            int count = 0;
+            while (rs.next()) {
+                count++;
+                System.out.println("DEBUG: Notifica #" + count + ":");
+                System.out.println("  - ID: " + rs.getInt("id"));
+                System.out.println("  - ID Conferenza: " + rs.getInt("idConferenza"));
+                System.out.println("  - ID Utente: " + rs.getInt("idUtente"));
+                System.out.println("  - Username: " + rs.getString("username"));
+                System.out.println("  - Testo: '" + rs.getString("testo") + "'");
+                System.out.println("  - Tipo: " + rs.getInt("tipo"));
+                System.out.println("  - Dettagli: '" + rs.getString("dettagli") + "'");
+                System.out.println("  - Esito: '" + rs.getString("esito") + "'");
+                System.out.println("  - È attiva?: " + (rs.getString("esito") == null ? "SÌ" : "NO"));
+                System.out.println("  ---");
+            }
+            
+            System.out.println("DEBUG: Totale notifiche nel database: " + count);
+            
+            rs.close();
+            stmt.close();
+            con.close();
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG: Errore durante la verifica delle notifiche: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("DEBUG: === FINE VERIFICA TUTTE LE NOTIFICHE ===");
+    }
+
     // ...existing methods...
 }
