@@ -1215,8 +1215,101 @@ public class DBMSBoundary {
     }
     
     
+    /**
+     * Ottiene la lista di tutti gli articoli sottomessi per una conferenza
+     * Implementa il metodo richiesto per il calcolo delle statistiche
+     */
     public LinkedList<ArticoloE> getListaArticoli(int idConferenza) {
-        return null;
+        LinkedList<ArticoloE> articoli = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query per ottenere tutti gli articoli di una conferenza
+            String sql = "SELECT a.id, a.titolo, a.stato " +
+                        "FROM articoli a " +
+                        "JOIN sottomette s ON a.id = s.idArticolo " +
+                        "WHERE s.idConferenza = ?";
+            
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setStato(rs.getString("stato"));
+                articoli.add(articolo);
+            }
+            
+            System.out.println("Trovati " + articoli.size() + " articoli per la conferenza " + idConferenza);
+            
+        } catch (SQLException e) {
+            System.err.println("Errore SQL durante il recupero degli articoli: " + e.getMessage());
+            e.printStackTrace();
+            // In caso di errore, prova una query semplificata
+            return getListaArticoliSemplificata(idConferenza);
+        } catch (Exception e) {
+            System.err.println("Errore generico durante il recupero degli articoli: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore chiusura connessione: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        return articoli;
+    }
+    
+    /**
+     * Metodo di fallback per recuperare gli articoli quando la tabella sottomette non esiste
+     */
+    private LinkedList<ArticoloE> getListaArticoliSemplificata(int idConferenza) {
+        LinkedList<ArticoloE> articoli = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query semplificata che assume una relazione diretta
+            String sql = "SELECT id, titolo, stato FROM articoli WHERE idConferenza = ?";
+            
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setStato(rs.getString("stato"));
+                articoli.add(articolo);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore anche nella query semplificata: " + e.getMessage());
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore chiusura connessione: " + e.getMessage());
+            }
+        }
+        
+        return articoli;
     }
     
     public void newConflitto(int idConferenza, int idUtente, int idArticolo) {

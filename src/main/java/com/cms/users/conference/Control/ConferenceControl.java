@@ -696,4 +696,94 @@ public class ConferenceControl {
             e.printStackTrace();
         }
     }
+    
+    /**
+     * Calcola il numero totale di revisori attuali per la conferenza
+     */
+    public int calcolaNumeroRevisoriAttuali() {
+        try {
+            if (conferenzaSelezionata == null) {
+                return 0;
+            }
+            
+            LinkedList<UtenteE> revisori = App.dbms.getRevisori(conferenzaSelezionata.getId());
+            return revisori != null ? revisori.size() : 0;
+            
+        } catch (Exception e) {
+            System.err.println("Errore nel calcolo dei revisori attuali: " + e.getMessage());
+            e.printStackTrace();
+            return 0;
+        }
+    }
+    
+    /**
+     * Calcola il numero di revisori necessari in base agli articoli effettivi
+     */
+    public int calcolaNumeroRevisoriNecessari() {
+        try {
+            if (conferenzaSelezionata == null) {
+                return 0;
+            }
+            
+            // Ottieni il numero di articoli reali dalla conference
+            LinkedList<com.cms.users.Entity.ArticoloE> articoli = 
+                App.dbms.getListaArticoli(conferenzaSelezionata.getId());
+            int numeroArticoliReali = articoli != null ? articoli.size() : 0;
+            
+            // Confronta con il numero previsto nella conferenza
+            int numeroArticoliPrevisti = conferenzaSelezionata.getNumeroArticoliPrevisti();
+            int numeroRevisoriPerArticolo = conferenzaSelezionata.getNumeroRevisoriPerArticolo();
+            
+            // Usa il maggiore tra articoli reali e previsti
+            int numeroArticoliDaConsiderare = Math.max(numeroArticoliReali, numeroArticoliPrevisti);
+            
+            // Calcola il numero totale di revisori necessari
+            return numeroArticoliDaConsiderare * numeroRevisoriPerArticolo;
+            
+        } catch (Exception e) {
+            System.err.println("Errore nel calcolo dei revisori necessari: " + e.getMessage());
+            e.printStackTrace();
+            return 0;
+        }
+    }
+    
+    /**
+     * Calcola il numero di revisori mancanti
+     */
+    public int calcolaNumeroRevisoriMancanti() {
+        int attuali = calcolaNumeroRevisoriAttuali();
+        int necessari = calcolaNumeroRevisoriNecessari();
+        return Math.max(0, necessari - attuali); // Non può essere negativo
+    }
+    
+    /**
+     * Ottiene le statistiche complete dei revisori per la conferenza
+     * Utilizzato dalle schermate per mostrare informazioni aggiornate
+     */
+    public ReviewerStats ottieniStatisticheRevisori() {
+        return new ReviewerStats(
+            calcolaNumeroRevisoriAttuali(),
+            calcolaNumeroRevisoriNecessari(),
+            calcolaNumeroRevisoriMancanti()
+        );
+    }
+    
+    /**
+     * Classe interna per incapsulare le statistiche dei revisori
+     */
+    public static class ReviewerStats {
+        private final int attuali;
+        private final int necessari;
+        private final int mancanti;
+        
+        public ReviewerStats(int attuali, int necessari, int mancanti) {
+            this.attuali = attuali;
+            this.necessari = necessari;
+            this.mancanti = mancanti;
+        }
+        
+        public int getAttuali() { return attuali; }
+        public int getNecessari() { return necessari; }
+        public int getMancanti() { return mancanti; }
+    }
 }
