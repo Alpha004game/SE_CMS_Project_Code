@@ -602,25 +602,9 @@ public class ConferenceManagementScreen extends JFrame {
      * Rimuove un revisore dalla conferenza
      */
     public void rimuoviReviewerButton() {
-        String email = JOptionPane.showInputDialog(this, 
-            "Inserisci l'email del revisore da rimuovere:", 
-            "Rimuovi Revisore", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (email != null && !email.trim().isEmpty()) {
-            int confirm = JOptionPane.showConfirmDialog(this, 
-                "Sei sicuro di voler rimuovere il revisore: " + email + "?", 
-                "Conferma Rimozione", 
-                JOptionPane.YES_NO_OPTION);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
-                JOptionPane.showMessageDialog(this, 
-                    "Revisore " + email + " rimosso dalla conferenza", 
-                    "Revisore Rimosso", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                // Qui andrà la logica per rimuovere il revisore
-            }
-        }
+        // Segue il sequence diagram: delega al ConferenceControl
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.rimuoviRevisore(this.id);
     }
     
     /**

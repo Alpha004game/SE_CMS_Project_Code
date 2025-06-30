@@ -144,8 +144,39 @@ public class ConferenceControl {
         return 0;
     }
     
-    public void rimuoviRevisore() {
-        // Implementazione da definire
+    /**
+     * Avvia il processo di rimozione di un revisore dalla conferenza
+     * Segue il sequence diagram: ottiene lista revisori e apre MemberListScreen
+     */
+    public void rimuoviRevisore(int idConferenza) {
+        try {
+            // Ottieni la lista dei revisori per la conferenza
+            LinkedList<UtenteE> revisori = App.dbms.getRevisori(idConferenza);
+            
+            if (revisori == null || revisori.isEmpty()) {
+                // Mostra messaggio se non ci sono revisori
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Non ci sono revisori assegnati a questa conferenza.", 
+                    "Nessun Revisore", 
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            // Apri la schermata per selezionare il revisore da rimuovere
+            MemberListScreen memberListScreen = new MemberListScreen(
+                MemberListScreen.UserRole.CHAIR, 
+                MemberListScreen.Action.REMOVE_REVIEWER,
+                this
+            );
+            memberListScreen.setVisible(true);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante il caricamento dei revisori: " + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void assegnaRevisore(int idRevisore) {
@@ -153,6 +184,58 @@ public class ConferenceControl {
         String text="Convocazione ricevuta da "+ App.utenteAccesso.getUsername()+" per gestire, in qualità di revisore, per la conferenza: "+ConferenceControl.conferenzaSelezionata.getTitolo();
         App.dbms.insertNotifica(text, ConferenceControl.getConferenza().getId(), idRevisore, 1, "ADD-REVISORE");
         UtilsControl.sendMail(App.dbms.getUser(idRevisore).getEmail(), "Invito Membro PC conferenza: "+ConferenceControl.getConferenza().getTitolo(), text);
+    }
+    
+    /**
+     * Rimuove il revisore selezionato dalla conferenza
+     * Segue il sequence diagram: rimuove dalla DB, invia notifica e mostra successo
+     */
+    public void selezionaRevisore(int idRevisore) {
+        try {
+            int idConferenza = conferenzaSelezionata.getId();
+            
+            // Ottieni le informazioni del revisore prima della rimozione
+            UtenteE revisore = App.dbms.getUser(idRevisore);
+            if (revisore == null) {
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Errore: Revisore non trovato.", 
+                    "Errore", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Rimuovi il revisore dalla conferenza
+            App.dbms.rimuoviRevisore(idConferenza, idRevisore);
+            
+            // Invia notifica al revisore rimosso
+            String notificaText = "Sei stato rimosso dal ruolo di revisore per la conferenza: " + 
+                                conferenzaSelezionata.getTitolo() + " da " + App.utenteAccesso.getUsername();
+            App.dbms.insertNotifica(notificaText, idConferenza, idRevisore, 1, "REMOVE-REVISORE");
+            
+            // Invia email di notifica
+            String emailSubject = "Rimozione ruolo revisore - Conferenza: " + conferenzaSelezionata.getTitolo();
+            String emailBody = "Gentile " + revisore.getUsername() + ",\n\n" +
+                             "Ti informiamo che sei stato rimosso dal ruolo di revisore per la conferenza:\n" +
+                             "\"" + conferenzaSelezionata.getTitolo() + "\"\n\n" +
+                             "Questa operazione è stata effettuata dal Chair della conferenza.\n\n" +
+                             "Cordiali saluti,\n" +
+                             "Sistema di Gestione Conferenze";
+            
+            UtilsControl.sendMail(revisore.getEmail(), emailSubject, emailBody);
+            
+            // Mostra schermata di successo
+            String successMessage = "Il revisore " + revisore.getUsername() + " è stato rimosso dalla conferenza " + 
+                                  conferenzaSelezionata.getTitolo() + ". È stata inviata una notifica di conferma.";
+            SuccessScreen successScreen = new SuccessScreen(successMessage, "Rimozione Revisore");
+            successScreen.setVisible(true);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante la rimozione del revisore: " + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void asegnaRevisoriAutomaticamente(String idConferenza) {

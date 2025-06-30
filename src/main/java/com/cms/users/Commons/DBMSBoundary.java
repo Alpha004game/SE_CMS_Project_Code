@@ -1149,9 +1149,46 @@ public class DBMSBoundary {
         
     }
 
-    public void rimuoviRevisore(int idConferenza, int idRevisore)
-    {
+    /**
+     * Rimuove un revisore da una conferenza
+     * Implementa il metodo richiesto dal sequence diagram
+     */
+    public void rimuoviRevisore(int idConferenza, int idRevisore) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
         
+        try {
+            conn = getConnection();
+            
+            // Rimuovi il revisore dalla tabella ruoli
+            String sql = "UPDATE ruoli SET stato=3, dataRimozione=CURRENT_DATE WHERE idUtente = ? AND idConferenza = ? AND ruolo = 2";
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, idRevisore);
+            stmt.setInt(2, idConferenza);
+            
+            int rowsAffected = stmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                System.out.println("Revisore " + idRevisore + " rimosso con successo dalla conferenza " + idConferenza);
+            } else {
+                System.out.println("Nessun revisore trovato con ID " + idRevisore + " per la conferenza " + idConferenza);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante la rimozione del revisore: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Errore generico durante la rimozione del revisore: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore chiusura connessione: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
     }
     
     public LinkedList<ArticoloE> getListaSottomissioni(int idConferenza) {
