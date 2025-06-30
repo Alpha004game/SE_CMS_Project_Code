@@ -5,6 +5,8 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
+import com.cms.users.Entity.UtenteE;
 
 /**
  * <<boundary>>
@@ -546,6 +548,29 @@ public class MemberListScreen extends JFrame {
      */
     public void setHasData(boolean hasData) {
         this.hasData = hasData;
+        updateDisplay();
+    }
+    
+    /**
+     * Imposta la lista degli utenti da visualizzare
+     * Converte la lista di UtenteE in UserData per la visualizzazione
+     */
+    public void setUserList(LinkedList<UtenteE> utenti) {
+        if (utenti != null && !utenti.isEmpty()) {
+            this.userData = new ArrayList<>();
+            for (UtenteE utente : utenti) {
+                UserData userData = new UserData(
+                    String.valueOf(utente.getId()),
+                    utente.getUsername() + " (" + utente.getEmail() + ")",
+                    "Utente"
+                );
+                this.userData.add(userData);
+            }
+            this.hasData = true;
+        } else {
+            this.userData = new ArrayList<>();
+            this.hasData = false;
+        }
         updateDisplay();
     }
     

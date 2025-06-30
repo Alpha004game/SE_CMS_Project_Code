@@ -10,6 +10,7 @@ import java.util.LinkedList;
 
 import com.cms.users.Entity.ConferenzaE;
 import com.cms.users.conference.Control.CreaConferenzaControl;
+import com.cms.users.conference.Control.ConferenceControl;
 import com.cms.users.submissions.Control.GestioneArticoliControl;
 import com.cms.App;
 
@@ -310,7 +311,9 @@ public class HomeScreen extends JFrame {
         
         switch (action.toLowerCase()) {
             case "chair":
-                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Chair...");
+                // Implementazione del sequence diagram: HomeScreen -> ConferenceControl -> DBMSBoundary
+                ConferenceControl conferenceControl = new ConferenceControl();
+                conferenceControl.apriGestioneConferenza(conferenza.id);
                 break;
             case "revisore":
                 JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Revisore...");

@@ -192,10 +192,47 @@ public class DBMSBoundary {
             return null;
         }
     }
-
-    public UtenteE getUserInfo(int conferenceId) //D
-    {
-        return null;
+    
+    /**
+     * Ottiene la lista di tutti gli utenti presenti nel database
+     * Implementa il metodo richiesto dal sequence diagram per l'aggiunta di revisori
+     */
+    public LinkedList<UtenteE> getUsersInfo() {
+        try {
+            LinkedList<UtenteE> utenti = new LinkedList<>();
+            Connection con = getConnection();
+            
+            if (con == null) {
+                System.err.println("Errore: impossibile stabilire connessione al database");
+                return utenti;
+            }
+            
+            // Query per ottenere tutti gli utenti nel database
+            String sql = "SELECT u.id, u.username, u.email FROM utenti u ORDER BY u.username";
+            
+            PreparedStatement stmt = con.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                UtenteE utente = new UtenteE(
+                    rs.getInt("id"),
+                    rs.getString("username"),
+                    rs.getString("email")
+                );
+                utenti.add(utente);
+            }
+            
+            rs.close();
+            stmt.close();
+            con.close();
+            
+            return utenti;
+            
+        } catch (Exception e) {
+            System.err.println("Errore nel recupero degli utenti: " + e.getMessage());
+            e.printStackTrace();
+            return new LinkedList<>();
+        }
     }
     
     public String getUsername(String email) {

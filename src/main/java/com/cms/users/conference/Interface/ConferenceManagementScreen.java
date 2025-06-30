@@ -2,6 +2,9 @@ package com.cms.users.conference.Interface;
 
 import javax.swing.*;
 import java.awt.*;
+import com.cms.users.Entity.ConferenzaE;
+import com.cms.users.conference.Control.ConferenceControl;
+import java.time.format.DateTimeFormatter;
 
 /**
  * <<boundary>>
@@ -125,6 +128,76 @@ public class ConferenceManagementScreen extends JFrame {
         this.numeroMinimoRevisori = "2";
         this.numeroMassimoRevisori = "4";
         this.tassoAccettazione = "25%";
+    }
+    
+    /**
+     * Carica i dati della conferenza da un oggetto ConferenzaE
+     * Utilizzato dal ConferenceControl per popolare la schermata con dati reali dal database
+     */
+    public void loadConferenceData(ConferenzaE conferenza) {
+        if (conferenza == null) {
+            return;
+        }
+        
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        
+        // Aggiorna tutti i campi con i dati della conferenza
+        this.id = conferenza.getId();
+        this.conferenceId = String.valueOf(conferenza.getId());
+        this.titolo = conferenza.getTitolo();
+        this.annoEdizione = String.valueOf(conferenza.getAnnoEdizione());
+        this.abstractConferenza = conferenza.getAbstractText() != null ? conferenza.getAbstractText() : "";
+        
+        // Converte le date da LocalDate a String
+        this.dataInizio = conferenza.getDataInizio() != null ? conferenza.getDataInizio().format(formatter) : "";
+        this.dataFine = conferenza.getDataFine() != null ? conferenza.getDataFine().format(formatter) : "";
+        this.deadlineSottomissione = conferenza.getDeadlineSottomissione() != null ? conferenza.getDeadlineSottomissione().format(formatter) : "";
+        this.deadlineRitiro = conferenza.getDeadlineRitiro() != null ? conferenza.getDeadlineRitiro().format(formatter) : "";
+        this.deadlineRevisioni = conferenza.getDeadlineRevisioni() != null ? conferenza.getDeadlineRevisioni().format(formatter) : "";
+        this.deadlineVersioneFinale = conferenza.getDeadlineVersioneFinale() != null ? conferenza.getDeadlineVersioneFinale().format(formatter) : "";
+        this.deadlineVersionePubblicazione = conferenza.getDeadlinePubblicazione() != null ? conferenza.getDeadlinePubblicazione().format(formatter) : "";
+        
+        this.luogo = conferenza.getLuogo() != null ? conferenza.getLuogo() : "";
+        this.numeroArticoliPrevisti = String.valueOf(conferenza.getNumeroArticoliPrevisti());
+        this.numeroMinimoRevisori = String.valueOf(conferenza.getNumeroRevisoriPerArticolo());
+        this.numeroMassimoRevisori = String.valueOf(conferenza.getNumeroRevisoriPerArticolo());
+        
+        // Unisce le keywords in una stringa
+        if (conferenza.getKeywords() != null && !conferenza.getKeywords().isEmpty()) {
+            this.keywords = String.join(", ", conferenza.getKeywords());
+        } else {
+            this.keywords = "";
+        }
+        
+        // Aggiorna il titolo della finestra
+        setTitle("CMS - Gestione Conferenza: " + this.titolo);
+        
+        // Aggiorna i componenti UI se sono già stati inizializzati
+        if (titoloValueLabel != null) {
+            updateUIComponents();
+        }
+    }
+    
+    /**
+     * Aggiorna i componenti UI con i dati caricati
+     */
+    private void updateUIComponents() {
+        titoloValueLabel.setText(titolo);
+        annoEdizioneValueLabel.setText(annoEdizione);
+        abstractValueArea.setText(abstractConferenza);
+        dataInizioValueLabel.setText(dataInizio);
+        dataFineValueLabel.setText(dataFine);
+        deadlineSottomissioneValueLabel.setText(deadlineSottomissione);
+        deadlineRitiroValueLabel.setText(deadlineRitiro);
+        deadlineRevisioniValueLabel.setText(deadlineRevisioni);
+        deadlineVersioneFinaleValueLabel.setText(deadlineVersioneFinale);
+        deadlineVersionePubblicazioneValueLabel.setText(deadlineVersionePubblicazione);
+        luogoValueLabel.setText(luogo);
+        keywordsValueLabel.setText(keywords);
+        numeroArticoliPrevistiValueLabel.setText(numeroArticoliPrevisti);
+        numeroMinimoRevisoriValueLabel.setText(numeroMinimoRevisori);
+        numeroMassimoRevisoriValueLabel.setText(numeroMassimoRevisori);
+        tassoAccettazioneValueLabel.setText(tassoAccettazione);
     }
     
     /**
@@ -532,21 +605,12 @@ public class ConferenceManagementScreen extends JFrame {
     
     /**
      * Aggiunge revisori alla conferenza
+     * Implementa il sequence diagram: ConferenceManagementScreen -> ConferenceControl
      */
     public void addReviewerButton() {
-        String reviewers = JOptionPane.showInputDialog(this, 
-            "Inserisci le email dei revisori (separate da virgola):", 
-            "Aggiungi Revisori", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (reviewers != null && !reviewers.trim().isEmpty()) {
-            String[] emails = reviewers.split(",");
-            JOptionPane.showMessageDialog(this, 
-                "Aggiunti " + emails.length + " revisori alla conferenza: " + titolo, 
-                "Revisori Aggiunti", 
-                JOptionPane.INFORMATION_MESSAGE);
-            // Qui andrà la logica per aggiungere i revisori
-        }
+        // Segue il sequence diagram: crea ConferenceControl e chiama addReviewer
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.addReviewer(this.id);
     }
     
     /**
