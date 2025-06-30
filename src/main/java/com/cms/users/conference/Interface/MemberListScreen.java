@@ -433,6 +433,8 @@ public class MemberListScreen extends JFrame {
         String message = actionText + " eseguito per: " + selectedUser.name;
         
         JOptionPane.showMessageDialog(this, message, actionText, JOptionPane.INFORMATION_MESSAGE);
+
+        
         
         // Simula l'azione e chiudi la finestra
         dispose();

@@ -34,7 +34,7 @@ public class UtilsControl {
         try
         {
             String email="cagl.cmsids@gmail.com";
-            String password="IngegneriaDelSoftware0=";
+            String password="zxtw wgme krfm lbqp";
 
             Properties p = new Properties();
             p.put("mail.smtp.auth", "true");
@@ -73,64 +73,10 @@ public class UtilsControl {
         }
         
     }
-    
-    /**
-     * Metodo alternativo per l'invio email usando SSL sulla porta 465
-     * Usa questo metodo se il precedente continua a dare problemi TLS
-     */
-    public static boolean sendMailSSL(String to, String subject, String messageText)
-    {
-        try
-        {
-            String email="cagl.cmsids@gmail.com";
-            String password="IngegneriaDelSoftware0=";
-
-            Properties p = new Properties();
-            p.put("mail.smtp.auth", "true");
-            p.put("mail.smtp.socketFactory.port", "465");
-            p.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
-            p.put("mail.smtp.host", "smtp.gmail.com");
-            p.put("mail.smtp.port", "465");
-            p.put("mail.smtp.ssl.protocols", "TLSv1.2");
-            p.put("mail.smtp.ssl.trust", "smtp.gmail.com");
-            
-            // Abilita il debug per diagnosticare problemi (rimuovi in produzione)
-            p.put("mail.debug", "true");
-
-            Session s = Session.getInstance(p, new Authenticator() {
-                protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(email, password);
-                }
-            });
-
-            Message msg = new MimeMessage(s);
-            msg.setFrom(new InternetAddress(email));
-            msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
-            msg.setSubject(subject);
-            msg.setText(messageText);
-
-            Transport.send(msg);
-            System.out.println("Email inviata con successo tramite SSL.");
-            return true;
-        }
-        catch(Exception e)
-        {
-            System.err.println("Errore durante l'invio dell'email tramite SSL: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
 
     public static void main(String[] args) {
-        System.out.println("=== Test invio email con STARTTLS ===");
-        boolean risultato1 = UtilsControl.sendMail("francesco.patti.04pa@gmail.com", "Prova email App STARTTLS", "Questa è una prova con STARTTLS");
-        System.out.println("Risultato STARTTLS: " + risultato1);
-        
-        if (!risultato1) {
-            System.out.println("\n=== Test invio email con SSL ===");
-            boolean risultato2 = UtilsControl.sendMailSSL("francesco.patti.04pa@gmail.com", "Prova email App SSL", "Questa è una prova con SSL");
-            System.out.println("Risultato SSL: " + risultato2);
-        }
+
+        System.out.println(UtilsControl.sendMail("francesco.patti.04pa@gmail.com", "Prova email App", "Questa è una prova"));
     }
 
     
