@@ -443,24 +443,35 @@ public class DBMSBoundary {
     }
     
     public void updateNotificationStatus(int idNotification, String status) { //NOTA: LA LOGICA DELLE CONSEGUENZE DOVRA' ESSERE SVILUPPATO nelle funzioni invocanti del metodo
+        System.out.println("DEBUG DBMSBoundary: === INIZIO updateNotificationStatus ===");
+        System.out.println("DEBUG DBMSBoundary: idNotification=" + idNotification + ", status='" + status + "'");
+        
         try
         {
             Connection con=getConnection();
-            PreparedStatement stmt=con.prepareStatement("UPDATE notifiche SET status= ? WHERE id= ?");
+            // Corretto: aggiorna il campo 'esito' invece di 'status'
+            PreparedStatement stmt=con.prepareStatement("UPDATE notifiche SET esito= ? WHERE id= ?");
             stmt.setString(1, status);
             stmt.setInt(2, idNotification);
+            
+            System.out.println("DEBUG DBMSBoundary: Eseguendo query: UPDATE notifiche SET esito='" + status + "' WHERE id=" + idNotification);
+            
             int rowsUpdated = stmt.executeUpdate();
             if (rowsUpdated > 0) {
-                System.out.println("stato aggiornato con successo."); //DEBUG
+                System.out.println("DEBUG DBMSBoundary: Stato aggiornato con successo. Righe modificate: " + rowsUpdated);
+            } else {
+                System.err.println("DEBUG DBMSBoundary: ATTENZIONE - Nessuna riga aggiornata. Verificare che l'ID notifica esista.");
             }
             stmt.close();
             con.close();
         }
         catch(Exception e)
         {
+            System.err.println("DEBUG DBMSBoundary: ERRORE durante updateNotificationStatus: " + e.getMessage());
             e.printStackTrace();
         }
         
+        System.out.println("DEBUG DBMSBoundary: === FINE updateNotificationStatus ===");
     }
 
     public int getNumberActiveNotification(int idUtente)

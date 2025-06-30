@@ -13,6 +13,7 @@ import java.util.LinkedList;
 public class NotificationControl {
     
     private NotificationScreen notificationScreen;
+    private NotificaE notificaSelezionata;
     
     // Metodi
     public void create() {
@@ -59,9 +60,9 @@ public class NotificationControl {
                 }
             }
             
-            // 3. Crea NotificationScreen
+            // 3. Crea NotificationScreen con riferimento al control
             System.out.println("DEBUG NotificationControl: Creando NotificationScreen");
-            notificationScreen = new NotificationScreen();
+            notificationScreen = new NotificationScreen(this);
             
             // 4. Gestisce il ciclo alt [ListNotEmpty] / [false]
             if (notificheAttive != null && !notificheAttive.isEmpty()) {
@@ -98,7 +99,7 @@ public class NotificationControl {
             String username = utenteCorrente.getUsername();
             LinkedList<NotificaE> tutteLeNotifiche = App.dbms.ottieniTutteLeNotifiche(username);
             
-            notificationScreen = new NotificationScreen();
+            notificationScreen = new NotificationScreen(this);
             
             if (tutteLeNotifiche != null && !tutteLeNotifiche.isEmpty()) {
                 notificationScreen.setNotificationList(tutteLeNotifiche);
@@ -114,20 +115,138 @@ public class NotificationControl {
         }
     }
     
-    public void selezionaNotifica() {
-        // Implementazione da definire
+    public void selezionaNotifica(int idNotifica) {
+        System.out.println("DEBUG NotificationControl: === INIZIO selezionaNotifica ===");
+        System.out.println("DEBUG NotificationControl: idNotifica ricevuto: " + idNotifica);
+        
+        try {
+            // Recupera la notifica dal database tramite DBMSBoundary
+            System.out.println("DEBUG NotificationControl: Chiamando App.dbms.getNotifica(" + idNotifica + ")");
+            notificaSelezionata = App.dbms.getNotifica(idNotifica);
+            
+            if (notificaSelezionata != null) {
+                System.out.println("DEBUG NotificationControl: Notifica recuperata con successo:");
+                System.out.println("  - ID: " + notificaSelezionata.getId());
+                System.out.println("  - Testo: '" + notificaSelezionata.getText() + "'");
+                System.out.println("  - ID Utente: " + notificaSelezionata.getIdUtente());
+                System.out.println("  - Status: '" + notificaSelezionata.getStatus() + "'");
+                System.out.println("  - Tipo: " + notificaSelezionata.getTipo());
+                
+                // Determina se richiede accettazione (tipo 1 = accetta/rifiuta, altri = presa visione)
+                boolean richiedeAccettazione = (notificaSelezionata.getTipo() == 1);
+                System.out.println("  - Richiede accettazione: " + richiedeAccettazione);
+            } else {
+                System.err.println("DEBUG NotificationControl: ERRORE - Notifica non trovata per ID: " + idNotifica);
+            }
+        } catch (Exception e) {
+            System.err.println("DEBUG NotificationControl: ERRORE durante il recupero della notifica: " + e.getMessage());
+            e.printStackTrace();
+            notificaSelezionata = null;
+        }
+        
+        System.out.println("DEBUG NotificationControl: === FINE selezionaNotifica ===");
+    }
+    
+    /**
+     * Ottiene la notifica attualmente selezionata
+     */
+    public NotificaE getNotificaSelezionata() {
+        return notificaSelezionata;
+    }
+    
+    /**
+     * Determina se la notifica selezionata richiede accettazione
+     */
+    public boolean richiedeAccettazione() {
+        if (notificaSelezionata == null) {
+            return false;
+        }
+        // Tipo 1 = accetta/rifiuta, altri tipi = presa visione
+        return notificaSelezionata.getTipo() == 1;
     }
     
     public void presaVisione() {
-        // Implementazione da definire
+        System.out.println("DEBUG NotificationControl: === INIZIO presaVisione ===");
+        
+        if (notificaSelezionata == null) {
+            System.err.println("DEBUG NotificationControl: ERRORE - Nessuna notifica selezionata");
+            return;
+        }
+        
+        try {
+            int idNotifica = notificaSelezionata.getId();
+            System.out.println("DEBUG NotificationControl: Chiamando updateNotificationStatus(" + idNotifica + ", '3') per presa visione");
+            
+            // Aggiorna lo status nel database (3 = presa visione)
+            App.dbms.updateNotificationStatus(idNotifica, "3");
+            
+            // Aggiorna anche l'oggetto locale
+            notificaSelezionata.setStatus("presaVisione");
+            
+            System.out.println("DEBUG NotificationControl: Presa visione registrata con successo");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG NotificationControl: ERRORE durante presa visione: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("DEBUG NotificationControl: === FINE presaVisione ===");
     }
     
     public void accettazione() {
-        // Implementazione da definire
+        System.out.println("DEBUG NotificationControl: === INIZIO accettazione ===");
+        
+        if (notificaSelezionata == null) {
+            System.err.println("DEBUG NotificationControl: ERRORE - Nessuna notifica selezionata");
+            return;
+        }
+        
+        try {
+            int idNotifica = notificaSelezionata.getId();
+            System.out.println("DEBUG NotificationControl: Chiamando updateNotificationStatus(" + idNotifica + ", '1') per accettazione");
+            
+            // Aggiorna lo status nel database (1 = accettato)
+            App.dbms.updateNotificationStatus(idNotifica, "1");
+            
+            // Aggiorna anche l'oggetto locale
+            notificaSelezionata.setStatus("accettato");
+            
+            System.out.println("DEBUG NotificationControl: Accettazione registrata con successo");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG NotificationControl: ERRORE durante accettazione: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("DEBUG NotificationControl: === FINE accettazione ===");
     }
     
     public void rifiuto() {
-        // Implementazione da definire
+        System.out.println("DEBUG NotificationControl: === INIZIO rifiuto ===");
+        
+        if (notificaSelezionata == null) {
+            System.err.println("DEBUG NotificationControl: ERRORE - Nessuna notifica selezionata");
+            return;
+        }
+        
+        try {
+            int idNotifica = notificaSelezionata.getId();
+            System.out.println("DEBUG NotificationControl: Chiamando updateNotificationStatus(" + idNotifica + ", '2') per rifiuto");
+            
+            // Aggiorna lo status nel database (2 = rifiutato)
+            App.dbms.updateNotificationStatus(idNotifica, "2");
+            
+            // Aggiorna anche l'oggetto locale
+            notificaSelezionata.setStatus("rifiutato");
+            
+            System.out.println("DEBUG NotificationControl: Rifiuto registrato con successo");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG NotificationControl: ERRORE durante rifiuto: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("DEBUG NotificationControl: === FINE rifiuto ===");
     }
     
     /**
