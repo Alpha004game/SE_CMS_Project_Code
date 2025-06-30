@@ -29,11 +29,9 @@ public class ConferenceManagementScreen extends JFrame {
     private JLabel deadlineVersioneFinaleValueLabel;
     private JLabel deadlineVersionePubblicazioneValueLabel;
     private JLabel luogoValueLabel;
-    private JLabel temiPrincipaliValueLabel;
     private JLabel keywordsValueLabel;
     private JLabel numeroArticoliPrevistiValueLabel;
     private JLabel numeroMinimoRevisoriValueLabel;
-    private JLabel numeroMassimoRevisoriValueLabel;
     private JLabel tassoAccettazioneValueLabel;
     
     // Bottoni di azione
@@ -60,11 +58,9 @@ public class ConferenceManagementScreen extends JFrame {
     private String deadlineVersioneFinale;
     private String deadlineVersionePubblicazione;
     private String luogo;
-    private String temiPrincipali;
     private String keywords;
     private String numeroArticoliPrevisti;
     private String numeroMinimoRevisori;
-    private String numeroMassimoRevisori;
     private String tassoAccettazione;
     
     /**
@@ -85,11 +81,9 @@ public class ConferenceManagementScreen extends JFrame {
         this.deadlineVersioneFinale = "01/08/2025";
         this.deadlineVersionePubblicazione = "15/08/2025";
         this.luogo = "Milano, Italia";
-        this.temiPrincipali = "Software Engineering, AI, Machine Learning";
         this.keywords = "software, engineering, artificial intelligence, agile";
         this.numeroArticoliPrevisti = "50";
         this.numeroMinimoRevisori = "3";
-        this.numeroMassimoRevisori = "5";
         this.tassoAccettazione = "30%";
         
         initializeComponents();
@@ -122,11 +116,9 @@ public class ConferenceManagementScreen extends JFrame {
         this.dataInizio = "01/01/2025";
         this.dataFine = "03/01/2025";
         this.luogo = "Sede della conferenza";
-        this.temiPrincipali = "Temi principali";
         this.keywords = "keywords";
         this.numeroArticoliPrevisti = "10";
         this.numeroMinimoRevisori = "2";
-        this.numeroMassimoRevisori = "4";
         this.tassoAccettazione = "25%";
     }
     
@@ -160,7 +152,6 @@ public class ConferenceManagementScreen extends JFrame {
         this.luogo = conferenza.getLuogo() != null ? conferenza.getLuogo() : "";
         this.numeroArticoliPrevisti = String.valueOf(conferenza.getNumeroArticoliPrevisti());
         this.numeroMinimoRevisori = String.valueOf(conferenza.getNumeroRevisoriPerArticolo());
-        this.numeroMassimoRevisori = String.valueOf(conferenza.getNumeroRevisoriPerArticolo());
         
         // Unisce le keywords in una stringa
         if (conferenza.getKeywords() != null && !conferenza.getKeywords().isEmpty()) {
@@ -196,7 +187,6 @@ public class ConferenceManagementScreen extends JFrame {
         keywordsValueLabel.setText(keywords);
         numeroArticoliPrevistiValueLabel.setText(numeroArticoliPrevisti);
         numeroMinimoRevisoriValueLabel.setText(numeroMinimoRevisori);
-        numeroMassimoRevisoriValueLabel.setText(numeroMassimoRevisori);
         tassoAccettazioneValueLabel.setText(tassoAccettazione);
     }
     
@@ -258,11 +248,9 @@ public class ConferenceManagementScreen extends JFrame {
         deadlineVersioneFinaleValueLabel = createInfoLabel(deadlineVersioneFinale, labelFont, backgroundColor);
         deadlineVersionePubblicazioneValueLabel = createInfoLabel(deadlineVersionePubblicazione, labelFont, backgroundColor);
         luogoValueLabel = createInfoLabel(luogo, labelFont, backgroundColor);
-        temiPrincipaliValueLabel = createInfoLabel(temiPrincipali, labelFont, backgroundColor);
         keywordsValueLabel = createInfoLabel(keywords, labelFont, backgroundColor);
         numeroArticoliPrevistiValueLabel = createInfoLabel(numeroArticoliPrevisti, labelFont, backgroundColor);
         numeroMinimoRevisoriValueLabel = createInfoLabel(numeroMinimoRevisori, labelFont, backgroundColor);
-        numeroMassimoRevisoriValueLabel = createInfoLabel(numeroMassimoRevisori, labelFont, backgroundColor);
         tassoAccettazioneValueLabel = createInfoLabel(tassoAccettazione, labelFont, backgroundColor);
         
         // Area di testo per l'abstract
@@ -442,9 +430,8 @@ public class ConferenceManagementScreen extends JFrame {
         addInfoField(infoPanel, gbc, "Data limite per l'invio della versione da pubblicare:", deadlineVersionePubblicazioneValueLabel, 0, row, 3);
         row++;
         
-        // Settima riga: Luogo e Temi principali
+        // Settima riga: Luogo (rimuove temi principali)
         addInfoField(infoPanel, gbc, "Luogo:", luogoValueLabel, 0, row, 1);
-        addInfoField(infoPanel, gbc, "Temi principali:", temiPrincipaliValueLabel, 2, row, 1);
         row++;
         
         // Ottava riga: Keywords e Numero articoli previsti
@@ -452,9 +439,8 @@ public class ConferenceManagementScreen extends JFrame {
         addInfoField(infoPanel, gbc, "Numero di articoli previsti:", numeroArticoliPrevistiValueLabel, 2, row, 1);
         row++;
         
-        // Nona riga: Numero revisori min e max
+        // Nona riga: Solo numero minimo revisori (rimuove numero massimo)
         addInfoField(infoPanel, gbc, "Numero minimo di revisori per articolo:", numeroMinimoRevisoriValueLabel, 0, row, 1);
-        addInfoField(infoPanel, gbc, "Numero massimo di articoli per revisore:", numeroMassimoRevisoriValueLabel, 2, row, 1);
         row++;
         
         // Decima riga: Tasso accettazione
@@ -577,20 +563,12 @@ public class ConferenceManagementScreen extends JFrame {
     
     /**
      * Invita un Co-Chair alla conferenza
+     * Implementa il sequence diagram: ConferenceManagementScreen -> ConferenceControl
      */
     public void invitaCoChairButton() {
-        String email = JOptionPane.showInputDialog(this, 
-            "Inserisci l'email del Co-Chair da invitare:", 
-            "Invita Co-Chair", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (email != null && !email.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Invito inviato a: " + email + "\nper la conferenza: " + titolo, 
-                "Invito Inviato", 
-                JOptionPane.INFORMATION_MESSAGE);
-            // Qui andrà la logica per inviare l'invito
-        }
+        // Segue il sequence diagram: crea ConferenceControl e chiama invitaCoChair
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.invitaCoChair(this.id);
     }
     
     /**

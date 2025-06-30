@@ -25,7 +25,8 @@ public class MemberListScreen extends JFrame {
     public enum Action {
         ADD_REVIEWER,       // Chair - Aggiungi revisore
         REMOVE_REVIEWER,    // Chair - Rimuovi revisore
-        SUMMON_SUB_REVIEWER // Revisore - Convoca sotto revisore
+        SUMMON_SUB_REVIEWER, // Revisore - Convoca sotto revisore
+        ADD_COCHAIR         // Chair - Aggiungi co-chair
     }
     
     // Classe per dati utente generico
@@ -108,6 +109,9 @@ public class MemberListScreen extends JFrame {
             case SUMMON_SUB_REVIEWER:
                 screenTitle = "Seleziona utente";
                 break;
+            case ADD_COCHAIR:
+                screenTitle = "Seleziona Co-Chair";
+                break;
             default:
                 screenTitle = "Seleziona utente";
                 break;
@@ -127,6 +131,7 @@ public class MemberListScreen extends JFrame {
             switch (action) {
                 case ADD_REVIEWER:
                 case SUMMON_SUB_REVIEWER:
+                case ADD_COCHAIR:
                     // Lista di utenti generici
                     userData.add(new UserData("U001", "Utente", "Utente"));
                     userData.add(new UserData("U002", "Utente", "Utente"));
@@ -215,6 +220,8 @@ public class MemberListScreen extends JFrame {
                 return "REMOVE_REVIEWER";
             case SUMMON_SUB_REVIEWER:
                 return "SUMMON_SUB_REVIEWER";
+            case ADD_COCHAIR:
+                return "ADD_COCHAIR";
             default:
                 return "Conferma";
         }
@@ -442,10 +449,16 @@ public class MemberListScreen extends JFrame {
         {
             case "ADD_REVIEWER":
                 conferenceControl.assegnaRevisore(Integer.parseInt(selectedUser.id));
+                break;
+            case "ADD_COCHAIR":
+                conferenceControl.selezionaCoChair(Integer.parseInt(selectedUser.id));
+                break;
             case "REMOVE_REVIEWER":
                 
+                break;
             case "SUMMON_SUB_REVIEWER":
                 
+                break;
             default:
                     //DEFINIRE
                 break;

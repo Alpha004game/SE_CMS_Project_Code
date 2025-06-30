@@ -1,6 +1,7 @@
 package com.cms.users.conference.Control;
 
 import com.cms.App;
+import com.cms.users.Commons.SuccessScreen;
 import com.cms.users.Commons.UtilsControl;
 import com.cms.users.Entity.ConferenzaE;
 import com.cms.users.Entity.UtenteE;
@@ -63,8 +64,36 @@ public class ConferenceControl {
         // Implementazione da definire
     }
     
-    public void invitaCoChair() {
-        // Implementazione da definire
+    /**
+     * Gestisce l'invito di un co-chair seguendo il sequence diagram
+     * ConferenceManagementScreen -> ConferenceControl -> DBMSBoundary -> MemberListScreen
+     */
+    public void invitaCoChair(int idConferenza) {
+        // Carica i dati della conferenza se necessario
+        if (conferenzaSelezionata == null || conferenzaSelezionata.getId() != idConferenza) {
+            ConferenzaE conferenza = (ConferenzaE) App.dbms.getConferenceInfo(idConferenza);
+            setConferenza(conferenza);
+        }
+        
+        // Ottieni tutti gli utenti dal database
+        LinkedList<UtenteE> tuttiGliUtenti = App.dbms.getUsersInfo();
+        
+        // Crea la MemberListScreen per selezionare un co-chair
+        MemberListScreen memberListScreen = new MemberListScreen(
+            MemberListScreen.UserRole.CHAIR, 
+            MemberListScreen.Action.ADD_COCHAIR, this
+        );
+        
+        if (tuttiGliUtenti != null && !tuttiGliUtenti.isEmpty()) {
+            // Imposta la lista degli utenti disponibili
+            memberListScreen.setUserList(tuttiGliUtenti);
+        } else {
+            // Nessun utente disponibile
+            memberListScreen.setHasData(false);
+        }
+        
+        // Mostra la schermata
+        memberListScreen.setVisible(true);
     }
     
     public void addReviewer() {
@@ -365,6 +394,77 @@ public class ConferenceControl {
             
         } catch (Exception e) {
             System.err.println("Errore durante l'invio della comunicazione personalizzata: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Seleziona e invita un co-chair alla conferenza
+     * Segue il sequence diagram: ottiene utente dal DB, invia email, inserisce notifica
+     * @param idCoChair L'ID dell'utente da invitare come co-chair
+     */
+    public void selezionaCoChair(int idCoChair) {
+        try {
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: nessuna conferenza selezionata");
+                return;
+            }
+            
+            // Ottieni informazioni dell'utente dal database
+            UtenteE utenteCoChair = App.dbms.getUser(idCoChair);
+            
+            if (utenteCoChair == null) {
+                System.err.println("Errore: utente non trovato con ID " + idCoChair);
+                return;
+            }
+            
+            System.out.println("Invito co-chair per conferenza: " + conferenzaSelezionata.getTitolo());
+            System.out.println("Utente da invitare: " + utenteCoChair.getUsername() + " (" + utenteCoChair.getEmail() + ")");
+            
+            // Crea il messaggio di invito
+            String oggetto = "Invito Co-Chair per la conferenza: " + conferenzaSelezionata.getTitolo();
+            String messaggio = "“Convocazione ricevuta da " + App.utenteAccesso.getUsername() +
+                                " per gestire, in qualità di co-chair, la conferenza:" + conferenzaSelezionata.getTitolo();
+            
+            // Invia email tramite UtilsControl
+            boolean emailInviata = UtilsControl.sendMail(
+                utenteCoChair.getEmail(), 
+                oggetto, 
+                messaggio
+            );
+            
+            if (emailInviata) {
+                System.out.println("Email di invito co-chair inviata a: " + utenteCoChair.getEmail());
+            } else {
+                System.err.println("Errore nell'invio dell'email a: " + utenteCoChair.getEmail());
+            }
+            
+            // Inserisci notifica nel database tramite DBMSBoundary
+            String testoNotifica = "Invito Co-Chair ricevuto da " + App.utenteAccesso.getUsername() + 
+                                 " per la conferenza: " + conferenzaSelezionata.getTitolo();
+            
+            App.dbms.insertNotifica(
+                testoNotifica, 
+                conferenzaSelezionata.getId(), 
+                idCoChair, 
+                1, // tipo notifica: invito
+                "INVITO-CO-CHAIR"
+            );
+            
+            System.out.println("Notifica di invito co-chair inserita per utente ID: " + idCoChair);
+            System.out.println("Invito co-chair completato con successo");
+            
+            // Mostra schermata di successo come indicato nel sequence diagram
+            String successMessage = "Invito Co-Chair inviato con successo!\n\n" +
+                                   "L'invito è stato inviato a: " + utenteCoChair.getUsername() + "\n" +
+                                   "Email: " + utenteCoChair.getEmail() + "\n\n" +
+                                   "Conferenza: " + conferenzaSelezionata.getTitolo();
+            
+            SuccessScreen successScreen = new SuccessScreen(successMessage, "Invito Co-Chair");
+            successScreen.setVisible(true);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'invito del co-chair: " + e.getMessage());
             e.printStackTrace();
         }
     }
