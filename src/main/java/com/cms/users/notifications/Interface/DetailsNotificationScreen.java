@@ -2,6 +2,7 @@ package com.cms.users.notifications.Interface;
 
 import javax.swing.*;
 import java.awt.*;
+import com.cms.users.notifications.Control.NotificationControl;
 
 /**
  * <<boundary>>
@@ -30,14 +31,16 @@ public class DetailsNotificationScreen extends JFrame {
     private NotificationType currentType;
     private String notificationContent;
     private String notificationTitle;
+    private NotificationControl notificationControl;
     
     /**
-     * Costruttore con tipo di notifica
+     * Costruttore con tipo di notifica e control
      */
-    public DetailsNotificationScreen(NotificationType type) {
+    public DetailsNotificationScreen(NotificationType type, NotificationControl control) {
         this.currentType = type;
         this.notificationTitle = "Tipo notifica";
         this.notificationContent = "Testo notifica";
+        this.notificationControl = control;
         
         initializeComponents();
         setupLayout();
@@ -46,10 +49,17 @@ public class DetailsNotificationScreen extends JFrame {
     }
     
     /**
-     * Costruttore di default (tipo presa visione)
+     * Costruttore con tipo di notifica (senza control)
+     */
+    public DetailsNotificationScreen(NotificationType type) {
+        this(type, null);
+    }
+    
+    /**
+     * Costruttore di default (tipo presa visione, senza control)
      */
     public DetailsNotificationScreen() {
-        this(NotificationType.PRESA_VISIONE);
+        this(NotificationType.PRESA_VISIONE, null);
     }
     
     /**
@@ -289,6 +299,8 @@ public class DetailsNotificationScreen extends JFrame {
      * Gestisce il bottone "Conferma presa visione"
      */
     public void presaVisioneButton() {
+        System.out.println("DEBUG DetailsNotificationScreen: === INIZIO presaVisioneButton ===");
+        
         int result = JOptionPane.showConfirmDialog(this,
             "Confermi di aver preso visione della notifica?",
             "Conferma Presa Visione",
@@ -296,28 +308,45 @@ public class DetailsNotificationScreen extends JFrame {
             JOptionPane.QUESTION_MESSAGE);
         
         if (result == JOptionPane.YES_OPTION) {
-            JOptionPane.showMessageDialog(this,
-                "Presa visione confermata.",
-                "Confermato",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Torna alla schermata notifiche
-            dispose();
             try {
-                Class<?> notificationScreenClass = Class.forName("com.cms.users.notifications.Interface.NotificationScreen");
-                Object notificationScreen = notificationScreenClass.getDeclaredConstructor().newInstance();
-                java.lang.reflect.Method createMethod = notificationScreenClass.getMethod("create");
-                createMethod.invoke(notificationScreen);
+                if (notificationControl != null) {
+                    System.out.println("DEBUG DetailsNotificationScreen: Chiamando notificationControl.presaVisione()");
+                    notificationControl.presaVisione();
+                    
+                    JOptionPane.showMessageDialog(this,
+                        "Presa visione confermata.",
+                        "Confermato",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    System.err.println("DEBUG DetailsNotificationScreen: ERRORE - notificationControl è null");
+                    JOptionPane.showMessageDialog(this,
+                        "Errore: sistema non configurato correttamente.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+                
+                // Torna alla schermata notifiche
+                returnToNotifications();
+                
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Ritorno alle notifiche...");
+                System.err.println("DEBUG DetailsNotificationScreen: ERRORE in presaVisioneButton: " + ex.getMessage());
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                    "Errore durante la conferma: " + ex.getMessage(),
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
             }
         }
+        
+        System.out.println("DEBUG DetailsNotificationScreen: === FINE presaVisioneButton ===");
     }
     
     /**
      * Gestisce il bottone "Accetta"
      */
     public void accettazioneButton() {
+        System.out.println("DEBUG DetailsNotificationScreen: === INIZIO accettazioneButton ===");
+        
         int result = JOptionPane.showConfirmDialog(this,
             "Sei sicuro di voler accettare questa richiesta?",
             "Conferma Accettazione",
@@ -325,20 +354,45 @@ public class DetailsNotificationScreen extends JFrame {
             JOptionPane.QUESTION_MESSAGE);
         
         if (result == JOptionPane.YES_OPTION) {
-            JOptionPane.showMessageDialog(this,
-                "Richiesta accettata con successo.",
-                "Accettata",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Torna alla schermata notifiche
-            returnToNotifications();
+            try {
+                if (notificationControl != null) {
+                    System.out.println("DEBUG DetailsNotificationScreen: Chiamando notificationControl.accettazione()");
+                    notificationControl.accettazione();
+                    
+                    JOptionPane.showMessageDialog(this,
+                        "Richiesta accettata con successo.",
+                        "Accettata",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    System.err.println("DEBUG DetailsNotificationScreen: ERRORE - notificationControl è null");
+                    JOptionPane.showMessageDialog(this,
+                        "Errore: sistema non configurato correttamente.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+                
+                // Torna alla schermata notifiche
+                returnToNotifications();
+                
+            } catch (Exception ex) {
+                System.err.println("DEBUG DetailsNotificationScreen: ERRORE in accettazioneButton: " + ex.getMessage());
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                    "Errore durante l'accettazione: " + ex.getMessage(),
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
+        
+        System.out.println("DEBUG DetailsNotificationScreen: === FINE accettazioneButton ===");
     }
     
     /**
      * Gestisce il bottone "Rifiuta"
      */
     public void rifiutoButton() {
+        System.out.println("DEBUG DetailsNotificationScreen: === INIZIO rifiutoButton ===");
+        
         int result = JOptionPane.showConfirmDialog(this,
             "Sei sicuro di voler rifiutare questa richiesta?",
             "Conferma Rifiuto",
@@ -346,14 +400,37 @@ public class DetailsNotificationScreen extends JFrame {
             JOptionPane.WARNING_MESSAGE);
         
         if (result == JOptionPane.YES_OPTION) {
-            JOptionPane.showMessageDialog(this,
-                "Richiesta rifiutata.",
-                "Rifiutata",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Torna alla schermata notifiche
-            returnToNotifications();
+            try {
+                if (notificationControl != null) {
+                    System.out.println("DEBUG DetailsNotificationScreen: Chiamando notificationControl.rifiuto()");
+                    notificationControl.rifiuto();
+                    
+                    JOptionPane.showMessageDialog(this,
+                        "Richiesta rifiutata.",
+                        "Rifiutata",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    System.err.println("DEBUG DetailsNotificationScreen: ERRORE - notificationControl è null");
+                    JOptionPane.showMessageDialog(this,
+                        "Errore: sistema non configurato correttamente.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+                
+                // Torna alla schermata notifiche
+                returnToNotifications();
+                
+            } catch (Exception ex) {
+                System.err.println("DEBUG DetailsNotificationScreen: ERRORE in rifiutoButton: " + ex.getMessage());
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                    "Errore durante il rifiuto: " + ex.getMessage(),
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
+        
+        System.out.println("DEBUG DetailsNotificationScreen: === FINE rifiutoButton ===");
     }
     
     /**

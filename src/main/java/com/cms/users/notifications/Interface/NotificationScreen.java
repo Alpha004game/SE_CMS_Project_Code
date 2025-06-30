@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
 import com.cms.users.Entity.NotificaE;
+import com.cms.users.notifications.Control.NotificationControl;
 
 /**
  * <<boundary>>
@@ -28,6 +29,7 @@ public class NotificationScreen extends JFrame {
     private List<NotificationData> notifications;
     private boolean hasNotifications;
     private NotificationData selectedNotification;
+    private NotificationControl notificationControl;
     
     /**
      * Classe per rappresentare i dati di una notifica
@@ -51,9 +53,7 @@ public class NotificationScreen extends JFrame {
         this.notifications = new ArrayList<>();
         this.hasNotifications = true;
         this.selectedNotification = null;
-        
-        // Popola con dati
-        
+        this.notificationControl = new NotificationControl();
         
         initializeComponents();
         setupLayout();
@@ -62,11 +62,18 @@ public class NotificationScreen extends JFrame {
     }
     
     /**
-     * Popola con dati di esempio
+     * Costruttore con control esterno
      */
-    private void populateTable(LinkedList<NotificaE> notificheList) {
-        //notifications.add(new NotificationData("1", "Nuova submission ricevuta per la conferenza AI 2025", "2025-06-28", false));
-            
+    public NotificationScreen(NotificationControl control) {
+        this.notifications = new ArrayList<>();
+        this.hasNotifications = true;
+        this.selectedNotification = null;
+        this.notificationControl = control;
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+        updateDisplay();
     }
     
     /**
@@ -207,17 +214,18 @@ public class NotificationScreen extends JFrame {
         centerPanel.removeAll();
         
         if (!hasNotifications || notifications.isEmpty()) {
-            System.out.println("DEBUG NotificationScreen: Mostrando messaggio vuoto");
+            System.out.println("DEBUG NotificationScreen: Mostrando messaggio vuoto - nessuna tabella creata");
             // Mostra messaggio vuoto
             centerPanel.add(emptyLabel, BorderLayout.CENTER);
         } else {
-            System.out.println("DEBUG NotificationScreen: Creando tabella notifiche");
+            System.out.println("DEBUG NotificationScreen: Creando tabella notifiche - chiamando createNotificationTable()");
             // Mostra tabella notifiche
             createNotificationTable();
             JScrollPane scrollPane = new JScrollPane(notificationTable);
             scrollPane.setBorder(BorderFactory.createLineBorder(Color.BLACK));
             scrollPane.setPreferredSize(new Dimension(750, 400));
             centerPanel.add(scrollPane, BorderLayout.CENTER);
+            System.out.println("DEBUG NotificationScreen: Tabella aggiunta al centerPanel");
         }
         
         centerPanel.revalidate();
@@ -229,6 +237,9 @@ public class NotificationScreen extends JFrame {
      * Crea la tabella delle notifiche
      */
     private void createNotificationTable() {
+        System.out.println("DEBUG NotificationScreen: === INIZIO createNotificationTable ===");
+        System.out.println("DEBUG NotificationScreen: Creando tabella con " + notifications.size() + " notifiche");
+        
         String[] columnNames = {"Notifica"};
         
         tableModel = new DefaultTableModel(columnNames, 0) {
@@ -239,9 +250,11 @@ public class NotificationScreen extends JFrame {
         };
         
         // Popola la tabella
-        for (NotificationData notification : notifications) {
+        for (int i = 0; i < notifications.size(); i++) {
+            NotificationData notification = notifications.get(i);
             Object[] row = {notification.message};
             tableModel.addRow(row);
+            System.out.println("DEBUG NotificationScreen: Aggiunta riga " + i + " - ID:" + notification.id);
         }
         
         notificationTable = new JTable(tableModel);
@@ -252,15 +265,33 @@ public class NotificationScreen extends JFrame {
         // Imposta larghezza colonne
         notificationTable.getColumnModel().getColumn(0).setPreferredWidth(750);
         
+        System.out.println("DEBUG NotificationScreen: Tabella creata - configurando event listeners...");
+        
         // Aggiungi listener per selezione
         notificationTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 int selectedRow = notificationTable.getSelectedRow();
                 if (selectedRow >= 0 && selectedRow < notifications.size()) {
                     selectedNotification = notifications.get(selectedRow);
+                    System.out.println("DEBUG NotificationScreen: Notifica selezionata: ID=" + selectedNotification.id);
                 }
             }
         });
+        
+        // Aggiungi listener per doppio click
+        notificationTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                System.out.println("DEBUG NotificationScreen: Mouse click rilevato - clickCount=" + e.getClickCount());
+                if (e.getClickCount() == 2) {
+                    System.out.println("DEBUG NotificationScreen: Doppio click rilevato - chiamando selezionaNotificaButton()");
+                    selezionaNotificaButton();
+                }
+            }
+        });
+        
+        System.out.println("DEBUG NotificationScreen: Event listeners configurati per la tabella");
+        System.out.println("DEBUG NotificationScreen: === FINE createNotificationTable ===");
     }
     
     /**
@@ -296,16 +327,8 @@ public class NotificationScreen extends JFrame {
         });
         
         // Double click sulla tabella per selezionare notifica
-        if (notificationTable != null) {
-            notificationTable.addMouseListener(new java.awt.event.MouseAdapter() {
-                @Override
-                public void mouseClicked(java.awt.event.MouseEvent e) {
-                    if (e.getClickCount() == 2) {
-                        selezionaNotificaButton();
-                    }
-                }
-            });
-        }
+        // NOTA: La tabella viene creata dinamicamente, quindi questo listener verrà configurato in createNotificationTable()
+        System.out.println("DEBUG NotificationScreen: setupEventHandlers - notificationTable è " + (notificationTable != null ? "non null" : "null"));
     }
     
     // Metodi dell'interfaccia originale
@@ -376,44 +399,113 @@ public class NotificationScreen extends JFrame {
     }
     
     /**
-     * Gestisce la selezione di una notifica
+     * Gestisce la selezione di una notifica seguendo il sequence diagram
      */
     public void selezionaNotificaButton() {
-        if (notificationTable == null || notificationTable.getSelectedRow() == -1) {
+        System.out.println("DEBUG NotificationScreen: === INIZIO selezionaNotificaButton ===");
+        System.out.println("DEBUG NotificationScreen: notificationTable = " + (notificationTable != null ? "non null" : "null"));
+        
+        if (notificationTable == null) {
+            System.err.println("DEBUG NotificationScreen: ERRORE - notificationTable è null!");
             JOptionPane.showMessageDialog(this, 
-                "Seleziona una notifica dalla lista.", 
-                "Selezione richiesta", 
-                JOptionPane.WARNING_MESSAGE);
+                "Errore: tabella notifiche non inizializzata.", 
+                "Errore interno", 
+                JOptionPane.ERROR_MESSAGE);
             return;
         }
         
         int selectedRow = notificationTable.getSelectedRow();
+        System.out.println("DEBUG NotificationScreen: selectedRow = " + selectedRow);
+        System.out.println("DEBUG NotificationScreen: notifications.size() = " + notifications.size());
+        
+        if (selectedRow == -1) {
+            System.out.println("DEBUG NotificationScreen: Nessuna riga selezionata - auto-selezione della prima riga se disponibile");
+            if (notifications.size() > 0) {
+                notificationTable.setRowSelectionInterval(0, 0);
+                selectedRow = 0;
+                System.out.println("DEBUG NotificationScreen: Auto-selezionata riga 0");
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Nessuna notifica disponibile per la selezione.", 
+                    "Selezione richiesta", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+        
+        if (selectedRow >= notifications.size()) {
+            System.err.println("DEBUG NotificationScreen: ERRORE - selectedRow (" + selectedRow + ") >= notifications.size (" + notifications.size() + ")");
+            return;
+        }
+        
         NotificationData notification = notifications.get(selectedRow);
+        System.out.println("DEBUG NotificationScreen: Notifica selezionata - ID: " + notification.id + ", Message: '" + notification.message + "'");
         
-        // Marca come letta
-        notification.isRead = true;
-        
-        // Apri la schermata dettagli notifica
-        dispose();
         try {
-            Class<?> detailsScreenClass = Class.forName("com.cms.users.notifications.Interface.DetailsNotificationScreen");
-            Object detailsScreen = detailsScreenClass.getDeclaredConstructor().newInstance();
+            // 1. Chiama selezionaNotifica(idNotifica) sul control
+            System.out.println("DEBUG NotificationScreen: Chiamando notificationControl.selezionaNotifica(" + notification.id + ")");
+            notificationControl.selezionaNotifica(notification.id);
             
-            // Imposta il contenuto della notifica
-            java.lang.reflect.Method setTitleMethod = detailsScreenClass.getMethod("setNotificationTitle", String.class);
-            setTitleMethod.invoke(detailsScreen, "Tipo notifica");
+            // 2. Ottiene la notifica selezionata dal control
+            NotificaE notificaCompleta = notificationControl.getNotificaSelezionata();
             
-            java.lang.reflect.Method setContentMethod = detailsScreenClass.getMethod("setNotificationContent", String.class);
-            setContentMethod.invoke(detailsScreen, notification.message);
+            if (notificaCompleta == null) {
+                System.err.println("DEBUG NotificationScreen: ERRORE - Notifica non recuperata dal control");
+                JOptionPane.showMessageDialog(this, 
+                    "Errore nel recupero dei dettagli della notifica.", 
+                    "Errore", 
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             
-            // Determina il tipo di notifica in base al contenuto
-            String type = determineNotificationType(notification.message);
-            java.lang.reflect.Method setTypeMethod = detailsScreenClass.getMethod("setType", String.class);
-            setTypeMethod.invoke(detailsScreen, type);
+            System.out.println("DEBUG NotificationScreen: Notifica recuperata con successo:");
+            System.out.println("  - ID: " + notificaCompleta.getId());
+            System.out.println("  - Tipo: " + notificaCompleta.getTipo());
             
-            java.lang.reflect.Method createMethod = detailsScreenClass.getMethod("create");
-            createMethod.invoke(detailsScreen);
+            // Determina se richiede accettazione utilizzando il control
+            boolean richiedeAccettazione = notificationControl.richiedeAccettazione();
+            System.out.println("  - Richiede accettazione: " + richiedeAccettazione);
+            
+            // 3. Determina il tipo di schermata da aprire
+            DetailsNotificationScreen.NotificationType tipo;
+            if (richiedeAccettazione) {
+                tipo = DetailsNotificationScreen.NotificationType.ACCETTA_RIFIUTA;
+                System.out.println("DEBUG NotificationScreen: Tipo determinato: ACCETTA_RIFIUTA");
+            } else {
+                tipo = DetailsNotificationScreen.NotificationType.PRESA_VISIONE;
+                System.out.println("DEBUG NotificationScreen: Tipo determinato: PRESA_VISIONE");
+            }
+            
+            // 4. Apri DetailsNotificationScreen con i dati corretti e il control
+            System.out.println("DEBUG NotificationScreen: Aprendo DetailsNotificationScreen con control");
+            dispose();
+            
+            DetailsNotificationScreen detailsScreen = new DetailsNotificationScreen(tipo, notificationControl);
+            
+            // Converte il tipo numerico in stringa per il titolo
+            String titoloTipo;
+            switch (notificaCompleta.getTipo()) {
+                case 1:
+                    titoloTipo = "Richiesta di Accettazione";
+                    break;
+                case 2:
+                    titoloTipo = "Notifica Informativa";
+                    break;
+                default:
+                    titoloTipo = "Notifica";
+                    break;
+            }
+            
+            detailsScreen.setNotificationTitle(titoloTipo);
+            detailsScreen.setNotificationContent(notificaCompleta.getText());
+            detailsScreen.create();
+            
+            System.out.println("DEBUG NotificationScreen: DetailsNotificationScreen aperto con successo");
+            
         } catch (Exception ex) {
+            System.err.println("DEBUG NotificationScreen: ERRORE durante l'apertura dei dettagli: " + ex.getMessage());
+            ex.printStackTrace();
+            
             // Fallback: mostra dettagli in dialog
             String details = "Dettagli notifica:\n\n" + 
                             "ID: " + notification.id + "\n" +
@@ -421,19 +513,8 @@ public class NotificationScreen extends JFrame {
             
             JOptionPane.showMessageDialog(this, details, "Dettagli Notifica", JOptionPane.INFORMATION_MESSAGE);
         }
-    }
-    
-    /**
-     * Determina il tipo di notifica in base al contenuto
-     */
-    private String determineNotificationType(String message) {
-        if (message.toLowerCase().contains("revisione") || 
-            message.toLowerCase().contains("convoca") ||
-            message.toLowerCase().contains("invito")) {
-            return "accetta_rifiuta";
-        } else {
-            return "presa_visione";
-        }
+        
+        System.out.println("DEBUG NotificationScreen: === FINE selezionaNotificaButton ===");
     }
     
     /**
