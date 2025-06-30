@@ -609,26 +609,29 @@ public class ConferenceManagementScreen extends JFrame {
     
     /**
      * Assegna un revisore ad un articolo
+     * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl -> ReviewerScreen
      */
     public void assegnaReviewerButton() {
-        String articolo = JOptionPane.showInputDialog(this, 
-            "Inserisci l'ID dell'articolo:", 
-            "Assegna Revisore", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (articolo != null && !articolo.trim().isEmpty()) {
-            String revisore = JOptionPane.showInputDialog(this, 
-                "Inserisci l'email del revisore da assegnare all'articolo " + articolo + ":", 
-                "Assegna Revisore", 
-                JOptionPane.QUESTION_MESSAGE);
+        try {
+            // Delega al ConferenceControl per aprire la ReviewerScreen
+            ConferenceControl conferenceControl = new ConferenceControl();
             
-            if (revisore != null && !revisore.trim().isEmpty()) {
+            // Imposta la conferenza attuale nel control
+            if (id > 0) {
+                conferenceControl.apriAssegnazioneRevisori(id);
+            } else {
                 JOptionPane.showMessageDialog(this, 
-                    "Revisore " + revisore + " assegnato all'articolo " + articolo, 
-                    "Assegnazione Completata", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                // Qui andrà la logica per assegnare il revisore
+                    "Errore: ID conferenza non valido", 
+                    "Errore", JOptionPane.ERROR_MESSAGE);
             }
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura della schermata di assegnazione: " + e.getMessage());
+            e.printStackTrace();
+            
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della schermata di assegnazione: " + e.getMessage(), 
+                "Errore", JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -668,24 +671,9 @@ public class ConferenceManagementScreen extends JFrame {
      * Visualizza lo stato delle revisioni
      */
     public void visualizzaStatoRevisionButton() {
-        // Simula la visualizzazione dello stato delle revisioni
-        String statoContent = "=== STATO REVISIONI: " + titolo + " ===\n\n" +
-                              "Articoli sottomessi: 12\n" +
-                              "Articoli in revisione: 8\n" +
-                              "Articoli revisionati: 4\n" +
-                              "Articoli accettati: 2\n" +
-                              "Articoli rifiutati: 2\n\n" +
-                              "Revisori attivi: 7\n" +
-                              "Revisioni completate: 15\n" +
-                              "Revisioni in corso: 9\n\n" +
-                              "Prossima scadenza: " + deadlineRevisioni;
-        
-        JTextArea statoArea = new JTextArea(statoContent, 12, 40);
-        statoArea.setEditable(false);
-        statoArea.setFont(new Font("Arial", Font.PLAIN, 12));
-        
-        JScrollPane scrollPane = new JScrollPane(statoArea);
-        JOptionPane.showMessageDialog(this, scrollPane, "Stato Revisioni", JOptionPane.INFORMATION_MESSAGE);
+        // Delega al ConferenceControl per ottenere dati dinamici
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.visualizzaStatoSottomissioni(this.id);
     }
     
     /**

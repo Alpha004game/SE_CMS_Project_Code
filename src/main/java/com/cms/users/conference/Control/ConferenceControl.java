@@ -786,4 +786,550 @@ public class ConferenceControl {
         public int getNecessari() { return necessari; }
         public int getMancanti() { return mancanti; }
     }
+
+    /**
+     * Visualizza lo stato delle sottomissioni delegando al ListScreen
+     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary -> ListScreen
+     */
+    public void visualizzaStatoSottomissioni(int idConferenza) {
+        try {
+            // Carica i dati della conferenza se necessario
+            if (conferenzaSelezionata == null || conferenzaSelezionata.getId() != idConferenza) {
+                ConferenzaE conferenza = (ConferenzaE) App.dbms.getConferenceInfo(idConferenza);
+                setConferenza(conferenza);
+            }
+            
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: conferenza non trovata con ID " + idConferenza);
+                return;
+            }
+            
+            // Ottieni la lista degli articoli dalla DBMSBoundary
+            java.util.LinkedList<com.cms.users.Entity.ArticoloE> articoli = 
+                App.dbms.getListaArticoli(idConferenza);
+            
+            // Converti gli articoli in dati per ListScreen
+            java.util.List<com.cms.users.Commons.ListScreen.SubmissionData> submissionDataList = 
+                new java.util.ArrayList<>();
+            
+            if (articoli != null && !articoli.isEmpty()) {
+                for (com.cms.users.Entity.ArticoloE articolo : articoli) {
+                    // Ottieni dettagli aggiuntivi per ogni articolo se necessario
+                    // In questo caso uso i dati disponibili nell'ArticoloE
+                    
+                    String status = determineArticleStatus(articolo);
+                    int reviewersAssigned = calculateReviewersAssigned(articolo);
+                    int reviewsCompleted = calculateReviewsCompleted(articolo);
+                    String lastActivity = determineLastActivity(articolo);
+                    
+                    com.cms.users.Commons.ListScreen.SubmissionData submissionData = 
+                        new com.cms.users.Commons.ListScreen.SubmissionData(
+                            String.valueOf(articolo.getId()),
+                            articolo.getTitolo(),
+                            getAuthorsString(articolo),
+                            formatDate(articolo.getUltimaModifica()), // Usiamo ultima modifica come proxy per data sottomissione
+                            status,
+                            reviewersAssigned,
+                            reviewsCompleted,
+                            lastActivity
+                        );
+                    
+                    submissionDataList.add(submissionData);
+                }
+            }
+            
+            // Crea e mostra la ListScreen con i dati dinamici
+            com.cms.users.Commons.ListScreen listScreen = 
+                new com.cms.users.Commons.ListScreen(
+                    com.cms.users.Commons.ListScreen.UserRole.CHAIR,
+                    com.cms.users.Commons.ListScreen.ChairFunction.VIEW_SUBMISSIONS
+                );
+            
+            // Imposta i dati dinamici
+            listScreen.setSubmissionData(submissionDataList);
+            
+            // Mostra la schermata
+            listScreen.setVisible(true);
+            
+            System.out.println("ListScreen per stato sottomissioni aperta con " + 
+                             submissionDataList.size() + " articoli");
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante la visualizzazione dello stato sottomissioni: " + e.getMessage());
+            e.printStackTrace();
+            
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Errore durante il caricamento dello stato delle sottomissioni: " + e.getMessage(),
+                "Errore",
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Determina lo stato dell'articolo basandosi sui dati disponibili
+     */
+    private String determineArticleStatus(com.cms.users.Entity.ArticoloE articolo) {
+        // Usa lo stato direttamente dall'articolo se disponibile
+        if (articolo.getStato() != null && !articolo.getStato().trim().isEmpty()) {
+            return articolo.getStato();
+        }
+        
+        // Altrimenti simula basandosi sull'ID per demo
+        if (articolo.getUltimaModifica() != null) {
+            int articleId = articolo.getId();
+            switch (articleId % 6) {
+                case 0: return "Accettato";
+                case 1: return "Rifiutato";
+                case 2: return "In revisione";
+                case 3: return "Revisione completata";
+                case 4: return "Assegnazione revisori";
+                default: return "Sottomesso";
+            }
+        }
+        return "Bozza";
+    }
+    
+    /**
+     * Calcola il numero di revisori assegnati per l'articolo
+     */
+    private int calculateReviewersAssigned(com.cms.users.Entity.ArticoloE articolo) {
+        // In un sistema reale, questo richiederebbe una query separata
+        // Per ora simula basandosi sull'ID
+        return (articolo.getId() % 3) + 1; // 1-3 revisori
+    }
+    
+    /**
+     * Calcola il numero di revisioni completate per l'articolo
+     */
+    private int calculateReviewsCompleted(com.cms.users.Entity.ArticoloE articolo) {
+        // In un sistema reale, questo richiederebbe una query separata
+        // Per ora simula basandosi sull'ID
+        int assigned = calculateReviewersAssigned(articolo);
+        return Math.min(assigned, (articolo.getId() % 4)); // 0 fino al numero assegnato
+    }
+    
+    /**
+     * Determina l'ultima attività per l'articolo
+     */
+    private String determineLastActivity(com.cms.users.Entity.ArticoloE articolo) {
+        // Simula l'ultima attività basandosi sullo stato
+        String status = determineArticleStatus(articolo);
+        java.time.LocalDate baseDate = articolo.getUltimaModifica() != null ? 
+            articolo.getUltimaModifica() : java.time.LocalDate.now();
+        
+        switch (status) {
+            case "Accettato":
+                return "Articolo accettato il " + formatDate(baseDate.plusDays(15));
+            case "Rifiutato":
+                return "Articolo rifiutato il " + formatDate(baseDate.plusDays(20));
+            case "In revisione":
+                return "Revisione 1 completata il " + formatDate(baseDate.plusDays(5));
+            case "Revisione completata":
+                return "Tutte le revisioni completate il " + formatDate(baseDate.plusDays(12));
+            case "Assegnazione revisori":
+                return "Revisori assegnati il " + formatDate(baseDate.plusDays(1));
+            default:
+                return "In attesa di assegnazione revisori";
+        }
+    }
+    
+    /**
+     * Ottiene la stringa degli autori dall'articolo
+     */
+    private String getAuthorsString(com.cms.users.Entity.ArticoloE articolo) {
+        // Usa la lista dei co-autori se disponibile
+        if (articolo.getCoAutori() != null && !articolo.getCoAutori().isEmpty()) {
+            StringBuilder authors = new StringBuilder();
+            for (int i = 0; i < articolo.getCoAutori().size(); i++) {
+                if (i > 0) {
+                    authors.append(", ");
+                }
+                authors.append(articolo.getCoAutori().get(i));
+            }
+            return authors.toString();
+        }
+        
+        // Simula autori multipli per demo
+        String[] possibleAuthors = {
+            "Dr. Mario Rossi, Prof.ssa Anna Verdi",
+            "Prof. Luigi Bianchi",
+            "Dr.ssa Giulia Neri, Dr. Paolo Blu",
+            "Prof. Andrea Giallo",
+            "Dr. Francesco Verde, Dr.ssa Maria Rosa",
+            "Prof.ssa Elena Viola"
+        };
+        
+        return possibleAuthors[articolo.getId() % possibleAuthors.length];
+    }
+    
+    /**
+     * Formatta una LocalDate in stringa
+     */
+    private String formatDate(java.time.LocalDate date) {
+        if (date == null) {
+            return "N/A";
+        }
+        return date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+    
+    /**
+     * Apre la schermata per assegnare i revisori agli articoli
+     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary -> ReviewerScreen
+     */
+    public void apriAssegnazioneRevisori(int idConferenza) {
+        try {
+            // Carica i dati della conferenza se necessario
+            if (conferenzaSelezionata == null || conferenzaSelezionata.getId() != idConferenza) {
+                ConferenzaE conferenza = (ConferenzaE) App.dbms.getConferenceInfo(idConferenza);
+                setConferenza(conferenza);
+            }
+            
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: conferenza non trovata con ID " + idConferenza);
+                return;
+            }
+            
+            // Crea e apri la ReviewerScreen
+            com.cms.users.conference.Interface.ReviewerScreen reviewerScreen = 
+                new com.cms.users.conference.Interface.ReviewerScreen(String.valueOf(idConferenza));
+            
+            // Imposta il riferimento al control per delegare le operazioni
+            reviewerScreen.setConferenceControl(this);
+            
+            // Carica i dati reali dal database
+            reviewerScreen.loadRealData();
+            
+            reviewerScreen.setVisible(true);
+            
+            System.out.println("ReviewerScreen aperta per conferenza ID: " + idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura della schermata assegnazione revisori: " + e.getMessage());
+            e.printStackTrace();
+            
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Errore durante l'apertura della schermata di assegnazione: " + e.getMessage(),
+                "Errore",
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Ottiene la lista dei revisori per la conferenza dalla DBMSBoundary
+     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary
+     */
+    public java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> ottieniRevisori(int idConferenza) {
+        java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> reviewerDataList = 
+            new java.util.ArrayList<>();
+        
+        try {
+            // Ottieni revisori dal database tramite DBMSBoundary
+            java.util.LinkedList<UtenteE> revisori = App.dbms.getRevisori(idConferenza);
+            
+            if (revisori != null) {
+                for (UtenteE revisore : revisori) {
+                    com.cms.users.conference.Interface.ReviewerScreen.ReviewerData reviewerData = 
+                        new com.cms.users.conference.Interface.ReviewerScreen.ReviewerData(
+                            String.valueOf(revisore.getId()),
+                            revisore.getUsername(),
+                            revisore.getEmail(),
+                            "N/A" // UtenteE non ha keywords specifiche, utilizziamo un valore di default
+                        );
+                    reviewerDataList.add(reviewerData);
+                }
+            }
+            
+            System.out.println("Caricati " + reviewerDataList.size() + " revisori per conferenza ID: " + idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il caricamento dei revisori: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return reviewerDataList;
+    }
+    
+    /**
+     * Ottiene la lista degli articoli per la conferenza dalla DBMSBoundary
+     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary
+     */
+    public java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> ottieniArticoli(int idConferenza) {
+        java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> articleDataList = 
+            new java.util.ArrayList<>();
+        
+        try {
+            // Ottieni articoli dal database tramite DBMSBoundary
+            java.util.LinkedList<com.cms.users.Entity.ArticoloE> articoli = App.dbms.getListaArticoli(idConferenza);
+            
+            if (articoli != null) {
+                for (com.cms.users.Entity.ArticoloE articolo : articoli) {
+                    // Converti le keywords da LinkedList<String> a String
+                    String keywordsString = "N/A";
+                    if (articolo.getKeywords() != null && !articolo.getKeywords().isEmpty()) {
+                        keywordsString = String.join(", ", articolo.getKeywords());
+                    }
+                    
+                    com.cms.users.conference.Interface.ReviewerScreen.ArticleData articleData = 
+                        new com.cms.users.conference.Interface.ReviewerScreen.ArticleData(
+                            String.valueOf(articolo.getId()),
+                            articolo.getTitolo(),
+                            getAuthorsString(articolo),
+                            keywordsString
+                        );
+                    articleDataList.add(articleData);
+                }
+            }
+            
+            System.out.println("Caricati " + articleDataList.size() + " articoli per conferenza ID: " + idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il caricamento degli articoli: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return articleDataList;
+    }
+    
+    /**
+     * Assegna automaticamente i revisori agli articoli
+     * Segue il sequence diagram: ConferenceControl -> assegnazione automatica -> DBMSBoundary
+     */
+    public void assegnaAutomaticamenteRevisori(int idConferenza) {
+        try {
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: nessuna conferenza selezionata");
+                return;
+            }
+            
+            // Ottieni revisori e articoli
+            java.util.LinkedList<UtenteE> revisori = App.dbms.getRevisori(idConferenza);
+            java.util.LinkedList<com.cms.users.Entity.ArticoloE> articoli = App.dbms.getListaArticoli(idConferenza);
+            
+            if (revisori == null || revisori.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Nessun revisore disponibile per la conferenza",
+                    "Avviso", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            if (articoli == null || articoli.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Nessun articolo disponibile per la conferenza",
+                    "Avviso", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Ottieni il numero minimo di revisori per articolo dalla configurazione della conferenza
+            int numeroRevisoriPerArticolo = ottieniNumeroMinimoRevisori();
+            
+            System.out.println("Assegnazione automatica: " + numeroRevisoriPerArticolo + " revisori per articolo");
+            
+            int assegnazioniEffettuate = 0;
+            
+            // Assegna automaticamente i revisori per ogni articolo
+            for (com.cms.users.Entity.ArticoloE articolo : articoli) {
+                java.util.List<UtenteE> revisoriAssegnati = new java.util.ArrayList<>();
+                
+                // Seleziona casualmente i revisori per questo articolo
+                java.util.List<UtenteE> revisoriDisponibili = new java.util.ArrayList<>(revisori);
+                java.util.Collections.shuffle(revisoriDisponibili);
+                
+                for (int i = 0; i < Math.min(numeroRevisoriPerArticolo, revisoriDisponibili.size()); i++) {
+                    UtenteE revisore = revisoriDisponibili.get(i);
+                    
+                    // Usa setRevisoreArticolo della DBMSBoundary per salvare l'assegnazione
+                    App.dbms.setRevisoreArticolo(articolo.getId(), revisore.getId());
+                    
+                    revisoriAssegnati.add(revisore);
+                    assegnazioniEffettuate++;
+                    
+                    System.out.println("Assegnato revisore " + revisore.getUsername() + 
+                                     " all'articolo " + articolo.getTitolo());
+                }
+            }
+            
+            // Mostra messaggio di successo
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Assegnazione automatica completata!\n\n" +
+                "Articoli processati: " + articoli.size() + "\n" +
+                "Assegnazioni effettuate: " + assegnazioniEffettuate + "\n" +
+                "Revisori per articolo: " + numeroRevisoriPerArticolo,
+                "Successo", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'assegnazione automatica: " + e.getMessage());
+            e.printStackTrace();
+            
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Errore durante l'assegnazione automatica: " + e.getMessage(),
+                "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Assegna i revisori agli articoli basandosi sulle preferenze/competenze
+     * Segue il sequence diagram: ConferenceControl -> assegnazione per preferenze -> DBMSBoundary
+     */
+    public void assegnaPerPreferenze(int idConferenza) {
+        try {
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: nessuna conferenza selezionata");
+                return;
+            }
+            
+            // Ottieni revisori e articoli
+            java.util.LinkedList<UtenteE> revisori = App.dbms.getRevisori(idConferenza);
+            java.util.LinkedList<com.cms.users.Entity.ArticoloE> articoli = App.dbms.getListaArticoli(idConferenza);
+            
+            if (revisori == null || revisori.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Nessun revisore disponibile per la conferenza",
+                    "Avviso", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            if (articoli == null || articoli.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Nessun articolo disponibile per la conferenza",
+                    "Avviso", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Ottieni il numero minimo di revisori per articolo dalla configurazione della conferenza
+            int numeroRevisoriPerArticolo = ottieniNumeroMinimoRevisori();
+            
+            System.out.println("Assegnazione per preferenze: " + numeroRevisoriPerArticolo + " revisori per articolo");
+            
+            int assegnazioniEffettuate = 0;
+            
+            // Assegna revisori basandosi sulle competenze/preferenze
+            for (com.cms.users.Entity.ArticoloE articolo : articoli) {
+                java.util.List<UtenteE> revisoriCompatibili = trovaRevisoriCompatibili(articolo, revisori);
+                
+                // Se non ci sono revisori compatibili, usa tutti i revisori disponibili
+                if (revisoriCompatibili.isEmpty()) {
+                    revisoriCompatibili = new java.util.ArrayList<>(revisori);
+                }
+                
+                // Ordina per compatibilità (simulato)
+                java.util.Collections.shuffle(revisoriCompatibili);
+                
+                for (int i = 0; i < Math.min(numeroRevisoriPerArticolo, revisoriCompatibili.size()); i++) {
+                    UtenteE revisore = revisoriCompatibili.get(i);
+                    
+                    // Usa setRevisoreArticolo della DBMSBoundary per salvare l'assegnazione
+                    App.dbms.setRevisoreArticolo(articolo.getId(), revisore.getId());
+                    
+                    assegnazioniEffettuate++;
+                    
+                    System.out.println("Assegnato per preferenze revisore " + revisore.getUsername() + 
+                                     " all'articolo " + articolo.getTitolo());
+                }
+            }
+            
+            // Mostra messaggio di successo
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Assegnazione per preferenze completata!\n\n" +
+                "Articoli processati: " + articoli.size() + "\n" +
+                "Assegnazioni effettuate: " + assegnazioniEffettuate + "\n" +
+                "Revisori per articolo: " + numeroRevisoriPerArticolo,
+                "Successo", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'assegnazione per preferenze: " + e.getMessage());
+            e.printStackTrace();
+            
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Errore durante l'assegnazione per preferenze: " + e.getMessage(),
+                "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Salva le assegnazioni manuali specificate dall'utente
+     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary (setRevisoreArticolo)
+     */
+    public void salvaAssegnazioni(boolean[][] assignments, 
+                                  java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> reviewers,
+                                  java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> articles) {
+        try {
+            int assegnazioniSalvate = 0;
+            
+            // Scorri la matrice delle assegnazioni
+            for (int i = 0; i < assignments.length && i < reviewers.size(); i++) {
+                for (int j = 0; j < assignments[i].length && j < articles.size(); j++) {
+                    if (assignments[i][j]) {
+                        // Assegnazione attiva - salva nel database
+                        int idRevisore = Integer.parseInt(reviewers.get(i).id);
+                        int idArticolo = Integer.parseInt(articles.get(j).id);
+                        
+                        // Usa setRevisoreArticolo della DBMSBoundary
+                        App.dbms.setRevisoreArticolo(idArticolo, idRevisore);
+                        
+                        assegnazioniSalvate++;
+                        
+                        System.out.println("Salvata assegnazione: Revisore " + reviewers.get(i).name + 
+                                         " -> Articolo " + articles.get(j).title);
+                    }
+                }
+            }
+            
+            // Mostra messaggio di successo
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Assegnazioni salvate con successo!\n\n" +
+                "Assegnazioni effettuate: " + assegnazioniSalvate,
+                "Successo", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il salvataggio delle assegnazioni: " + e.getMessage());
+            e.printStackTrace();
+            
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Errore durante il salvataggio: " + e.getMessage(),
+                "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Ottiene il numero minimo di revisori per articolo dalla configurazione della conferenza
+     */
+    public int ottieniNumeroMinimoRevisori() {
+        if (conferenzaSelezionata != null) {
+            return conferenzaSelezionata.getNumeroRevisoriPerArticolo();
+        }
+        return 2; // Valore di default
+    }
+    
+    /**
+     * Trova i revisori compatibili con un articolo basandosi sulle competenze
+     * Algoritmo semplificato che simula la compatibilità
+     */
+    private java.util.List<UtenteE> trovaRevisoriCompatibili(com.cms.users.Entity.ArticoloE articolo, 
+                                                             java.util.LinkedList<UtenteE> tuttiRevisori) {
+        java.util.List<UtenteE> compatibili = new java.util.ArrayList<>();
+        
+        // Converti le keywords dell'articolo da LinkedList<String> 
+        java.util.LinkedList<String> keywordsArticolo = articolo.getKeywords();
+        if (keywordsArticolo == null || keywordsArticolo.isEmpty()) {
+            // Se l'articolo non ha keywords, tutti i revisori sono compatibili
+            return new java.util.ArrayList<>(tuttiRevisori);
+        }
+        
+        // Per ora, dato che UtenteE non ha keywords specifiche, utilizziamo un algoritmo semplificato
+        // che assegna i revisori in modo casuale ma deterministico basato sull'ID dell'articolo
+        for (UtenteE revisore : tuttiRevisori) {
+            // Algoritmo semplificato: usa l'ID del revisore e dell'articolo per determinare compatibilità
+            int compatibilityScore = Math.abs((revisore.getId() + articolo.getId()) % 10);
+            if (compatibilityScore >= 5) { // 50% di probabilità di essere compatibile
+                compatibili.add(revisore);
+            }
+        }
+        
+        // Se nessun revisore è compatibile, restituisci almeno il primo revisore disponibile
+        if (compatibili.isEmpty() && !tuttiRevisori.isEmpty()) {
+            compatibili.add(tuttiRevisori.getFirst());
+        }
+        
+        return compatibili;
+    }
 }

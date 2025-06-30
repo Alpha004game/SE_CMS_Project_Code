@@ -1157,6 +1157,21 @@ public class DBMSBoundary {
     }
     
     public void setRevisoreArticolo(int idArticolo, int idRevisore) {
+
+        try
+        {
+            Connection con=getConnection();
+            PreparedStatement stmt=con.prepareStatement("INSERT INTO revisiona VALUES(NULL, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL)");
+            stmt.setInt(1, idRevisore);
+            stmt.setInt(2, idArticolo);
+            stmt.executeQuery();
+            stmt.close();
+            con.close();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
         
     }
 
@@ -1232,7 +1247,7 @@ public class DBMSBoundary {
             String sql = "SELECT a.id, a.titolo, a.stato " +
                         "FROM articoli a " +
                         "JOIN sottomette s ON a.id = s.idArticolo " +
-                        "WHERE s.idConferenza = ?";
+                        "WHERE a.idConferenza = ?";
             
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, idConferenza);
