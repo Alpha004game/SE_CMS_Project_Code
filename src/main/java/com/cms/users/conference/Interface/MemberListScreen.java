@@ -6,7 +6,10 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
+
+import com.cms.App;
 import com.cms.users.Entity.UtenteE;
+import com.cms.users.conference.Control.ConferenceControl;
 
 /**
  * <<boundary>>
@@ -67,20 +70,21 @@ public class MemberListScreen extends JFrame {
     private int totalReviewers = 15;
     private int neededReviewers = 20;
     private int toSummonReviewers = 5;
-    
+    private ConferenceControl conferenceControl;
     /**
      * Costruttore di default
      */
-    public MemberListScreen() {
-        this(UserRole.REVISORE, Action.SUMMON_SUB_REVIEWER);
+    public MemberListScreen(ConferenceControl control) {
+        this(UserRole.REVISORE, Action.SUMMON_SUB_REVIEWER, control);
     }
     
     /**
      * Costruttore con ruolo e azione
      */
-    public MemberListScreen(UserRole userRole, Action action) {
+    public MemberListScreen(UserRole userRole, Action action, ConferenceControl control) {
         this.userRole = userRole != null ? userRole : UserRole.REVISORE;
         this.action = action != null ? action : Action.SUMMON_SUB_REVIEWER;
+        this.conferenceControl = control;
         
         setupScreenTitle();
         initializeData();
@@ -206,11 +210,11 @@ public class MemberListScreen extends JFrame {
     private String getActionButtonText() {
         switch (action) {
             case ADD_REVIEWER:
-                return "Convoca";
+                return "ADD_REVIEWER";
             case REMOVE_REVIEWER:
-                return "Rimuovi";
+                return "REMOVE_REVIEWER";
             case SUMMON_SUB_REVIEWER:
-                return "Convoca";
+                return "SUMMON_SUB_REVIEWER";
             default:
                 return "Conferma";
         }
@@ -433,7 +437,19 @@ public class MemberListScreen extends JFrame {
         String message = actionText + " eseguito per: " + selectedUser.name;
         
         JOptionPane.showMessageDialog(this, message, actionText, JOptionPane.INFORMATION_MESSAGE);
-
+        //logica
+        switch(actionText)
+        {
+            case "ADD_REVIEWER":
+                conferenceControl.assegnaRevisore(Integer.parseInt(selectedUser.id));
+            case "REMOVE_REVIEWER":
+                
+            case "SUMMON_SUB_REVIEWER":
+                
+            default:
+                    //DEFINIRE
+                break;
+        }
         
         
         // Simula l'azione e chiudi la finestra
@@ -594,10 +610,10 @@ public class MemberListScreen extends JFrame {
     /**
      * Metodo main per test standalone
      */
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // Test Revisore - Convoca sotto revisore (con dati)
-            MemberListScreen screen1 = new MemberListScreen(UserRole.REVISORE, Action.SUMMON_SUB_REVIEWER);
+            MemberListScreen screen1 = new MemberListScreen(UserRole.REVISORE, Action.SUMMON_SUB_REVIEWER, );
             screen1.setLocation(0, 0);
             screen1.setVisible(true);
             
@@ -618,5 +634,5 @@ public class MemberListScreen extends JFrame {
             screen4.setLocation(0, 400);
             screen4.setVisible(true);
         });
-    }
+    }*/
 }

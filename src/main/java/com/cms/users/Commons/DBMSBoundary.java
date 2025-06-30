@@ -1533,7 +1533,24 @@ public class DBMSBoundary {
         return null;
     }
     
-    public void insertNotifica(String text, int receiverId, int type) {
+    public void insertNotifica(String text, int conferenceId, int receiverId, int type, String dettagli) {
+        try
+        {
+            Connection con=getConnection();
+            PreparedStatement stmt=con.prepareStatement("INSERT INTO notifiche VALUES (NULL, ?, ?, ?, ?, ?, NULL)");
+            stmt.setInt(1, conferenceId);
+            stmt.setInt(2, receiverId);
+            stmt.setString(3, text);
+            stmt.setInt(4, type);
+            stmt.setString(5, dettagli);
+            stmt.executeQuery();
+            stmt.close();
+            con.close();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
         
     }
     
