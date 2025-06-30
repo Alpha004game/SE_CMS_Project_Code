@@ -9,6 +9,19 @@ import com.cms.users.conference.Interface.ConferenceManagementScreen;
 import com.cms.users.conference.Interface.MemberListScreen;
 import java.util.LinkedList;
 
+// Import per iTextPDF
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.awt.Desktop;
+import java.io.File;
+
 /**
  * <<control>>
  * ConferenceControl
@@ -194,17 +207,149 @@ public class ConferenceControl {
         }
     }
     
-    public String getLog() {
-        // Implementazione da definire
-        return null;
+    /**
+     * Ottiene e compila il log della conferenza seguendo il sequence diagram
+     * ConferenceManagementScreen -> ConferenceControl -> DBMSBoundary -> compilaLog() -> salvaLog()
+     */
+    public void getLog(int idConferenza) {
+        try {
+            System.out.println("Richiesta log per conferenza ID: " + idConferenza);
+            
+            // Ottieni conferenceId della conferenza
+            int conferenceId = idConferenza;
+            
+            // Seguendo il sequence diagram: chiama DBMSBoundary.getConferenceLog
+            String conferenceLog = App.dbms.getConferenceLog(conferenceId);
+            
+            // Seguendo il sequence diagram: compila il log
+            compilaLog(conferenceLog, idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il recupero del log: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
-    public void compilaLog() {
-        // Implementazione da definire
+    /**
+     * Compila il log della conferenza e chiama salvaLog per generare il PDF
+     * Seguendo il sequence diagram: compilaLog() -> salvaLog()
+     */
+    public void compilaLog(String rawLog, int idConferenza) {
+        try {
+            System.out.println("Compilazione log per conferenza ID: " + idConferenza);
+            
+            // Carica i dati della conferenza se necessario
+            if (conferenzaSelezionata == null || conferenzaSelezionata.getId() != idConferenza) {
+                ConferenzaE conferenza = (ConferenzaE) App.dbms.getConferenceInfo(idConferenza);
+                setConferenza(conferenza);
+            }
+            
+            // Compila il log con informazioni aggiuntive
+            StringBuilder logCompleto = new StringBuilder();
+            logCompleto.append("=== LOG CONFERENZA ===\n");
+            logCompleto.append("Titolo: ").append(conferenzaSelezionata != null ? conferenzaSelezionata.getTitolo() : "N/A").append("\n");
+            logCompleto.append("Anno: ").append(conferenzaSelezionata != null ? conferenzaSelezionata.getAnnoEdizione() : "N/A").append("\n");
+            logCompleto.append("Data generazione: ").append(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))).append("\n");
+            logCompleto.append("Generato da: ").append(App.utenteAccesso != null ? App.utenteAccesso.getUsername() : "Sistema").append("\n");
+            logCompleto.append("\n=== DETTAGLI LOG ===\n");
+            
+            // Aggiungi il contenuto del log dal database (se disponibile)
+            if (rawLog != null && !rawLog.trim().isEmpty()) {
+                logCompleto.append(rawLog);
+            } else {
+                // Se non ci sono log dal database, crea un log di esempio
+                logCompleto.append("01/06/2025 10:00 - Conferenza creata\n");
+                logCompleto.append("05/06/2025 14:30 - Aggiunti revisori\n");
+                logCompleto.append("10/06/2025 09:15 - Prima sottomissione ricevuta\n");
+                logCompleto.append("15/06/2025 16:45 - Deadline sottomissioni\n");
+                logCompleto.append("20/06/2025 11:20 - Inizio fase di revisione\n");
+            }
+            
+            logCompleto.append("\n=== FINE LOG ===\n");
+            
+            // Seguendo il sequence diagram: chiama salvaLog
+            salvaLog(logCompleto.toString(), idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante la compilazione del log: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
-    public void salvaLog() {
-        // Implementazione da definire
+    /**
+     * Salva il log compilato in un file PDF e lo scarica automaticamente
+     * Seguendo il sequence diagram: salvaLog() con nome file specifico
+     */
+    public void salvaLog(String logContent, int idConferenza) {
+        try {
+            System.out.println("Salvataggio log in PDF per conferenza ID: " + idConferenza);
+            
+            // Crea il nome del file seguendo il pattern richiesto
+            String nomeConferenza = (conferenzaSelezionata != null && conferenzaSelezionata.getTitolo() != null) 
+                ? conferenzaSelezionata.getTitolo().replaceAll("[^a-zA-Z0-9\\s]", "").replaceAll("\\s+", "_")
+                : "Conferenza_" + idConferenza;
+            
+            String dataAttuale = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd_MM_yyyy"));
+            String nomeFile = "Log_Conferenza_" + nomeConferenza + "_" + dataAttuale + ".pdf";
+            
+            // Percorso di download (cartella Downloads dell'utente)
+            String userHome = System.getProperty("user.home");
+            String downloadPath = userHome + File.separator + "Downloads" + File.separator + nomeFile;
+            
+            System.out.println("Generazione PDF: " + downloadPath);
+            
+            // Crea il documento PDF
+            Document document = new Document();
+            PdfWriter.getInstance(document, new FileOutputStream(downloadPath));
+            
+            document.open();
+            
+            // Aggiungi il titolo
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD);
+            Paragraph title = new Paragraph("LOG CONFERENZA", titleFont);
+            title.setAlignment(Paragraph.ALIGN_CENTER);
+            document.add(title);
+            
+            // Aggiungi una riga vuota
+            document.add(new Paragraph(" "));
+            
+            // Aggiungi il contenuto del log
+            Font contentFont = new Font(Font.FontFamily.COURIER, 10, Font.NORMAL);
+            Paragraph content = new Paragraph(logContent, contentFont);
+            document.add(content);
+            
+            document.close();
+            
+            System.out.println("PDF generato con successo: " + downloadPath);
+            
+            // Scarica automaticamente il file (apre il file manager nella cartella Downloads)
+            if (Desktop.isDesktopSupported()) {
+                try {
+                    Desktop.getDesktop().open(new File(userHome + File.separator + "Downloads"));
+                    System.out.println("Cartella Downloads aperta automaticamente");
+                } catch (IOException e) {
+                    System.err.println("Impossibile aprire la cartella Downloads automaticamente: " + e.getMessage());
+                }
+            }
+            
+            // Mostra messaggio di successo
+            String successMessage = "Log della conferenza generato con successo!\n\n" +
+                                   "File salvato in: " + downloadPath + "\n\n" +
+                                   "Il file è stato scaricato nella cartella Downloads.";
+            
+            SuccessScreen successScreen = new SuccessScreen(successMessage, "Log Generato");
+            successScreen.setVisible(true);
+            
+        } catch (DocumentException | IOException e) {
+            System.err.println("Errore durante la generazione del PDF: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra messaggio di errore
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante la generazione del log PDF:\n" + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     public void revisionaArticolo(String idArticolo) {

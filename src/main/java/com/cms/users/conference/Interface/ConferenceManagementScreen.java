@@ -717,24 +717,10 @@ public class ConferenceManagementScreen extends JFrame {
     /**
      * Ottiene il log della conferenza
      */
-    public String getLogButton() {
-        // Simula la visualizzazione del log
-        String logContent = "=== LOG CONFERENZA: " + titolo + " ===\n" +
-                           "01/06/2025 10:00 - Conferenza creata\n" +
-                           "05/06/2025 14:30 - Aggiunti 5 revisori\n" +
-                           "10/06/2025 09:15 - Primo articolo sottomesso\n" +
-                           "15/06/2025 16:45 - Deadline sottomissioni scaduta\n" +
-                           "20/06/2025 11:20 - Inizio fase di revisione\n" +
-                           "=== FINE LOG ===";
-        
-        JTextArea logArea = new JTextArea(logContent, 15, 50);
-        logArea.setEditable(false);
-        logArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        
-        JScrollPane scrollPane = new JScrollPane(logArea);
-        JOptionPane.showMessageDialog(this, scrollPane, "Log Conferenza", JOptionPane.INFORMATION_MESSAGE);
-        
-        return logContent;
+    public void getLogButton() {
+        // Segue il sequence diagram: delega al ConferenceControl
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.getLog(this.id);
     }
     
     // Metodi di utilità e getter
