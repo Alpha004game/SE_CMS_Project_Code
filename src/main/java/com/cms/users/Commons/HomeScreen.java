@@ -44,7 +44,8 @@ public class HomeScreen extends JFrame {
         this.availableFeatures = new ArrayList<>();
         this.conferenze = new ArrayList<>();
         this.isUserLoggedIn = true;
-        this.currentUserId = 1; // ID di default per test
+        // Prova a ottenere l'ID dall'utente loggato, altrimenti usa 1 come fallback
+        this.currentUserId = (App.utenteAccesso != null) ? App.utenteAccesso.getId() : 1;
         this.dbmsBoundary = new DBMSBoundary();
         
         // Inizializza HeaderScreen
@@ -63,7 +64,8 @@ public class HomeScreen extends JFrame {
         this.availableFeatures = new ArrayList<>();
         this.conferenze = new ArrayList<>();
         this.isUserLoggedIn = true;
-        this.currentUserId = 1; // ID di default per test, andrebbe passato come parametro
+        // Prova a ottenere l'ID dall'utente loggato, altrimenti usa 1 come fallback
+        this.currentUserId = (App.utenteAccesso != null) ? App.utenteAccesso.getId() : 1;
         this.dbmsBoundary = new DBMSBoundary();
         
         // Inizializza HeaderScreen con dati utente
@@ -228,25 +230,46 @@ public class HomeScreen extends JFrame {
         try {
             conferenze.clear();
             
+            // Debug: mostra quale utente è loggato e quale ID stiamo usando
+            System.out.println("DEBUG: === INIZIO loadConferenzeFromDatabase ===");
+            System.out.println("DEBUG: App.utenteAccesso: " + (App.utenteAccesso != null ? App.utenteAccesso.getUsername() + " (ID: " + App.utenteAccesso.getId() + ")" : "null"));
+            System.out.println("DEBUG: currentUserId utilizzato: " + currentUserId);
+            
             // Ottieni tutte le conferenze attive dal database
             LinkedList<ConferenzaE> conferenzeDB = dbmsBoundary.getConferenzeAttive();
             
             if (conferenzeDB != null && !conferenzeDB.isEmpty()) {
+                System.out.println("DEBUG: Trovate " + conferenzeDB.size() + " conferenze attive");
+                
                 for (ConferenzaE conferenza : conferenzeDB) {
                     // Converti ConferenzaE in ConferenzaData per la tabella
                     String nomeCompleto = conferenza.getTitolo() + " " + conferenza.getAnnoEdizione();
                     
+                    System.out.println("DEBUG: Elaborando conferenza: " + nomeCompleto + " (ID: " + conferenza.getId() + ")");
+                    
                     // Ottieni il ruolo dell'utente per questa conferenza
                     String ruolo = getRuoloUtenteConferenza(currentUserId, conferenza.getId());
                     
-                    // Solo se l'utente ha un ruolo nella conferenza, la aggiungiamo alla lista
-                    if (ruolo != null && !ruolo.isEmpty() && !ruolo.equalsIgnoreCase("nessun ruolo")) {
-                        // Genera le azioni in base al ruolo
-                        String[] azioni = generateActionsForRole(ruolo);
-                        
-                        conferenze.add(new ConferenzaData(conferenza.getId(), nomeCompleto, ruolo, azioni));
+                    System.out.println("DEBUG: Ruolo ottenuto dal DB: '" + ruolo + "'");
+                    
+                    // Se l'utente non ha un ruolo specifico nella conferenza, è un potenziale autore
+                    if (ruolo == null || ruolo.isEmpty() || ruolo.equalsIgnoreCase("nessun ruolo") || ruolo.equalsIgnoreCase("utente")) {
+                        System.out.println("DEBUG: Ruolo convertito a 'Potenziale Autore' (era: '" + ruolo + "')");
+                        ruolo = "Potenziale Autore";
+                    } else {
+                        System.out.println("DEBUG: Ruolo mantenuto: '" + ruolo + "'");
                     }
+                    
+                    // Genera le azioni in base al ruolo effettivo
+                    String[] azioni = generateActionsForRole(ruolo);
+                    
+                    System.out.println("DEBUG: Azioni generate per ruolo '" + ruolo + "': " + java.util.Arrays.toString(azioni));
+                    
+                    // Aggiungi sempre la conferenza alla lista (mostra tutte le conferenze)
+                    conferenze.add(new ConferenzaData(conferenza.getId(), nomeCompleto, ruolo, azioni));
                 }
+            } else {
+                System.out.println("DEBUG: Nessuna conferenza attiva trovata");
             }
             
             refreshTable();
@@ -268,9 +291,13 @@ public class HomeScreen extends JFrame {
      */
     private String getRuoloUtenteConferenza(int idUtente, int idConferenza) {
         try {
-            return dbmsBoundary.getRuoloUtenteConferenza(idUtente, idConferenza);
+            System.out.println("DEBUG HomeScreen: Chiamando dbmsBoundary.getRuoloUtenteConferenza(" + idUtente + ", " + idConferenza + ")");
+            String result = dbmsBoundary.getRuoloUtenteConferenza(idUtente, idConferenza);
+            System.out.println("DEBUG HomeScreen: dbmsBoundary.getRuoloUtenteConferenza ha ritornato: '" + result + "'");
+            return result;
         } catch (Exception e) {
             System.err.println("Errore nel recupero del ruolo utente: " + e.getMessage());
+            e.printStackTrace();
             return "Utente";
         }
     }
@@ -309,6 +336,15 @@ public class HomeScreen extends JFrame {
         ConferenzaData conferenza = conferenze.get(row);
         String message = "Azione: " + action + "\nConferenza: " + conferenza.nome + "\nRuolo: " + conferenza.ruolo;
         
+        // Verifica che l'utente abbia il permesso di eseguire questa azione
+        if (!isActionAllowedForUser(action, conferenza.ruolo)) {
+            JOptionPane.showMessageDialog(this, 
+                "Non hai il permesso di eseguire questa azione.\nRuolo richiesto: " + action + "\nTuo ruolo: " + conferenza.ruolo, 
+                "Accesso Negato", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
         switch (action.toLowerCase()) {
             case "chair":
                 // Implementazione del sequence diagram: HomeScreen -> ConferenceControl -> DBMSBoundary
@@ -338,6 +374,19 @@ public class HomeScreen extends JFrame {
                 JOptionPane.showMessageDialog(this, message);
                 break;
         }
+    }
+    
+    /**
+     * Verifica se un'azione è permessa per il ruolo dell'utente
+     */
+    private boolean isActionAllowedForUser(String action, String userRole) {
+        String[] allowedActions = generateActionsForRole(userRole);
+        for (String allowedAction : allowedActions) {
+            if (allowedAction.equalsIgnoreCase(action)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     /**
@@ -433,23 +482,46 @@ public class HomeScreen extends JFrame {
     }
     
     /**
-     * Genera i bottoni appropriati in base al ruolo dell'utente
+     * Genera i bottoni appropriati in base al ruolo dell'utente per una specifica conferenza
      */
     private String[] generateActionsForRole(String ruolo) {
+        System.out.println("DEBUG: generateActionsForRole chiamato con ruolo: '" + ruolo + "'");
+        
+        String[] result;
         switch (ruolo.toLowerCase()) {
             case "chair":
-                return new String[]{"Chair", "Autore"};
+                // Chair vede i bottoni Chair e Autore
+                result = new String[]{"Chair", "Autore"};
+                break;
             case "editore":
-                return new String[]{"Editore", "Autore"};
+                // Editore vede i bottoni Editore e Autore
+                result = new String[]{"Editore", "Autore"};
+                break;
             case "revisore":
-                return new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo", "Autore"};
+                // Revisore vede i bottoni Revisore, selezione competenze, specifica preferenze e Autore
+                result = new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo", "Autore"};
+                break;
             case "sotto-revisore":
-                return new String[]{"Sotto-revisore", "Autore"};
+                // Sotto-revisore vede i bottoni Sotto-revisore e Autore
+                result = new String[]{"Sotto-revisore", "Autore"};
+                break;
             case "autore":
-                return new String[]{"Autore"};
+                // Autore che ha già sottomesso vede solo il bottone Autore
+                result = new String[]{"Autore"};
+                break;
+            case "potenziale autore":
+                // Utenti senza ruolo nella conferenza (potenziali autori) vedono solo il bottone Autore
+                result = new String[]{"Autore"};
+                break;
             default:
-                return new String[]{"Autore"}; // Default: almeno il ruolo Autore per ruoli non riconosciuti
+                // Default: utenti non riconosciuti sono considerati potenziali autori
+                System.out.println("DEBUG: Ruolo non riconosciuto '" + ruolo + "', uso default");
+                result = new String[]{"Autore"};
+                break;
         }
+        
+        System.out.println("DEBUG: generateActionsForRole ritorna: " + java.util.Arrays.toString(result));
+        return result;
     }
     
     /**
@@ -670,7 +742,7 @@ public class HomeScreen extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // Test con utente reale dal database
-            HomeScreen homeScreen = new HomeScreen(1); // ID utente 1
+            HomeScreen homeScreen = new HomeScreen(); // Userà l'utente loggato o fallback a 1
             homeScreen.setWelcomeMessage("Benvenuto nel sistema CMS!");
             
             homeScreen.displayUserDashboard();

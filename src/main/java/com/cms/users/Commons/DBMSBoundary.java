@@ -1644,9 +1644,12 @@ public class DBMSBoundary {
      * Ottiene il ruolo di un utente in una specifica conferenza
      */
     public String getRuoloUtenteConferenza(int idUtente, int idConferenza) {
+        System.out.println("DEBUG: getRuoloUtenteConferenza chiamato per idUtente=" + idUtente + ", idConferenza=" + idConferenza);
+        
         try {
             Connection con = getConnection();
             if (con == null) {
+                System.out.println("DEBUG: Connessione al database fallita, ritorno 'Utente'");
                 return "Utente";
             }
             
@@ -1654,23 +1657,35 @@ public class DBMSBoundary {
             PreparedStatement stmt = con.prepareStatement(sql);
             stmt.setInt(1, idUtente);
             stmt.setInt(2, idConferenza);
+            
+            System.out.println("DEBUG: Eseguendo query: " + sql + " con parametri idUtente=" + idUtente + ", idConferenza=" + idConferenza);
+            
             ResultSet rs = stmt.executeQuery();
             
             String ruolo = "Utente"; // Default
-            if (rs.next()) {
+            boolean found = rs.next();
+            System.out.println("DEBUG: Risultato query trovato: " + found);
+            
+            if (found) {
                 int ruoloId = rs.getInt("ruolo");
+                System.out.println("DEBUG: ruoloId trovato nel DB: " + ruoloId);
                 // Converte l'ID del ruolo in stringa
                 ruolo = convertRuoloIdToString(ruoloId);
+                System.out.println("DEBUG: ruolo convertito: " + ruolo);
+            } else {
+                System.out.println("DEBUG: Nessun ruolo trovato per questo utente/conferenza, uso default: " + ruolo);
             }
             
             rs.close();
             stmt.close();
             con.close();
             
+            System.out.println("DEBUG: getRuoloUtenteConferenza ritorna: " + ruolo);
             return ruolo;
             
         } catch (Exception e) {
-            System.err.println("Errore durante il recupero del ruolo utente: " + e.getMessage());
+            System.err.println("DEBUG: Errore durante il recupero del ruolo utente: " + e.getMessage());
+            e.printStackTrace();
             return "Utente";
         }
     }
@@ -1679,14 +1694,20 @@ public class DBMSBoundary {
      * Converte l'ID del ruolo nella stringa corrispondente
      */
     private String convertRuoloIdToString(int ruoloId) {
+        System.out.println("DEBUG: convertRuoloIdToString chiamato con ruoloId=" + ruoloId);
+        
+        String result;
         switch (ruoloId) {
-            case 1: return "Chair";
-            case 2: return "Revisore";
-            case 3: return "Editore";
-            case 4: return "Sotto-revisore";
-            case 5: return "Autore";
-            default: return "Utente";
+            case 1: result = "Chair"; break;
+            case 2: result = "Revisore"; break;
+            case 3: result = "Editore"; break;
+            case 4: result = "Sotto-revisore"; break;
+            case 5: result = "Autore"; break;
+            default: result = "Utente"; break;
         }
+        
+        System.out.println("DEBUG: convertRuoloIdToString ritorna: " + result);
+        return result;
     }
     
     /**
