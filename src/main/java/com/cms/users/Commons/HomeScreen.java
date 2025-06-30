@@ -12,6 +12,8 @@ import com.cms.users.Entity.ConferenzaE;
 import com.cms.users.conference.Control.CreaConferenzaControl;
 import com.cms.users.conference.Control.ConferenceControl;
 import com.cms.users.submissions.Control.GestioneArticoliControl;
+import com.cms.users.submissions.Control.GestionePreferenzeControl;
+import com.cms.users.account.Control.GestionePCControl;
 import com.cms.App;
 
 /**
@@ -365,10 +367,12 @@ public class HomeScreen extends JFrame {
                 visualizzaSottomissioni(conferenza.id);
                 break;
             case "selezione specifiche competenze":
-                JOptionPane.showMessageDialog(this, message + "\n\nApertura selezione competenze...");
+                // Implementazione del sequence diagram "Aggiungi Competenze"
+                specificaCompetenze(conferenza.id);
                 break;
             case "modifica preferenze articolo":
-                JOptionPane.showMessageDialog(this, message + "\n\nApertura modifica preferenze...");
+                // Implementazione per modificare le preferenze degli articoli
+                modificaPreferenzeArticolo(conferenza.id);
                 break;
             default:
                 JOptionPane.showMessageDialog(this, message);
@@ -412,6 +416,74 @@ public class HomeScreen extends JFrame {
             // Mostra un messaggio di errore all'utente
             JOptionPane.showMessageDialog(this, 
                 "Errore durante l'apertura delle sottomissioni.\nRiprovare più tardi.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Specifica le competenze per una conferenza specifica
+     * Implementa il flusso del sequence diagram "Aggiungi Competenze"
+     */
+    private void specificaCompetenze(int idConferenza) {
+        System.out.println("DEBUG HomeScreen: === INIZIO specificaCompetenze ===");
+        System.out.println("DEBUG HomeScreen: idConferenza ricevuto: " + idConferenza);
+        
+        try {
+            // Seguendo il sequence diagram: crea GestionePCControl
+            System.out.println("DEBUG HomeScreen: Creando GestionePCControl");
+            GestionePCControl gestionePCControl = new GestionePCControl();
+            
+            // Invoca il metodo per specificare le competenze
+            System.out.println("DEBUG HomeScreen: Chiamando specificaCompetenze sul control");
+            gestionePCControl.specificaCompetenze(idConferenza);
+            
+            // Chiudi questa finestra (l'utente passa alla SkillsSelectionScreen)
+            this.dispose();
+            
+            System.out.println("DEBUG HomeScreen: === FINE specificaCompetenze ===");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG HomeScreen: ERRORE durante specificaCompetenze: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra un messaggio di errore all'utente
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della selezione competenze.\nRiprovare più tardi.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Gestisce la modifica delle preferenze degli articoli per un revisore
+     * @param idConferenza ID della conferenza di cui modificare le preferenze
+     */
+    private void modificaPreferenzeArticolo(int idConferenza) {
+        System.out.println("DEBUG HomeScreen: === INIZIO modificaPreferenzeArticolo ===");
+        System.out.println("DEBUG HomeScreen: idConferenza ricevuto: " + idConferenza);
+        
+        try {
+            // Crea il control per gestire le preferenze
+            System.out.println("DEBUG HomeScreen: Creando GestionePreferenzeControl");
+            GestionePreferenzeControl gestionePreferenzeControl = new GestionePreferenzeControl();
+            
+            // Invoca il metodo per modificare le preferenze
+            System.out.println("DEBUG HomeScreen: Chiamando modificaPreferenze sul control");
+            gestionePreferenzeControl.modificaPreferenze(idConferenza);
+            
+            // Chiudi questa finestra (l'utente passa alla GeneralSubmissionScreen)
+            this.dispose();
+            
+            System.out.println("DEBUG HomeScreen: === FINE modificaPreferenzeArticolo ===");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG HomeScreen: ERRORE durante modificaPreferenzeArticolo: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra un messaggio di errore all'utente
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della modifica preferenze.\nRiprovare più tardi.", 
                 "Errore", 
                 JOptionPane.ERROR_MESSAGE);
         }
