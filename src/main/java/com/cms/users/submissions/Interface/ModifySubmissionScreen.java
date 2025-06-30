@@ -6,6 +6,9 @@ import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
+import com.cms.users.Entity.ArticoloE;
+import com.cms.users.submissions.Control.GestioneArticoliControl;
 
 /**
  * <<boundary>>
@@ -23,12 +26,9 @@ public class ModifySubmissionScreen extends JFrame {
     private JTextArea abstractTextArea;
     private JTextField coAutoriField;
     
-    // Keywords (8 campi checkbox)
+    // Keywords (dinamiche dal database)
     private JCheckBox[] keywordCheckboxes;
-    private String[] keywordOptions = {
-        "Machine Learning", "Software Engineering", "Artificial Intelligence", "Cloud Computing",
-        "Data Science", "Cybersecurity", "Mobile Development", "Web Development"
-    };
+    private ArrayList<String> keywordOptions; // Caricato dinamicamente
     
     // File upload
     private JButton caricaArticoloButton;
@@ -41,12 +41,16 @@ public class ModifySubmissionScreen extends JFrame {
     
     // Dati della sottomissione esistente
     private String submissionId;
+    private int idArticolo; // ID dell'articolo per caricare keywords specifiche
     private String originalTitolo;
     private String originalAbstract;
     private String originalKeywords;
     private String originalCoAutori;
     private String originalFile;
     private String originalAllegato;
+    
+    // Control per gestire le operazioni
+    private GestioneArticoliControl gestioneArticoliControl;
     
     // Attributi per compatibilità
     private String titolo;
@@ -61,23 +65,67 @@ public class ModifySubmissionScreen extends JFrame {
      */
     public ModifySubmissionScreen() {
         this.submissionId = "SUB" + (int)(Math.random() * 10000);
+        this.idArticolo = 0;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
+        this.keywordOptions = getDefaultKeywords(); // Usa keywords di default
         initializeComponents();
         setupLayout();
         setupEventHandlers();
     }
     
     /**
-     * Costruttore con dati esistenti
+     * Costruttore con ID articolo - carica keywords dinamiche dal database
+     */
+    public ModifySubmissionScreen(int idArticolo) {
+        this.idArticolo = idArticolo;
+        this.submissionId = "SUB" + idArticolo;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
+        loadArticleData(); // Carica dati e keywords dal database
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+        populateFields();
+    }
+    
+    /**
+     * Costruttore con dati esistenti (aggiornato per supportare keywords dinamiche)
      */
     public ModifySubmissionScreen(String submissionId, String titolo, String abstractText, 
                                  String keywords, String coAutori, String file, String allegato) {
         this.submissionId = submissionId != null ? submissionId : "SUB" + (int)(Math.random() * 10000);
+        this.idArticolo = extractArticleIdFromSubmissionId(submissionId);
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         this.originalTitolo = titolo;
         this.originalAbstract = abstractText;
         this.originalKeywords = keywords;
         this.originalCoAutori = coAutori;
         this.originalFile = file;
         this.originalAllegato = allegato;
+        
+        // Se abbiamo un ID articolo valido, carica le keywords dal database
+        if (this.idArticolo > 0) {
+            try {
+                // Carica l'articolo per ottenere l'ID della conferenza
+                ArticoloE articolo = gestioneArticoliControl.caricaArticolo(this.idArticolo);
+                if (articolo != null) {
+                    int idConferenza = articolo.getIdConferenza();
+                    // Carica tutte le keywords della conferenza (per le opzioni)
+                    this.keywordOptions = gestioneArticoliControl.ottieniKeywordsConferenza(idConferenza);
+                    System.out.println("DEBUG: Caricate " + keywordOptions.size() + " keywords dalla conferenza " + idConferenza);
+                } else {
+                    this.keywordOptions = getDefaultKeywords(); // Fallback
+                }
+            } catch (Exception e) {
+                System.err.println("Errore nel caricamento keywords conferenza: " + e.getMessage());
+                this.keywordOptions = getDefaultKeywords(); // Fallback
+            }
+            
+            if (this.keywordOptions.isEmpty()) {
+                this.keywordOptions = getDefaultKeywords(); // Fallback
+            }
+        } else {
+            this.keywordOptions = getDefaultKeywords(); // Usa keywords di default
+        }
         
         initializeComponents();
         setupLayout();
@@ -165,13 +213,18 @@ public class ModifySubmissionScreen extends JFrame {
         coAutoriField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         coAutoriField.setPreferredSize(new Dimension(400, 35));
         
-        // Keywords (8 checkbox in griglia 2x4)
-        keywordCheckboxes = new JCheckBox[keywordOptions.length];
-        for (int i = 0; i < keywordOptions.length; i++) {
-            keywordCheckboxes[i] = new JCheckBox();
-            keywordCheckboxes[i].setBackground(fieldColor);
-            keywordCheckboxes[i].setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-            keywordCheckboxes[i].setPreferredSize(new Dimension(120, 30));
+        // Keywords (checkbox dinamici basati sulle keywords caricate)
+        if (keywordOptions != null && !keywordOptions.isEmpty()) {
+            keywordCheckboxes = new JCheckBox[keywordOptions.size()];
+            for (int i = 0; i < keywordOptions.size(); i++) {
+                keywordCheckboxes[i] = new JCheckBox(keywordOptions.get(i));
+                keywordCheckboxes[i].setBackground(fieldColor);
+                keywordCheckboxes[i].setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+                keywordCheckboxes[i].setPreferredSize(new Dimension(120, 30));
+            }
+        } else {
+            // Se non ci sono keywords, crea un array vuoto
+            keywordCheckboxes = new JCheckBox[0];
         }
     }
     
@@ -347,17 +400,37 @@ public class ModifySubmissionScreen extends JFrame {
         
         panel.add(Box.createRigidArea(new Dimension(0, 10)));
         
-        // Griglia 2x4 per i checkbox
-        JPanel gridPanel = new JPanel(new GridLayout(2, 4, 10, 10));
-        gridPanel.setBackground(Color.WHITE);
-        gridPanel.setMaximumSize(new Dimension(500, 80));
-        
-        for (int i = 0; i < keywordCheckboxes.length; i++) {
-            gridPanel.add(keywordCheckboxes[i]);
+        // Layout dinamico per le keywords
+        if (keywordCheckboxes != null && keywordCheckboxes.length > 0) {
+            // Calcola il numero di righe e colonne ottimale
+            int numKeywords = keywordCheckboxes.length;
+            int cols = Math.min(4, numKeywords); // Massimo 4 colonne
+            int rows = (int) Math.ceil((double) numKeywords / cols);
+            
+            JPanel gridPanel = new JPanel(new GridLayout(rows, cols, 10, 10));
+            gridPanel.setBackground(Color.WHITE);
+            gridPanel.setMaximumSize(new Dimension(500, rows * 40));
+            
+            for (JCheckBox checkbox : keywordCheckboxes) {
+                gridPanel.add(checkbox);
+            }
+            
+            // Aggiungi pannelli vuoti se necessario per riempire la griglia
+            int totalCells = rows * cols;
+            for (int i = numKeywords; i < totalCells; i++) {
+                gridPanel.add(new JPanel()); // Pannello vuoto
+            }
+            
+            gridPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            panel.add(gridPanel);
+        } else {
+            // Se non ci sono keywords, mostra un messaggio
+            JLabel noKeywordsLabel = new JLabel("Nessuna keyword disponibile");
+            noKeywordsLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+            noKeywordsLabel.setForeground(Color.GRAY);
+            noKeywordsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            panel.add(noKeywordsLabel);
         }
-        
-        gridPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(gridPanel);
         
         return panel;
     }
@@ -445,12 +518,12 @@ public class ModifySubmissionScreen extends JFrame {
         }
         
         // Imposta keywords esistenti
-        if (originalKeywords != null && !originalKeywords.trim().isEmpty()) {
+        if (originalKeywords != null && !originalKeywords.trim().isEmpty() && keywordOptions != null) {
             String[] keywordArray = originalKeywords.split(",");
             for (String keyword : keywordArray) {
                 String cleanKeyword = keyword.trim();
-                for (int i = 0; i < keywordOptions.length; i++) {
-                    if (keywordOptions[i].equalsIgnoreCase(cleanKeyword)) {
+                for (int i = 0; i < keywordOptions.size(); i++) {
+                    if (keywordOptions.get(i).equalsIgnoreCase(cleanKeyword)) {
                         keywordCheckboxes[i].setSelected(true);
                         break;
                     }
@@ -596,19 +669,80 @@ public class ModifySubmissionScreen extends JFrame {
             JOptionPane.YES_NO_OPTION);
         
         if (result == JOptionPane.YES_OPTION) {
-            // Simula il salvataggio delle modifiche
-            JOptionPane.showMessageDialog(this,
-                "Sottomissione modificata con successo!\n" +
-                "ID Sottomissione: " + submissionId + "\n" +
-                "Le modifiche sono state salvate e saranno riviste.",
-                "Successo",
-                JOptionPane.INFORMATION_MESSAGE);
+            // Crea un oggetto ArticoloE con i dati modificati
+            ArticoloE articoloModificato = new ArticoloE();
+            articoloModificato.setId(idArticolo);
+            articoloModificato.setTitolo(titolo);
+            articoloModificato.setAbstractText(abstractText);
             
-            // Qui andrà la logica per aggiornare nel database
-            System.out.println("Sottomissione modificata: " + submissionId + " - " + titolo);
+            // Gestisce i file (se modificati)
+            if (articoloPdfFile != null) {
+                articoloModificato.setFileArticolo(articoloPdfFile.getAbsolutePath());
+            }
+            if (allegatoFile != null) {
+                articoloModificato.setAllegato(allegatoFile.getAbsolutePath());
+            }
             
-            // Chiude la schermata
-            dispose();
+            // Converte le keywords da stringa a LinkedList
+            LinkedList<String> keywordsList = new LinkedList<>();
+            if (keywords != null && !keywords.trim().isEmpty()) {
+                String[] keywordArray = keywords.split(",");
+                for (String keyword : keywordArray) {
+                    String cleanKeyword = keyword.trim();
+                    if (!cleanKeyword.isEmpty()) {
+                        keywordsList.add(cleanKeyword);
+                    }
+                }
+            }
+            articoloModificato.setKeywords(keywordsList);
+            
+            // Converte i co-autori da stringa a LinkedList
+            LinkedList<String> coAutoriList = new LinkedList<>();
+            if (coAutori != null && !coAutori.trim().isEmpty()) {
+                String[] coAutoriArray = coAutori.split(",");
+                for (String coAutore : coAutoriArray) {
+                    String cleanCoAutore = coAutore.trim();
+                    if (!cleanCoAutore.isEmpty()) {
+                        coAutoriList.add(cleanCoAutore);
+                    }
+                }
+            }
+            articoloModificato.setCoAutori(coAutoriList);
+            
+            try {
+                // Chiama il control per modificare la sottomissione
+                boolean success = gestioneArticoliControl.modificaSottomissione(idArticolo, articoloModificato, "Modificato");
+                
+                if (success) {
+                    JOptionPane.showMessageDialog(this,
+                        "Sottomissione modificata con successo!\n" +
+                        "ID Sottomissione: " + submissionId + "\n" +
+                        "Le modifiche sono state salvate e saranno riviste.",
+                        "Successo",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    
+                    System.out.println("Sottomissione modificata con successo: " + submissionId + " - " + titolo);
+                    
+                    // Chiude la schermata
+                    dispose();
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                        "Errore durante il salvataggio delle modifiche.\n" +
+                        "Riprova più tardi o contatta l'amministratore.",
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (Exception e) {
+                System.err.println("Errore durante la modifica della sottomissione: " + e.getMessage());
+                e.printStackTrace();
+                
+                JOptionPane.showMessageDialog(this,
+                    "Errore durante il salvataggio delle modifiche.\n" +
+                    "Dettagli: " + e.getMessage(),
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
@@ -655,7 +789,7 @@ public class ModifySubmissionScreen extends JFrame {
         List<String> selectedKeywords = new ArrayList<>();
         for (int i = 0; i < keywordCheckboxes.length; i++) {
             if (keywordCheckboxes[i].isSelected()) {
-                selectedKeywords.add(keywordOptions[i]);
+                selectedKeywords.add(keywordOptions.get(i));
             }
         }
         this.keywords = String.join(", ", selectedKeywords);
@@ -840,5 +974,94 @@ public class ModifySubmissionScreen extends JFrame {
             );
             screen.create();
         });
+    }
+    
+    /**
+     * Carica i dati dell'articolo dal database includendo le keywords specifiche
+     */
+    private void loadArticleData() {
+        try {
+            ArticoloE articolo = gestioneArticoliControl.caricaArticolo(idArticolo);
+            if (articolo != null) {
+                this.originalTitolo = articolo.getTitolo();
+                this.originalAbstract = articolo.getAbstractText();
+                
+                // Ottieni l'ID della conferenza dall'articolo
+                int idConferenza = articolo.getIdConferenza();
+                
+                // Carica tutte le keywords disponibili per la conferenza (per le opzioni da mostrare)
+                this.keywordOptions = gestioneArticoliControl.ottieniKeywordsConferenza(idConferenza);
+                
+                // Carica le keywords specifiche dell'articolo (per pre-selezionarle)
+                ArrayList<String> keywordsArticolo = gestioneArticoliControl.ottieniKeywordsArticolo(idArticolo);
+                this.originalKeywords = String.join(", ", keywordsArticolo);
+                
+                // Co-autori
+                if (articolo.getCoAutori() != null && !articolo.getCoAutori().isEmpty()) {
+                    this.originalCoAutori = String.join(", ", articolo.getCoAutori());
+                } else {
+                    this.originalCoAutori = "";
+                }
+                
+                // File (BLOB)
+                this.originalFile = articolo.getFileArticolo() != null ? "Articolo_" + idArticolo + ".pdf" : "";
+                this.originalAllegato = articolo.getAllegato() != null ? "Allegato_" + idArticolo + ".zip" : "";
+                
+                System.out.println("DEBUG: Caricati dati articolo " + idArticolo + 
+                    " con " + keywordOptions.size() + " keywords della conferenza " + idConferenza +
+                    " e " + keywordsArticolo.size() + " keywords specifiche dell'articolo");
+            } else {
+                System.err.println("Articolo non trovato con ID: " + idArticolo);
+                this.keywordOptions = getDefaultKeywords();
+                initializeWithDefaultData();
+            }
+        } catch (Exception e) {
+            System.err.println("Errore durante il caricamento dell'articolo: " + e.getMessage());
+            this.keywordOptions = getDefaultKeywords();
+            initializeWithDefaultData();
+        }
+    }
+    
+    /**
+     * Restituisce le keywords di default
+     */
+    private ArrayList<String> getDefaultKeywords() {
+        ArrayList<String> defaults = new ArrayList<>();
+        defaults.add("Machine Learning");
+        defaults.add("Software Engineering");
+        defaults.add("Artificial Intelligence");
+        defaults.add("Cloud Computing");
+        defaults.add("Data Science");
+        defaults.add("Cybersecurity");
+        defaults.add("Mobile Development");
+        defaults.add("Web Development");
+        return defaults;
+    }
+    
+    /**
+     * Estrae l'ID dell'articolo dal submissionId
+     */
+    private int extractArticleIdFromSubmissionId(String submissionId) {
+        try {
+            if (submissionId != null && submissionId.startsWith("SUB")) {
+                return Integer.parseInt(submissionId.substring(3));
+            }
+            return 0;
+        } catch (NumberFormatException e) {
+            System.err.println("Errore nell'estrazione dell'ID articolo da: " + submissionId);
+            return 0;
+        }
+    }
+    
+    /**
+     * Inizializza con dati di default
+     */
+    private void initializeWithDefaultData() {
+        this.originalTitolo = "Titolo dell'articolo";
+        this.originalAbstract = "Abstract dell'articolo...";
+        this.originalKeywords = "";
+        this.originalCoAutori = "";
+        this.originalFile = "";
+        this.originalAllegato = "";
     }
 }

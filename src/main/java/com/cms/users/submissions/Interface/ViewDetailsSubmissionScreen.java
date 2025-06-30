@@ -2,16 +2,17 @@ package com.cms.users.submissions.Interface;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+
+
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
+
 import java.sql.Blob;
 import java.util.LinkedList;
 import java.util.ArrayList;
 import com.cms.users.Entity.ArticoloE;
-import com.cms.users.Commons.DBMSBoundary;
+
+import com.cms.users.submissions.Control.GestioneArticoliControl;
 
 /**
  * <<boundary>>
@@ -56,11 +57,15 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     private Object fileArticoloBLOB;
     private Object allegatoBLOB;
     
+    // Control per la gestione della logica di business
+    private GestioneArticoliControl gestioneArticoliControl;
+    
     /**
      * Costruttore di default
      */
     public ViewDetailsSubmissionScreen() {
         this.submissionId = "SUB" + (int)(Math.random() * 10000);
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         initializeWithDefaultData();
         initializeComponents();
         setupLayout();
@@ -72,6 +77,7 @@ public class ViewDetailsSubmissionScreen extends JFrame {
      */
     public ViewDetailsSubmissionScreen(String submissionId) {
         this.submissionId = submissionId != null ? submissionId : "SUB" + (int)(Math.random() * 10000);
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         loadSubmissionData();
         initializeComponents();
         setupLayout();
@@ -93,6 +99,7 @@ public class ViewDetailsSubmissionScreen extends JFrame {
         this.filePath = filePath;
         this.allegatoPath = allegatoPath;
         this.originalitaDichiarata = originalitaDichiarata;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         
         initializeComponents();
         setupLayout();
@@ -105,6 +112,7 @@ public class ViewDetailsSubmissionScreen extends JFrame {
      */
     public ViewDetailsSubmissionScreen(int idArticolo) {
         this.submissionId = "SUB" + idArticolo;
+        this.gestioneArticoliControl = new GestioneArticoliControl();
         loadSubmissionDataFromDatabase(idArticolo);
         initializeComponents();
         setupLayout();
@@ -144,50 +152,16 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     }
     
     /**
-     * Carica i dati della sottomissione dal database
+     * Carica i dati della sottomissione dal database tramite la Control
      */
     private void loadSubmissionDataFromDatabase(int idArticolo) {
-        DBMSBoundary dbms = new DBMSBoundary();
-        
         try {
-            // Carica i dati dell'articolo dal database
-            ArticoloE articolo = dbms.getArticolo(idArticolo);
+            // Delega alla Control il caricamento dei dati dell'articolo
+            ArticoloE articolo = gestioneArticoliControl.caricaArticolo(idArticolo);
             
             if (articolo != null) {
-                this.titolo = articolo.getTitolo();
-                this.abstractText = articolo.getAbstractText();
-                
-                // Carica le keywords dal database e salva come string per la visualizzazione
-                ArrayList<String> keywordsList = dbms.getKeywordsArticolo(idArticolo);
-                this.keywords = String.join(", ", keywordsList);
-                
-                // Salva anche la lista per i checkbox
-                this.keywordOptions = keywordsList;
-                
-                // Costruisci la stringa dei co-autori
-                if (articolo.getCoAutori() != null && !articolo.getCoAutori().isEmpty()) {
-                    this.coAutori = String.join(", ", articolo.getCoAutori());
-                } else {
-                    this.coAutori = "";
-                }
-                
-                // Carica i BLOB dei file dal database
-                this.fileArticoloBLOB = articolo.getFileArticolo();
-                this.allegatoBLOB = articolo.getAllegato();
-                
-                // Imposta nomi descrittivi per l'interfaccia utente
-                if (this.fileArticoloBLOB != null) {
-                    this.filePath = "Articolo_" + idArticolo + ".pdf";
-                } else {
-                    this.filePath = "";
-                }
-                
-                if (this.allegatoBLOB != null) {
-                    this.allegatoPath = "Allegato_" + idArticolo + ".zip";
-                } else {
-                    this.allegatoPath = "";
-                }
-                this.originalitaDichiarata = articolo.isDichiarazioneOriginalita();
+                // Popola i campi della schermata con i dati dell'articolo
+                populateFromArticolo(articolo, idArticolo);
                 
                 System.out.println("DEBUG: Caricati dati per articolo " + idArticolo + 
                                  " - Keywords: " + this.keywords);
@@ -203,6 +177,46 @@ public class ViewDetailsSubmissionScreen extends JFrame {
             // Fallback ai dati di default
             initializeWithDefaultData();
         }
+    }
+    
+    /**
+     * Popola i campi della schermata con i dati di un ArticoloE
+     * Metodo di supporto per separare la logica di popolamento
+     */
+    private void populateFromArticolo(ArticoloE articolo, int idArticolo) {
+        this.titolo = articolo.getTitolo();
+        this.abstractText = articolo.getAbstractText();
+        
+        // Ottiene le keywords tramite la Control
+        ArrayList<String> keywordsList = gestioneArticoliControl.ottieniKeywordsArticolo(idArticolo);
+        this.keywords = String.join(", ", keywordsList);
+        this.keywordOptions = keywordsList;
+        
+        // Costruisci la stringa dei co-autori
+        if (articolo.getCoAutori() != null && !articolo.getCoAutori().isEmpty()) {
+            this.coAutori = String.join(", ", articolo.getCoAutori());
+        } else {
+            this.coAutori = "";
+        }
+        
+        // Carica i BLOB dei file dall'articolo
+        this.fileArticoloBLOB = articolo.getFileArticolo();
+        this.allegatoBLOB = articolo.getAllegato();
+        
+        // Imposta nomi descrittivi per l'interfaccia utente
+        if (this.fileArticoloBLOB != null) {
+            this.filePath = "Articolo_" + idArticolo + ".pdf";
+        } else {
+            this.filePath = "";
+        }
+        
+        if (this.allegatoBLOB != null) {
+            this.allegatoPath = "Allegato_" + idArticolo + ".zip";
+        } else {
+            this.allegatoPath = "";
+        }
+        
+        this.originalitaDichiarata = articolo.isDichiarazioneOriginalita();
     }
     
     /**
@@ -762,6 +776,19 @@ public class ViewDetailsSubmissionScreen extends JFrame {
     }
     
     private void handleRitiraSottomissione() {
+        // Estrae l'ID articolo dal submissionId
+        int idArticolo = extractArticleIdFromSubmissionId();
+        
+        // Verifica tramite Control se l'articolo può essere ritirato
+        if (!gestioneArticoliControl.puoRitirareArticolo(idArticolo)) {
+            JOptionPane.showMessageDialog(this,
+                "Questa sottomissione non può essere ritirata.\n" +
+                "Potrebbe essere già stata processata o pubblicata.",
+                "Operazione non permessa",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
         // Conferma ritiro
         String[] options = {"Ritira", "Annulla"};
         int result = JOptionPane.showOptionDialog(this,
@@ -778,55 +805,91 @@ public class ViewDetailsSubmissionScreen extends JFrame {
             options[1]);
         
         if (result == JOptionPane.YES_OPTION) {
-            // Simula il ritiro
-            JOptionPane.showMessageDialog(this,
-                "Sottomissione ritirata con successo!\n\n" +
-                "ID: " + submissionId + "\n" +
-                "La sottomissione è stata rimossa dal sistema\n" +
-                "e non sarà più visibile nella lista.",
-                "Ritiro Completato",
-                JOptionPane.INFORMATION_MESSAGE);
+            // Delega alla Control l'operazione di ritiro
+            boolean success = gestioneArticoliControl.ritiraSottomissione(idArticolo);
             
-            // Qui andrà la logica per rimuovere la sottomissione dal database
-            System.out.println("Sottomissione ritirata: " + submissionId);
-            
-            // Chiude la schermata
-            dispose();
+            if (success) {
+                JOptionPane.showMessageDialog(this,
+                    "Sottomissione ritirata con successo!\n\n" +
+                    "ID: " + submissionId + "\n" +
+                    "La sottomissione è stata rimossa dal sistema\n" +
+                    "e non sarà più visibile nella lista.",
+                    "Ritiro Completato",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Chiude la schermata
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Errore durante il ritiro della sottomissione.\n" +
+                    "Riprova più tardi o contatta l'amministratore.",
+                    "Errore",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
     private void handleScaricaRapporto() {
-        // Simula il download del rapporto di valutazione
-        JOptionPane.showMessageDialog(this,
-            "Download del rapporto di valutazione...\n\n" +
-            "ID Sottomissione: " + submissionId + "\n" +
-            "File: rapporto_valutazione_" + submissionId + ".pdf\n\n" +
-            "Il rapporto contiene:\n" +
-            "• Commenti dei revisori\n" +
-            "• Valutazioni ricevute\n" +
-            "• Suggerimenti per miglioramenti\n" +
-            "• Stato della revisione",
-            "Download Rapporto",
-            JOptionPane.INFORMATION_MESSAGE);
+        int idArticolo = extractArticleIdFromSubmissionId();
         
-        // Qui andrà la logica per generare e scaricare il rapporto PDF
-        System.out.println("Download rapporto per sottomissione: " + submissionId);
+        // Verifica tramite Control se il rapporto è disponibile
+        if (!gestioneArticoliControl.haRapportoValutazione(idArticolo)) {
+            JOptionPane.showMessageDialog(this,
+                "Il rapporto di valutazione non è ancora disponibile.\n" +
+                "La sottomissione potrebbe essere ancora in fase di revisione.",
+                "Rapporto non disponibile",
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Delega alla Control la generazione del rapporto
+        String rapportoPath = gestioneArticoliControl.scaricaRapportoValutazione(idArticolo);
+        
+        if (rapportoPath != null) {
+            JOptionPane.showMessageDialog(this,
+                "Download del rapporto di valutazione...\n\n" +
+                "ID Sottomissione: " + submissionId + "\n" +
+                "File: " + rapportoPath + "\n\n" +
+                "Il rapporto contiene:\n" +
+                "• Commenti dei revisori\n" +
+                "• Valutazioni ricevute\n" +
+                "• Suggerimenti per miglioramenti\n" +
+                "• Stato della revisione",
+                "Download Rapporto",
+                JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Errore durante la generazione del rapporto.\n" +
+                "Riprova più tardi o contatta l'amministratore.",
+                "Errore",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void handleModificaSottomissione() {
         dispose();
-        // Apri ModifySubmissionScreen
+        // Apri ModifySubmissionScreen usando il nuovo costruttore che carica keywords dinamiche
         try {
-            Class<?> modifyScreenClass = Class.forName("com.cms.users.submissions.Interface.ModifySubmissionScreen");
-            Object modifyScreen = modifyScreenClass.getDeclaredConstructor(
-                String.class, String.class, String.class, String.class, 
-                String.class, String.class, String.class)
-                .newInstance(submissionId, titolo, abstractText, keywords, 
-                           coAutori, filePath, allegatoPath);
-            java.lang.reflect.Method createMethod = modifyScreenClass.getMethod("create");
-            createMethod.invoke(modifyScreen);
+            int idArticolo = extractArticleIdFromSubmissionId();
+            
+            if (idArticolo > 0) {
+                // Usa il costruttore che carica i dati dal database includendo le keywords dinamiche
+                ModifySubmissionScreen modifyScreen = new ModifySubmissionScreen(idArticolo);
+                modifyScreen.setVisible(true);
+            } else {
+                // Fallback al costruttore con dati esistenti
+                ModifySubmissionScreen modifyScreen = new ModifySubmissionScreen(
+                    submissionId, titolo, abstractText, keywords, 
+                    coAutori, filePath, allegatoPath);
+                modifyScreen.setVisible(true);
+            }
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Apertura schermata modifica...");
+            System.err.println("Errore durante l'apertura della schermata modifica: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della schermata di modifica.\nRiprova più tardi.",
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -926,25 +989,24 @@ public class ViewDetailsSubmissionScreen extends JFrame {
      * Verifica se la sottomissione può essere modificata
      */
     public boolean canModify() {
-        // Logica per determinare se la sottomissione può essere modificata
-        // (es. non ancora in revisione, non pubblicata, ecc.)
-        return true; // Per ora sempre true
+        int idArticolo = extractArticleIdFromSubmissionId();
+        return gestioneArticoliControl.puoModificareArticolo(idArticolo);
     }
     
     /**
      * Verifica se la sottomissione può essere ritirata
      */
     public boolean canWithdraw() {
-        // Logica per determinare se la sottomissione può essere ritirata
-        return true; // Per ora sempre true
+        int idArticolo = extractArticleIdFromSubmissionId();
+        return gestioneArticoliControl.puoRitirareArticolo(idArticolo);
     }
     
     /**
      * Verifica se il rapporto di valutazione è disponibile
      */
     public boolean hasEvaluationReport() {
-        // Logica per determinare se esiste un rapporto di valutazione
-        return true; // Per ora sempre true
+        int idArticolo = extractArticleIdFromSubmissionId();
+        return gestioneArticoliControl.haRapportoValutazione(idArticolo);
     }
     
     /**
@@ -972,13 +1034,11 @@ public class ViewDetailsSubmissionScreen extends JFrame {
             this.titolo = articolo.getTitolo() != null ? articolo.getTitolo() : "";
             this.abstractText = articolo.getAbstractText() != null ? articolo.getAbstractText() : "";
             
-            // Converte la lista di keywords in stringa separata da virgole
-            LinkedList<String> keywordsList = articolo.getKeywords();
-            if (keywordsList != null && !keywordsList.isEmpty()) {
-                this.keywords = String.join(", ", keywordsList);
-            } else {
-                this.keywords = "";
-            }
+            // Ottiene le keywords tramite la Control
+            int idArticolo = articolo.getId();
+            ArrayList<String> keywordsList = gestioneArticoliControl.ottieniKeywordsArticolo(idArticolo);
+            this.keywords = String.join(", ", keywordsList);
+            this.keywordOptions = keywordsList;
             
             // Converte la lista di co-autori in stringa separata da virgole
             LinkedList<String> coAutoriList = articolo.getCoAutori();
@@ -1005,11 +1065,6 @@ public class ViewDetailsSubmissionScreen extends JFrame {
                 this.allegatoPath = "";
             }
             
-            // Imposta keywordOptions per i checkbox
-            this.keywordOptions = articolo.getKeywords() != null ? 
-                new ArrayList<>(articolo.getKeywords()) : new ArrayList<>();
-            
-            // Usa il metodo corretto per la dichiarazione di originalità
             this.originalitaDichiarata = articolo.isDichiarazioneOriginalita();
             
             // Popola i campi dell'interfaccia utente
@@ -1094,6 +1149,22 @@ public class ViewDetailsSubmissionScreen extends JFrame {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Errore durante il download del file:\n" + e.getMessage(),
                                         "Errore download", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Estrae l'ID dell'articolo dal submissionId
+     * @return int ID dell'articolo, 0 se non valido
+     */
+    private int extractArticleIdFromSubmissionId() {
+        try {
+            if (submissionId != null && submissionId.startsWith("SUB")) {
+                return Integer.parseInt(submissionId.substring(3));
+            }
+            return 0;
+        } catch (NumberFormatException e) {
+            System.err.println("Errore nell'estrazione dell'ID articolo da: " + submissionId);
+            return 0;
         }
     }
 }

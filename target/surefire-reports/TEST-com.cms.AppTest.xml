@@ -15,7 +15,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="IT"/>
     <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-16.0.1\bin"/>
-    <property name="sun.java.command" value="C:\Users\Alpha\AppData\Local\Temp\surefire12673353913699816134\surefirebooter-20250630013942885_3.jar C:\Users\Alpha\AppData\Local\Temp\surefire12673353913699816134 2025-06-30T01-39-42_684-jvmRun1 surefire-20250630013942885_1tmp surefire_0-20250630013942885_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\Alpha\AppData\Local\Temp\surefire11622481123330130508\surefirebooter-20250630144740523_3.jar C:\Users\Alpha\AppData\Local\Temp\surefire11622481123330130508 2025-06-30T14-47-40_267-jvmRun1 surefire-20250630144740523_1tmp surefire_0-20250630144740523_2tmp"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\test-classes;C:\Users\Alpha\Documents\GitHub\SE_CMS_Project_Code\target\classes;C:\Users\Alpha\.m2\repository\junit\junit\3.8.1\junit-3.8.1.jar;C:\Users\Alpha\.m2\repository\javax\mail\mail\1.5.0-b01\mail-1.5.0-b01.jar;C:\Users\Alpha\.m2\repository\javax\activation\activation\1.1\activation-1.1.jar;C:\Users\Alpha\.m2\repository\org\mariadb\jdbc\mariadb-java-client\3.5.3\mariadb-java-client-3.5.3.jar;C:\Users\Alpha\.m2\repository\com\itextpdf\itextpdf\5.5.13.4\itextpdf-5.5.13.4.jar;"/>
     <property name="sun.cpu.endian" value="little"/>
@@ -30,7 +30,7 @@
     <property name="line.separator" value="&#10;"/>
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
-    <property name="surefire.real.class.path" value="C:\Users\Alpha\AppData\Local\Temp\surefire12673353913699816134\surefirebooter-20250630013942885_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\Alpha\AppData\Local\Temp\surefire11622481123330130508\surefirebooter-20250630144740523_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="16.0.1+9-24"/>
@@ -55,5 +55,5 @@
     <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
     <property name="java.class.version" value="60.0"/>
   </properties>
-  <testcase name="testApp" classname="com.cms.AppTest" time="0.002"/>
+  <testcase name="testApp" classname="com.cms.AppTest" time="0.001"/>
 </testsuite>

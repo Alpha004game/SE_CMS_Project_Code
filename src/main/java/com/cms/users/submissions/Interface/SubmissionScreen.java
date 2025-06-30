@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.LinkedList;
 import com.cms.users.Entity.ArticoloE;
 import com.cms.users.submissions.Control.GestioneArticoliControl;
-import com.cms.users.Commons.DBMSBoundary;
+
 
 /**
  * <<boundary>>
@@ -420,6 +420,7 @@ public class SubmissionScreen extends JFrame {
                 
                 // Chiama il metodo del controller seguendo il sequence diagram
                 gestioneArticoliControl.visualizzaDettagli(idArticolo);
+                this.dispose();
                 
                 System.out.println("DEBUG: Controller chiamato con successo");
                 
@@ -601,15 +602,15 @@ public class SubmissionScreen extends JFrame {
         SwingUtilities.invokeLater(() -> {
             // Test con articoli reali (ArticoloE) invece di stringhe
             LinkedList<ArticoloE> articoliTest = new LinkedList<>();
-            DBMSBoundary dbms = new DBMSBoundary();
+            GestioneArticoliControl control = new GestioneArticoliControl();
             
             // Crea alcuni articoli di test
             ArticoloE articolo1 = new ArticoloE();
             articolo1.setId(1);
             articolo1.setTitolo("Machine Learning Algorithms for Software Testing");
             articolo1.setAbstractText("Questo articolo presenta algoritmi di machine learning per il testing del software...");
-            // Usa le keywords dal database invece di hardcoded
-            ArrayList<String> keywords1 = dbms.getKeywordsArticolo(1);
+            // Usa le keywords dal database tramite la Control
+            ArrayList<String> keywords1 = control.ottieniKeywordsArticolo(1);
             if (keywords1.isEmpty()) {
                 // Fallback alle keywords di test se non ci sono nel DB
                 keywords1.add("Machine Learning");
@@ -627,8 +628,8 @@ public class SubmissionScreen extends JFrame {
             articolo2.setId(2);
             articolo2.setTitolo("Agile Methodologies in Large Scale Projects");
             articolo2.setAbstractText("Studio delle metodologie agili applicato a progetti di larga scala...");
-            // Usa le keywords dal database invece di hardcoded
-            ArrayList<String> keywords2 = dbms.getKeywordsArticolo(2);
+            // Usa le keywords dal database tramite la Control
+            ArrayList<String> keywords2 = control.ottieniKeywordsArticolo(2);
             if (keywords2.isEmpty()) {
                 // Fallback alle keywords di test se non ci sono nel DB
                 keywords2.add("Agile");
@@ -646,8 +647,8 @@ public class SubmissionScreen extends JFrame {
             articolo3.setId(3);
             articolo3.setTitolo("Cloud Computing Architecture Patterns");
             articolo3.setAbstractText("Analisi dei pattern architetturali per il cloud computing...");
-            // Usa le keywords dal database invece di hardcoded
-            ArrayList<String> keywords3 = dbms.getKeywordsArticolo(3);
+            // Usa le keywords dal database tramite la Control
+            ArrayList<String> keywords3 = control.ottieniKeywordsArticolo(3);
             if (keywords3.isEmpty()) {
                 // Fallback alle keywords di test se non ci sono nel DB
                 keywords3.add("Cloud Computing");

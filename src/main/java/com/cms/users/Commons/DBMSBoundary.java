@@ -980,14 +980,13 @@ public class DBMSBoundary {
                 return listaSottomissioni;
             }
             
-            // Query aggiornata per la nuova struttura della tabella
-            // Assumendo che ci sia una relazione tra articoli e autori (potrebbe essere in una tabella separata)
-            // Per ora utilizziamo solo idConferenza dalla tabella articoli
-            String query = "SELECT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, " +
+            // Query corretta che filtra gli articoli dove l'utente è autore principale o co-autore
+            String query = "SELECT DISTINCT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, " +
                           "a.stato, a.idConferenza, a.ultimaModifica " +
-                          "FROM articoli a, utenti u " +
+                          "FROM articoli a " +
+                          "INNER JOIN sottomette s ON a.id = s.idArticolo " +
                           "WHERE a.idConferenza = ? " +
-                          "AND u.id = ?";
+                          "AND s.idUtente = ?";
             
             stmt = conn.prepareStatement(query);
             stmt.setInt(1, idConferenza);
@@ -1017,9 +1016,9 @@ public class DBMSBoundary {
             System.err.println("Errore durante il recupero delle sottomissioni: " + e.getMessage());
             e.printStackTrace();
             
-            // Se la tabella autori_articoli non esiste, proviamo una query più semplice
-            if (e.getMessage().contains("autori_articoli")) {
-                System.out.println("Tabella autori_articoli non trovata, provo query semplificata...");
+            // Se la tabella sottomette non esiste, proviamo una query più semplice
+            if (e.getMessage().contains("sottomette")) {
+                System.out.println("Tabella sottomette non trovata, provo query semplificata...");
                 return getListaSottomissioniSemplificata(idUtente, idConferenza);
             }
             
@@ -1038,7 +1037,8 @@ public class DBMSBoundary {
     }
     
     /**
-     * Metodo di fallback per quando non esiste la tabella di relazione autori_articoli
+     * Metodo di fallback per quando non esiste la tabella sottomette
+     * Mostra tutti gli articoli della conferenza (non filtrati per utente)
      */
     private LinkedList<ArticoloE> getListaSottomissioniSemplificata(int idUtente, int idConferenza) {
         LinkedList<ArticoloE> listaSottomissioni = new LinkedList<>();
@@ -1054,7 +1054,8 @@ public class DBMSBoundary {
             }
             
             // Query semplificata - mostra tutti gli articoli della conferenza
-            // TODO: In futuro sarà necessario filtrare per utente quando avremo la relazione corretta
+            // NOTA: Non filtra per utente perché assume che la tabella sottomette non esista
+            System.out.println("ATTENZIONE: Usando query semplificata - mostra tutti gli articoli della conferenza");
             String query = "SELECT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, " +
                           "a.stato, a.idConferenza, a.ultimaModifica " +
                           "FROM articoli a " +
@@ -1098,6 +1099,37 @@ public class DBMSBoundary {
         }
         
         return listaSottomissioni;
+    }
+
+    private int getIdFromUsername(String username)
+    {
+        try
+        {
+            Connection connection=getConnection();
+            PreparedStatement stmt=connection.prepareStatement("SELECT id FROM utenti WHERE username = ?");
+            stmt.setString(1, username);
+            ResultSet ris=stmt.executeQuery();
+            if(ris.next())
+            {
+                int id=ris.getInt("id");
+                ris.close();
+                stmt.close();
+                connection.close();
+                return id;
+            }
+            else
+            {
+                System.err.println("Nessun utente trovato con username: " + username);
+                ris.close();
+                stmt.close();
+                connection.close();
+                return -1; // Utente non trovato
+            }
+        }
+        catch(Exception e)
+        {
+            return -1;
+        }
     }
     
     public void setSottomissione(ArticoloE articolo, int idUtente, int idConferenza) {
@@ -1153,22 +1185,51 @@ public class DBMSBoundary {
                 if (generatedKeys.next()) {
                     int idArticolo = generatedKeys.getInt(1);
                     
-                    // Inserisci la relazione autore-articolo (se esiste una tabella separata)
-                    try {
-                        PreparedStatement authorStmt = conn.prepareStatement(
-                            "INSERT INTO autori_articoli (id_articolo, id_utente) VALUES (?, ?)"
-                        );
-                        authorStmt.setInt(1, idArticolo);
-                        authorStmt.setInt(2, idUtente);
-                        authorStmt.executeUpdate();
-                        authorStmt.close();
-                    } catch (SQLException e) {
-                        // Se la tabella autori_articoli non esiste, ignora
-                        System.out.println("Tabella autori_articoli non presente, relazione non inserita");
-                    }
+                    
                     
                     // Inserisci le keywords dell'articolo (se presenti)
                     inserisciKeywordsArticolo(conn, idArticolo, articolo.getKeywords());
+
+                    //INSERISCI L'AUTORE PRINCIPALE
+                    try
+                    {
+                        PreparedStatement authorStmt = conn.prepareStatement(
+                            "INSERT INTO sottomette VALUES (?, ?, 1)"
+                        );
+                        authorStmt.setInt(2, idArticolo);
+                        authorStmt.setInt(1, App.utenteAccesso.getId());
+                        authorStmt.executeQuery();
+                        authorStmt.close();
+                    }
+                    catch(Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+
+                    for(String username: articolo.getCoAutori())
+                    {
+                        // Inserisci la relazione co-autore-articolo
+                        int idCoAutore = getIdFromUsername(username);
+                        if (idCoAutore == -1) {
+                            System.err.println("Errore: utente con username '" + username + "' non trovato");
+                            continue; // Salta questo co-autore se non trovato
+                        }
+                        else
+                        {
+                            try {
+                                    PreparedStatement coAuthorStmt = conn.prepareStatement(
+                                        "INSERT INTO sottomette VALUES (?, ?, 0)"
+                                    );
+                                    coAuthorStmt.setInt(2, idArticolo);
+                                    coAuthorStmt.setInt(1, idCoAutore);
+                                    coAuthorStmt.executeQuery();
+                                    coAuthorStmt.close();
+                            } catch (SQLException e) {
+                                System.err.println("Errore nell'inserimento del co-autore: " + e.getMessage());
+                            }
+                        }
+                       
+                    }
                     
                     System.out.println("Sottomissione creata con successo. ID: " + idArticolo);
                 } else {
@@ -1192,12 +1253,143 @@ public class DBMSBoundary {
         }
     }
     
-    public void modificaSottomissione(int idArticolo, Object datiArticolo, Object data, String status) { //SPECIFICARE PARAMETRI
+    public void modificaSottomissione(int idArticolo, ArticoloE articolo, String status) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
         
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database");
+                return;
+            }
+            
+            // Update dell'articolo nella tabella articoli
+            String query = "UPDATE articoli SET titolo = ?, abstract = ?, fileArticolo = ?, allegato = ?, stato = ?, ultimaModifica = CURRENT_DATE WHERE id = ?";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setString(1, articolo.getTitolo());
+            stmt.setString(2, articolo.getAbstractText());
+            
+            // Handle fileArticolo as BLOB if it's a byte array, or as string if it's a path
+            Object fileArticolo = articolo.getFileArticolo();
+            if (fileArticolo instanceof byte[]) {
+                stmt.setBytes(3, (byte[]) fileArticolo);
+                System.out.println("File articolo aggiornato come BLOB: " + ((byte[]) fileArticolo).length + " bytes");
+            } else if (fileArticolo instanceof String) {
+                stmt.setString(3, (String) fileArticolo);
+                System.out.println("File articolo aggiornato come path: " + fileArticolo);
+            } else {
+                stmt.setNull(3, java.sql.Types.BLOB);
+            }
+            
+            // Handle allegato as BLOB if it's a byte array, or as string if it's a path
+            Object allegato = articolo.getAllegato();
+            if (allegato instanceof byte[]) {
+                stmt.setBytes(4, (byte[]) allegato);
+                System.out.println("Allegato aggiornato come BLOB: " + ((byte[]) allegato).length + " bytes");
+            } else if (allegato instanceof String) {
+                stmt.setString(4, (String) allegato);
+                System.out.println("Allegato aggiornato come path: " + allegato);
+            } else {
+                stmt.setNull(4, java.sql.Types.BLOB);
+            }
+            
+            stmt.setString(5, status != null ? status : "Inviato");
+            stmt.setInt(6, idArticolo);
+            
+            int rowsUpdated = stmt.executeUpdate();
+            if (rowsUpdated > 0) {
+                System.out.println("Articolo aggiornato con successo. ID: " + idArticolo);
+                
+                // Rimuovi le vecchie keywords dell'articolo
+                PreparedStatement deleteKeywordsStmt = conn.prepareStatement(
+                    "DELETE FROM keywordsArticoli WHERE idArticolo = ?"
+                );
+                deleteKeywordsStmt.setInt(1, idArticolo);
+                deleteKeywordsStmt.executeUpdate();
+                deleteKeywordsStmt.close();
+                
+                // Inserisci le nuove keywords dell'articolo (se presenti)
+                if (articolo.getKeywords() != null && !articolo.getKeywords().isEmpty()) {
+                    inserisciKeywordsArticolo(conn, idArticolo, articolo.getKeywords());
+                }
+                
+                // Rimuovi i vecchi co-autori dell'articolo (mantenendo l'autore principale)
+                PreparedStatement deleteCoAuthorsStmt = conn.prepareStatement(
+                    "DELETE FROM sottomette WHERE idArticolo = ? AND caricatore = 0"
+                );
+                deleteCoAuthorsStmt.setInt(1, idArticolo);
+                deleteCoAuthorsStmt.executeUpdate();
+                deleteCoAuthorsStmt.close();
+                
+                // Inserisci i nuovi co-autori
+                if (articolo.getCoAutori() != null && !articolo.getCoAutori().isEmpty()) {
+                    for (String username : articolo.getCoAutori()) {
+                        if (username != null && !username.trim().isEmpty()) {
+                            int idCoAutore = getIdFromUsername(username.trim());
+                            if (idCoAutore == -1) {
+                                System.err.println("Errore: utente con username '" + username + "' non trovato");
+                                continue; // Salta questo co-autore se non trovato
+                            } else {
+                                try {
+                                    PreparedStatement coAuthorStmt = conn.prepareStatement(
+                                        "INSERT INTO sottomette VALUES (?, ?, 0)"
+                                    );
+                                    coAuthorStmt.setInt(1, idCoAutore);
+                                    coAuthorStmt.setInt(2, idArticolo);
+                                    coAuthorStmt.executeUpdate();
+                                    coAuthorStmt.close();
+                                    System.out.println("Co-autore aggiunto: " + username);
+                                } catch (SQLException e) {
+                                    System.err.println("Errore nell'inserimento del co-autore: " + e.getMessage());
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                System.out.println("Sottomissione modificata con successo. ID: " + idArticolo);
+            } else {
+                System.err.println("Errore: nessuna riga aggiornata per la sottomissione con ID: " + idArticolo);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante la modifica della sottomissione: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
     }
     
     public void deleteSubmission(int idArticolo) {
-        
+        try
+        {
+            Connection con=getConnection();
+            PreparedStatement stmt=con.prepareStatement("DELETE FROM sottomette WHERE idArticolo = ?");
+            stmt.setInt(1, idArticolo);
+            stmt.executeQuery();
+            stmt.close();
+            stmt=con.prepareStatement("DELETE FROM keywordsArticoli WHERE idArticolo = ?");
+            stmt.setInt(1, idArticolo);
+            stmt.executeQuery();
+            stmt.close();
+            stmt=con.prepareStatement("DELETE FROM articoli WHERE id = ?");
+            stmt.setInt(1, idArticolo);
+            stmt.executeQuery();
+            stmt.close();
+            con.close();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
     
     public Object getRevisionsStatus(int idArticolo) {
