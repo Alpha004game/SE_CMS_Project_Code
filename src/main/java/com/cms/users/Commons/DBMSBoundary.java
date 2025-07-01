@@ -46,7 +46,7 @@ public class DBMSBoundary {
     /**
      * Gets the current article ID being reviewed
      */
-    private static int getCurrentArticleId() {
+    public static int getCurrentArticleId() {
         return currentArticleId;
     }
 

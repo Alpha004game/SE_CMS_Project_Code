@@ -60,6 +60,9 @@ public class ReviewSubmissionScreen extends JFrame {
     private String submissionTitle;
     private String reviewerId;
     
+    // Riferimento al control per gestire le azioni
+    private com.cms.users.revisions.Control.GestioneRevisioneControl gestioneControl;
+    
     // Attributi per compatibilità
     private String puntiDiForza;
     private String puntiDiDebolezza;
@@ -74,6 +77,7 @@ public class ReviewSubmissionScreen extends JFrame {
         this.submissionId = "SUB" + (int)(Math.random() * 10000);
         this.submissionTitle = "Articolo da Revisionare";
         this.reviewerId = "REV" + (int)(Math.random() * 1000);
+        this.gestioneControl = new com.cms.users.revisions.Control.GestioneRevisioneControl();
         
         initializeComponents();
         setupLayout();
@@ -87,6 +91,7 @@ public class ReviewSubmissionScreen extends JFrame {
         this.submissionId = submissionId != null ? submissionId : "SUB" + (int)(Math.random() * 10000);
         this.submissionTitle = submissionTitle != null ? submissionTitle : "Articolo da Revisionare";
         this.reviewerId = reviewerId != null ? reviewerId : "REV" + (int)(Math.random() * 1000);
+        this.gestioneControl = new com.cms.users.revisions.Control.GestioneRevisioneControl();
         
         initializeComponents();
         setupLayout();
@@ -441,31 +446,15 @@ public class ReviewSubmissionScreen extends JFrame {
     }
     
     private void handleConvocaSottoRevisore() {
-        // Dialog per convocazione sotto-revisore
-        String[] options = {"Conferma", "Annulla"};
-        int result = JOptionPane.showOptionDialog(this,
-            "Vuoi convocare un sotto-revisore per questa sottomissione?\n\n" +
-            "ID Sottomissione: " + submissionId + "\n" +
-            "Titolo: " + submissionTitle + "\n\n" +
-            "Il sotto-revisore riceverà una notifica e potrà fornire un parere aggiuntivo.",
-            "Convoca Sotto-Revisore",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            options,
-            options[0]);
-        
-        if (result == JOptionPane.YES_OPTION) {
-            // Simula la convocazione
-            JOptionPane.showMessageDialog(this,
-                "Sotto-revisore convocato con successo!\n\n" +
-                "Un revisore esperto è stato notificato e contattato.\n" +
-                "Riceverai una notifica quando sarà disponibile il suo parere.",
-                "Convocazione Completata",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Qui andrà la logica per convocare effettivamente un sotto-revisore
-            System.out.println("Sotto-revisore convocato per sottomissione: " + submissionId);
+        try {
+            // Chiama il metodo del control per gestire la convocazione
+            gestioneControl.convocaSottoRevisore();
+        } catch (Exception e) {
+            System.err.println("Errore durante la convocazione del sotto-revisore: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante la convocazione del sotto-revisore: " + e.getMessage(), 
+                "Errore", JOptionPane.ERROR_MESSAGE);
         }
     }
     
