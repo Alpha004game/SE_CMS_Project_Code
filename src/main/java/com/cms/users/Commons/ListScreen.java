@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.cms.users.Entity.ArticoloE;
 import com.cms.users.revisions.Interface.RevisionOverviewScreen;
+import com.cms.users.publications.Control.PubblicazioneControl;
 
 /**
  * <<boundary>>
@@ -147,6 +148,7 @@ public class ListScreen extends JFrame {
     private SottoRevisoreFunction sottoRevisoreFunction;
     private EditoreFunction editoreFunction;
     private String screenTitle;
+    private int conferenceId = -1; // ID della conferenza corrente
     private List<ArticleReviewerData> articleReviewerData;
     private List<ArticleData> articleData;
     private List<RevisoreArticleData> revisoreArticleData;
@@ -1384,10 +1386,30 @@ public class ListScreen extends JFrame {
         if (scaricaTuttiButton != null) {
             scaricaTuttiButton.addActionListener(e -> {
                 if (editoreArticleData != null && !editoreArticleData.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, 
-                        "Scaricamento di tutti gli articoli accettati (" + editoreArticleData.size() + " articoli)...",
-                        "Scarica Tutti",
-                        JOptionPane.INFORMATION_MESSAGE);
+                    // Implementazione del sequence diagram: ListScreen -> PubblicazioneControl -> DBMSBoundary
+                    try {
+                        PubblicazioneControl pubblicazioneControl = new PubblicazioneControl();
+                        String result = pubblicazioneControl.downloadAllArticle(String.valueOf(conferenceId));
+                        
+                        if (result != null && result.startsWith("PDF scaricato con successo:")) {
+                            JOptionPane.showMessageDialog(this, 
+                                result,
+                                "Download Completato",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(this, 
+                                result != null ? result : "Errore durante il download.",
+                                "Errore Download",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("ERRORE durante il download degli articoli: " + ex.getMessage());
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(this, 
+                            "Errore durante il download: " + ex.getMessage(),
+                            "Errore",
+                            JOptionPane.ERROR_MESSAGE);
+                    }
                 } else {
                     JOptionPane.showMessageDialog(this,
                         "Nessun articolo da scaricare.",
@@ -1578,4 +1600,19 @@ public class ListScreen extends JFrame {
         
         System.out.println("DEBUG ListScreen: === FINE setAcceptedArticles ===");
     }
+    
+    /**
+     * Imposta l'ID della conferenza corrente
+     */
+    public void setConferenceId(int conferenceId) {
+        this.conferenceId = conferenceId;
+    }
+    
+    /**
+     * Ottiene l'ID della conferenza corrente
+     */
+    public int getConferenceId() {
+        return this.conferenceId;
+    }
+
 }

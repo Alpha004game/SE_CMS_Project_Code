@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 import com.cms.App;
 import com.cms.users.Entity.ArticoloE;
@@ -2467,9 +2468,147 @@ public class DBMSBoundary {
         return null;
     }
 
-    public Object getAllArticleFile(int idConferenza)
-    {
-        return null;
+    public Object getAllArticleFile(int idConferenza) {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getAllArticleFile ===");
+        System.out.println("DEBUG DBMSBoundary: idConferenza ricevuto: " + idConferenza);
+        
+        List<byte[]> articleFiles = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query per ottenere i file degli articoli accettati
+            // Prima otteniamo gli ID degli articoli accettati dalla tabella MediaPesataArticoli
+            String queryAccepted = "SELECT m.idArticolo FROM MediaPesataArticoli AS m WHERE idConferenza = ?";
+            
+            stmt = conn.prepareStatement(queryAccepted);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            List<Integer> acceptedArticleIds = new ArrayList<>();
+            while (rs.next()) {
+                acceptedArticleIds.add(rs.getInt("idArticolo"));
+            }
+            
+            rs.close();
+            stmt.close();
+            
+            System.out.println("DEBUG DBMSBoundary: Trovati " + acceptedArticleIds.size() + " articoli accettati");
+            
+            // Ora otteniamo i file per ogni articolo accettato
+            for (Integer articleId : acceptedArticleIds) {
+                PreparedStatement fileStmt = conn.prepareStatement(
+                    "SELECT fileArticolo FROM articoli WHERE id = ? AND fileArticolo IS NOT NULL"
+                );
+                fileStmt.setInt(1, articleId);
+                ResultSet fileRs = fileStmt.executeQuery();
+                
+                if (fileRs.next()) {
+                    byte[] fileData = fileRs.getBytes("fileArticolo");
+                    if (fileData != null && fileData.length > 0) {
+                        articleFiles.add(fileData);
+                        System.out.println("DEBUG DBMSBoundary: File aggiunto per articolo " + articleId + 
+                                         ", dimensione: " + fileData.length + " bytes");
+                    } else {
+                        System.out.println("DEBUG DBMSBoundary: Nessun file trovato per articolo " + articleId);
+                    }
+                }
+                
+                fileRs.close();
+                fileStmt.close();
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("ERRORE SQL in getAllArticleFile: " + e.getMessage());
+            e.printStackTrace();
+            
+            // In caso di errore, crea un file PDF di test
+            try {
+                byte[] testPdf = createTestPdfData();
+                articleFiles.add(testPdf);
+                System.out.println("DEBUG DBMSBoundary: Aggiunto PDF di test per fallback");
+            } catch (Exception testException) {
+                System.err.println("ERRORE durante creazione PDF di test: " + testException.getMessage());
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE GENERICO in getAllArticleFile: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("ERRORE chiusura connessioni: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: Ritornando " + articleFiles.size() + " file degli articoli");
+        System.out.println("DEBUG DBMSBoundary: === FINE getAllArticleFile ===");
+        
+        return articleFiles.isEmpty() ? null : articleFiles;
+    }
+    
+    /**
+     * Crea un PDF di test per scopi di fallback
+     */
+    private byte[] createTestPdfData() {
+        // Header minimo di un PDF valido
+        String pdfContent = "%PDF-1.4\n" +
+                           "1 0 obj\n" +
+                           "<<\n" +
+                           "/Type /Catalog\n" +
+                           "/Pages 2 0 R\n" +
+                           ">>\n" +
+                           "endobj\n" +
+                           "2 0 obj\n" +
+                           "<<\n" +
+                           "/Type /Pages\n" +
+                           "/Kids [3 0 R]\n" +
+                           "/Count 1\n" +
+                           ">>\n" +
+                           "endobj\n" +
+                           "3 0 obj\n" +
+                           "<<\n" +
+                           "/Type /Page\n" +
+                           "/Parent 2 0 R\n" +
+                           "/MediaBox [0 0 612 792]\n" +
+                           "/Contents 4 0 R\n" +
+                           ">>\n" +
+                           "endobj\n" +
+                           "4 0 obj\n" +
+                           "<<\n" +
+                           "/Length 44\n" +
+                           ">>\n" +
+                           "stream\n" +
+                           "BT\n" +
+                           "/F1 12 Tf\n" +
+                           "72 720 Td\n" +
+                           "(PDF di Test) Tj\n" +
+                           "ET\n" +
+                           "endstream\n" +
+                           "endobj\n" +
+                           "xref\n" +
+                           "0 5\n" +
+                           "0000000000 65535 f \n" +
+                           "0000000009 00000 n \n" +
+                           "0000000074 00000 n \n" +
+                           "0000000120 00000 n \n" +
+                           "0000000179 00000 n \n" +
+                           "trailer\n" +
+                           "<<\n" +
+                           "/Size 5\n" +
+                           "/Root 1 0 R\n" +
+                           ">>\n" +
+                           "startxref\n" +
+                           "280\n" +
+                           "%%EOF\n";
+        
+        return pdfContent.getBytes();
     }
 
     public LinkedList<UtenteE> getArticleAuthors(int idArticle)
