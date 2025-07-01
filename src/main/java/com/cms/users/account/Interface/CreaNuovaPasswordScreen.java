@@ -6,6 +6,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import com.cms.users.account.Control.RecuperoCredenzialiControl;
 
 /**
  * <<boundary>>
@@ -21,8 +22,19 @@ public class CreaNuovaPasswordScreen extends JFrame {
     private JButton notificheButton;
     private JButton profiloButton;
     
+    // Control per gestire la logica
+    private RecuperoCredenzialiControl recuperoControl;
+    
     // Costruttore
     public CreaNuovaPasswordScreen() {
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    // Costruttore con control
+    public CreaNuovaPasswordScreen(RecuperoCredenzialiControl recuperoControl) {
+        this.recuperoControl = recuperoControl;
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -200,9 +212,9 @@ public class CreaNuovaPasswordScreen extends JFrame {
         }
         
         // Validazione lunghezza password
-        if (password.length() < 8) {
+        if (password.length() < 6) {
             JOptionPane.showMessageDialog(this, 
-                "La password deve essere di almeno 8 caratteri!", 
+                "La password deve essere di almeno 6 caratteri!", 
                 "Errore", 
                 JOptionPane.ERROR_MESSAGE);
             passwordField.requestFocus();
@@ -220,31 +232,75 @@ public class CreaNuovaPasswordScreen extends JFrame {
             return;
         }
         
-        // Validazione sicurezza password (almeno una maiuscola, una minuscola, un numero)
-        if (!isPasswordSecure(password)) {
+        // Se il recuperoControl è presente, usa quello per aggiornare la password
+        if (recuperoControl != null) {
+            // Disabilita il bottone durante l'elaborazione
+            confermaButton.setEnabled(false);
+            confermaButton.setText("Aggiornamento...");
+            
+            // Esegui l'aggiornamento password in un thread separato
+            SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() throws Exception {
+                    return recuperoControl.aggiornaPassword(password);
+                }
+                
+                @Override
+                protected void done() {
+                    try {
+                        boolean success = get();
+                        
+                        // Riabilita il bottone
+                        confermaButton.setEnabled(true);
+                        confermaButton.setText("Conferma");
+                        
+                        if (success) {
+                            JOptionPane.showMessageDialog(CreaNuovaPasswordScreen.this, 
+                                "Password aggiornata con successo!\n\n" +
+                                "Ora puoi effettuare il login con la nuova password.", 
+                                "Password aggiornata", 
+                                JOptionPane.INFORMATION_MESSAGE);
+                            
+                            // Chiudi questa finestra
+                            dispose();
+                            
+                        } else {
+                            JOptionPane.showMessageDialog(CreaNuovaPasswordScreen.this, 
+                                "Errore durante l'aggiornamento della password.\n" +
+                                "Riprova più tardi.", 
+                                "Errore", 
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                        
+                    } catch (Exception e) {
+                        // Riabilita il bottone in caso di errore
+                        confermaButton.setEnabled(true);
+                        confermaButton.setText("Conferma");
+                        
+                        System.err.println("Errore durante l'aggiornamento password: " + e.getMessage());
+                        e.printStackTrace();
+                        
+                        JOptionPane.showMessageDialog(CreaNuovaPasswordScreen.this, 
+                            "Errore durante l'aggiornamento della password.\n" +
+                            "Riprova più tardi.", 
+                            "Errore", 
+                            JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            };
+            
+            worker.execute();
+        } else {
+            // Fallback se non c'è il control (modalità standalone)
             JOptionPane.showMessageDialog(this, 
-                "La password deve contenere almeno:\n" +
-                "- Una lettera maiuscola\n" +
-                "- Una lettera minuscola\n" +
-                "- Un numero", 
-                "Password non sicura", 
-                JOptionPane.WARNING_MESSAGE);
-            return;
+                "Password creata con successo!", 
+                "Successo", 
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Pulisci i campi
+            passwordField.setText("");
+            confermaPasswordField.setText("");
         }
-        
-        // Se tutto è valido, procedi con la creazione della password
-        JOptionPane.showMessageDialog(this, 
-            "Password creata con successo!", 
-            "Successo", 
-            JOptionPane.INFORMATION_MESSAGE);
-        
-        // Qui dovresti chiamare la logica di controllo per salvare la nuova password
-        // Esempio: controllerInstance.salvaPassword(password);
-        
-        clearFields();
-        
-        // Naviga alla schermata di login o home
-        navigateToHome();
     }
     
     /**

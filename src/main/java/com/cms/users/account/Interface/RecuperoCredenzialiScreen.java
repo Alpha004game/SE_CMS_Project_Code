@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import com.cms.users.account.Control.RecuperoCredenzialiControl;
 
 /**
  * <<boundary>>
@@ -20,7 +21,13 @@ public class RecuperoCredenzialiScreen extends JFrame {
     // Attributi originali
     private String email;
     
+    // Control per gestire la logica
+    private RecuperoCredenzialiControl recuperoControl;
+    
     public RecuperoCredenzialiScreen() {
+        // Inizializza il control
+        this.recuperoControl = new RecuperoCredenzialiControl();
+        
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -143,7 +150,7 @@ public class RecuperoCredenzialiScreen extends JFrame {
         }
         
         // Validazione formato email
-        if (!email.contains("@") || !email.contains(".")) {
+        if (!isValidEmail(email)) {
             JOptionPane.showMessageDialog(this, 
                 "Inserisci un indirizzo email valido", 
                 "Email non valida", 
@@ -152,23 +159,68 @@ public class RecuperoCredenzialiScreen extends JFrame {
             return;
         }
         
-        // Qui andrà la logica di recupero credenziali tramite control
-        System.out.println("Richiesta recupero credenziali per: " + email);
+        // Disabilita il bottone durante l'elaborazione
+        continuaButton.setEnabled(false);
+        continuaButton.setText("Invio in corso...");
         
-        // Simulazione invio email
-        JOptionPane.showMessageDialog(this, 
-            "Le istruzioni per il recupero delle credenziali\n" +
-            "sono state inviate all'indirizzo:\n" + email + "\n\n" +
-            "Controlla la tua casella di posta elettronica\n" +
-            "(inclusa la cartella spam).", 
-            "Email inviata", 
-            JOptionPane.INFORMATION_MESSAGE);
+        // Esegui il recupero credenziali in un thread separato per non bloccare l'UI
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                return recuperoControl.recuperaCredenziali(email);
+            }
+            
+            @Override
+            protected void done() {
+                try {
+                    boolean success = get();
+                    
+                    // Riabilita il bottone
+                    continuaButton.setEnabled(true);
+                    continuaButton.setText("Continua");
+                    
+                    if (success) {
+                        JOptionPane.showMessageDialog(RecuperoCredenzialiScreen.this, 
+                            "Le istruzioni per il recupero delle credenziali\n" +
+                            "sono state inviate all'indirizzo:\n" + email + "\n\n" +
+                            "Controlla la tua casella di posta elettronica\n" +
+                            "(inclusa la cartella spam).\n\n" +
+                            "Si aprirà ora la schermata per inserire il codice.", 
+                            "Email inviata", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                        
+                        // Chiudi questa finestra
+                        dispose();
+                        
+                    } else {
+                        JOptionPane.showMessageDialog(RecuperoCredenzialiScreen.this, 
+                            "Indirizzo email non trovato nel sistema\n" +
+                            "o errore durante l'invio dell'email.\n\n" +
+                            "Verifica l'indirizzo email e riprova.", 
+                            "Errore", 
+                            JOptionPane.ERROR_MESSAGE);
+                        emailField.requestFocus();
+                        emailField.selectAll();
+                    }
+                    
+                } catch (Exception e) {
+                    // Riabilita il bottone in caso di errore
+                    continuaButton.setEnabled(true);
+                    continuaButton.setText("Continua");
+                    
+                    System.err.println("Errore durante il recupero credenziali: " + e.getMessage());
+                    e.printStackTrace();
+                    
+                    JOptionPane.showMessageDialog(RecuperoCredenzialiScreen.this, 
+                        "Errore durante il recupero delle credenziali.\n" +
+                        "Riprova più tardi.", 
+                        "Errore", 
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
         
-        // Pulisci il campo dopo l'invio
-        emailField.setText("");
-        
-        // Opzionalmente chiudi la finestra dopo l'invio
-        // dispose();
+        worker.execute();
     }
     
     public String getEmail() {

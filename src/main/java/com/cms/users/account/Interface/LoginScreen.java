@@ -245,11 +245,23 @@ public class LoginScreen extends JFrame {
     }
     
     public void recuperoCredenzialiButton() {
-        System.out.println("Apertura recupero credenziali");
-        JOptionPane.showMessageDialog(this, 
-            "Apertura schermata recupero credenziali...", 
-            "Recupero Credenziali", 
-            JOptionPane.INFORMATION_MESSAGE);
+        System.out.println("DEBUG LoginScreen: Apertura schermata recupero credenziali");
+        
+        try {
+            // Crea e mostra la RecuperoCredenzialiScreen
+            com.cms.users.account.Interface.RecuperoCredenzialiScreen recuperoScreen = 
+                new com.cms.users.account.Interface.RecuperoCredenzialiScreen();
+            recuperoScreen.create();
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura della schermata di recupero credenziali: " + e.getMessage());
+            e.printStackTrace();
+            
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della schermata di recupero credenziali", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     // Metodi di utilità

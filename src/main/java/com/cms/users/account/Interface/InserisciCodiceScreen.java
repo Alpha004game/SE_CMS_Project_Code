@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import com.cms.users.account.Control.RecuperoCredenzialiControl;
 
 /**
  * <<boundary>>
@@ -19,7 +20,25 @@ public class InserisciCodiceScreen extends JFrame {
     // Attributi originali
     private int codice;
     
+    // Control per gestire la logica
+    private RecuperoCredenzialiControl recuperoControl;
+    
     public InserisciCodiceScreen() {
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+        
+        setTitle("Inserisci codice di verifica");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setSize(500, 400);
+        setLocationRelativeTo(null);
+        setResizable(false);
+        getContentPane().setBackground(Color.WHITE);
+    }
+    
+    // Costruttore con control
+    public InserisciCodiceScreen(RecuperoCredenzialiControl recuperoControl) {
+        this.recuperoControl = recuperoControl;
         initializeComponents();
         setupLayout();
         setupEventHandlers();
@@ -166,18 +185,25 @@ public class InserisciCodiceScreen extends JFrame {
             return;
         }
         
-        // Qui andrà la logica di verifica del codice tramite control
-        System.out.println("Verifica codice: " + codice);
+        // Verifica tramite RecuperoCredenzialiControl se disponibile
+        boolean codiceValido = false;
         
-        // Simulazione verifica codice
-        if (verificaCodice(codice)) {
+        if (recuperoControl != null) {
+            // Usa il control per verificare il codice
+            codiceValido = recuperoControl.verificaCodice(codiceText);
+        } else {
+            // Fallback per testing standalone
+            codiceValido = verificaCodice(codice);
+        }
+        
+        if (codiceValido) {
             JOptionPane.showMessageDialog(this, 
                 "Codice verificato con successo!\n" +
                 "Ora puoi procedere con il reset della password.", 
                 "Verifica completata", 
                 JOptionPane.INFORMATION_MESSAGE);
             
-            // Qui apriresti la schermata per inserire la nuova password
+            // Apri la CreaNuovaPasswordScreen
             aprireCreaNuovaPasswordScreen();
             
         } else {
@@ -253,17 +279,34 @@ public class InserisciCodiceScreen extends JFrame {
     
     // Metodo per aprire la schermata di creazione nuova password
     private void aprireCreaNuovaPasswordScreen() {
-        // Qui andrà l'apertura della CreaNuovaPasswordScreen
-        System.out.println("Apertura schermata creazione nuova password...");
+        System.out.println("DEBUG InserisciCodiceScreen: Apertura schermata creazione nuova password...");
         
-        // Opzionalmente chiudi questa finestra
-        dispose();
-        
-        // Apertura della schermata reale
-        SwingUtilities.invokeLater(() -> {
-            CreaNuovaPasswordScreen creaNuovaPasswordScreen = new CreaNuovaPasswordScreen();
-            creaNuovaPasswordScreen.create();
-        });
+        try {
+            // Chiudi questa finestra
+            dispose();
+            
+            // Apertura della CreaNuovaPasswordScreen con il control
+            SwingUtilities.invokeLater(() -> {
+                CreaNuovaPasswordScreen creaNuovaPasswordScreen;
+                if (recuperoControl != null) {
+                    // Passa il control per gestire l'aggiornamento password
+                    creaNuovaPasswordScreen = new CreaNuovaPasswordScreen(recuperoControl);
+                } else {
+                    // Fallback per testing standalone
+                    creaNuovaPasswordScreen = new CreaNuovaPasswordScreen();
+                }
+                creaNuovaPasswordScreen.create();
+            });
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura della CreaNuovaPasswordScreen: " + e.getMessage());
+            e.printStackTrace();
+            
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della schermata di creazione password", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     // Main per testing
