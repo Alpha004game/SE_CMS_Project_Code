@@ -14,6 +14,7 @@ import com.cms.users.conference.Control.ConferenceControl;
 import com.cms.users.submissions.Control.GestioneArticoliControl;
 import com.cms.users.submissions.Control.GestionePreferenzeControl;
 import com.cms.users.account.Control.GestionePCControl;
+import com.cms.users.revisions.Control.GestioneRevisioneControl;
 import com.cms.App;
 
 /**
@@ -354,7 +355,8 @@ public class HomeScreen extends JFrame {
                 conferenceControl.apriGestioneConferenza(conferenza.id);
                 break;
             case "revisore":
-                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Revisore...");
+                // Implementazione del sequence diagram per visualizzare articoli assegnati
+                visualizzaArticoliAssegnatiRevisore(conferenza.id);
                 break;
             case "editore":
                 JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Editore...");
@@ -484,6 +486,40 @@ public class HomeScreen extends JFrame {
             // Mostra un messaggio di errore all'utente
             JOptionPane.showMessageDialog(this, 
                 "Errore durante l'apertura della modifica preferenze.\nRiprovare più tardi.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Gestisce la visualizzazione degli articoli assegnati a un revisore
+     * @param idConferenza ID della conferenza per cui visualizzare gli articoli assegnati
+     */
+    private void visualizzaArticoliAssegnatiRevisore(int idConferenza) {
+        System.out.println("DEBUG HomeScreen: === INIZIO visualizzaArticoliAssegnatiRevisore ===");
+        System.out.println("DEBUG HomeScreen: idConferenza ricevuto: " + idConferenza);
+        
+        try {
+            // Crea il control per gestire la revisione
+            System.out.println("DEBUG HomeScreen: Creando GestioneRevisioneControl");
+            GestioneRevisioneControl gestioneRevisioneControl = new GestioneRevisioneControl();
+            
+            // Invoca il metodo per visualizzare gli articoli assegnati
+            System.out.println("DEBUG HomeScreen: Chiamando visualizzaArticoliAssegnati sul control");
+            gestioneRevisioneControl.visualizzaArticoliAssegnati(idConferenza);
+            
+            // Chiudi questa finestra (l'utente passa alla ListScreen)
+            this.dispose();
+            
+            System.out.println("DEBUG HomeScreen: === FINE visualizzaArticoliAssegnatiRevisore ===");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG HomeScreen: ERRORE durante visualizzaArticoliAssegnatiRevisore: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra un messaggio di errore all'utente
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della visualizzazione articoli assegnati.\nRiprovare più tardi.", 
                 "Errore", 
                 JOptionPane.ERROR_MESSAGE);
         }

@@ -28,8 +28,26 @@ public class DBMSBoundary {
     private final String DB_URL = "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS";
     private final String DB_USER = "ids";
     private final String DB_PASSWORD = "IngegneriaDelSoftware";
+    
+    // Static variable to track current article being reviewed
+    private static int currentArticleId = -1;
+    
     public DBMSBoundary() {
         
+    }
+    
+    /**
+     * Sets the current article ID being reviewed
+     */
+    public static void setCurrentArticleId(int articleId) {
+        currentArticleId = articleId;
+    }
+    
+    /**
+     * Gets the current article ID being reviewed
+     */
+    private static int getCurrentArticleId() {
+        return currentArticleId;
     }
 
     private Connection getConnection()
@@ -2005,7 +2023,56 @@ public class DBMSBoundary {
 
     public void setInfoReview(String puntiDiforza, String puntiDiDebolezza, int livelloDiCompetenzaDelRevisore, String commentiPerAutori, int valutazione)
     {
-
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database");
+                return;
+            }
+            
+            // Get current user ID from App.utenteAccesso
+            int idRevisore = com.cms.App.utenteAccesso.getId();
+            
+            // Get current article ID from session/context (will be set when opening ReviewSubmissionScreen)
+            // For now, we'll get it from a static variable that should be set when opening the review screen
+            int idArticolo = getCurrentArticleId();
+            
+            // Update the 'revisiona' table with review information
+            String query = "UPDATE revisiona SET puntiDiForza = ?, puntiDiDebolezza = ?, " +
+                          "livelloDiCompetenzaDelRevisore = ?, commentiPerAutori = ?, valutazione = ? " +
+                          "WHERE idRevisore = ? AND idArticolo = ?";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setString(1, puntiDiforza);
+            stmt.setString(2, puntiDiDebolezza);
+            stmt.setInt(3, livelloDiCompetenzaDelRevisore);
+            stmt.setString(4, commentiPerAutori);
+            stmt.setInt(5, valutazione);
+            stmt.setInt(6, idRevisore);
+            stmt.setInt(7, idArticolo);
+            
+            int rowsUpdated = stmt.executeUpdate();
+            
+            if (rowsUpdated > 0) {
+                System.out.println("Revisione aggiornata con successo per revisore " + idRevisore + " e articolo " + idArticolo);
+            } else {
+                System.err.println("Nessuna riga aggiornata. Verificare che esista un record nella tabella 'revisiona' per revisore " + idRevisore + " e articolo " + idArticolo);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante l'aggiornamento della revisione: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
     }
     
 
@@ -2060,7 +2127,83 @@ public class DBMSBoundary {
 
     public LinkedList<ArticoloE> getListaArticoliAssegnati(int idRevisore, int idConferenza)
     {
-        return null;
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getListaArticoliAssegnati ===");
+        System.out.println("DEBUG DBMSBoundary: idRevisore=" + idRevisore + ", idConferenza=" + idConferenza);
+        
+        LinkedList<ArticoloE> articoliAssegnati = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
+                return articoliAssegnati;
+            }
+            
+            // Query per ottenere gli articoli assegnati al revisore per una specifica conferenza
+            // Utilizza le tabelle 'revisiona' e 'articoli' come indicato nello schema E/R
+            String query = "SELECT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, a.stato, " +
+                          "a.idConferenza, a.ultimaModifica " +
+                          "FROM articoli a " +
+                          "INNER JOIN revisiona r ON a.id = r.idArticolo " +
+                          "WHERE r.idRevisore = ? AND a.idConferenza = ? " +
+                          "ORDER BY a.titolo";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idRevisore);
+            stmt.setInt(2, idConferenza);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                // Crea l'oggetto ArticoloE usando il costruttore disponibile
+                ArticoloE articolo = new ArticoloE(
+                    rs.getInt("id"),
+                    rs.getString("titolo"),
+                    rs.getString("abstract"),
+                    rs.getObject("fileArticolo"), // BLOB
+                    rs.getObject("allegato"), // BLOB
+                    rs.getString("stato"),
+                    rs.getInt("idConferenza"),
+                    rs.getTimestamp("ultimaModifica") != null ? 
+                        rs.getTimestamp("ultimaModifica").toLocalDateTime().toLocalDate() : null
+                );
+                
+                // Ottieni e imposta le keywords per questo articolo
+                ArrayList<String> keywords = getKeywordsArticolo(rs.getInt("id"));
+                if (keywords != null && !keywords.isEmpty()) {
+                    LinkedList<String> keywordsList = new LinkedList<>();
+                    keywordsList.addAll(keywords);
+                    articolo.setKeywords(keywordsList);
+                }
+                
+                articoliAssegnati.add(articolo);
+                System.out.println("DEBUG DBMSBoundary: Articolo assegnato recuperato - ID: " + articolo.getId() + 
+                                 ", Titolo: '" + articolo.getTitolo() + "'");
+            }
+            
+            System.out.println("DEBUG DBMSBoundary: Totale articoli assegnati recuperati: " + articoliAssegnati.size());
+            
+        } catch (SQLException e) {
+            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante getListaArticoliAssegnati: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("DEBUG DBMSBoundary: ERRORE generico durante getListaArticoliAssegnati: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("DEBUG DBMSBoundary: ERRORE durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: === FINE getListaArticoliAssegnati ===");
+        return articoliAssegnati;
     }
     
     public LinkedList<Object> getListaArticoliSottoRevisioni(Object sottoRevisore, Object conferenza, Object articolo) {
