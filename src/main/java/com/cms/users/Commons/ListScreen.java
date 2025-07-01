@@ -103,6 +103,30 @@ public class ListScreen extends JFrame {
         }
     }
     
+    // Classe per dati sottomissioni (per funzione VIEW_SUBMISSIONS)
+    public static class SubmissionData {
+        public String id;
+        public String title;
+        public String authors;
+        public String submissionDate;
+        public String status;
+        public int reviewersAssigned;
+        public int reviewsCompleted;
+        public String lastActivity;
+        
+        public SubmissionData(String id, String title, String authors, String submissionDate, 
+                             String status, int reviewersAssigned, int reviewsCompleted, String lastActivity) {
+            this.id = id;
+            this.title = title;
+            this.authors = authors;
+            this.submissionDate = submissionDate;
+            this.status = status;
+            this.reviewersAssigned = reviewersAssigned;
+            this.reviewsCompleted = reviewsCompleted;
+            this.lastActivity = lastActivity;
+        }
+    }
+    
     // Componenti dell'interfaccia
     private JButton homeButton;
     private JButton notificheButton;
@@ -126,6 +150,7 @@ public class ListScreen extends JFrame {
     private List<ArticleData> articleData;
     private List<RevisoreArticleData> revisoreArticleData;
     private List<EditoreArticleData> editoreArticleData;
+    private List<SubmissionData> submissionData;
     private boolean hasData;
     
     /**
@@ -219,6 +244,9 @@ public class ListScreen extends JFrame {
                 case REVIEW_ARTICLE:
                     screenTitle = "Selezione articolo da visionare";
                     break;
+                case VIEW_SUBMISSIONS:
+                    screenTitle = "Stato delle sottomissioni";
+                    break;
                 default:
                     screenTitle = "Lista elementi";
                     break;
@@ -262,6 +290,7 @@ public class ListScreen extends JFrame {
         articleData = new ArrayList<>();
         revisoreArticleData = new ArrayList<>();
         editoreArticleData = new ArrayList<>();
+        submissionData = new ArrayList<>();
         
         // Simula se ci sono dati o meno (per testare stato vuoto)
         hasData = Math.random() > 0.3; // 70% probabilità di avere dati
@@ -276,7 +305,8 @@ public class ListScreen extends JFrame {
                         initializeReviewArticleData();
                         break;
                     case VIEW_SUBMISSIONS:
-                        // Da implementare se necessario
+                        // I dati verranno caricati dinamicamente tramite setSubmissionData()
+                        // Non inizializziamo dati statici qui
                         break;
                 }
             } else if (userRole == UserRole.REVISORE && revisoreFunction != null) {
@@ -530,7 +560,7 @@ public class ListScreen extends JFrame {
                     createReviewArticleTable();
                     break;
                 case VIEW_SUBMISSIONS:
-                    createDefaultTable();
+                    createSubmissionTable();
                     break;
                 default:
                     createDefaultTable();
@@ -659,6 +689,77 @@ public class ListScreen extends JFrame {
         // Renderer e editor per bottoni
         dataTable.getColumnModel().getColumn(1).setCellRenderer(new ButtonRenderer());
         dataTable.getColumnModel().getColumn(1).setCellEditor(new ButtonEditor());
+    }
+    
+    /**
+     * Crea tabella per "Visualizza stato sottomissioni" (Chair)
+     */
+    private void createSubmissionTable() {
+        String[] columnNames = {"ID", "Titolo", "Autori", "Data Sottomissione", "Stato", "Revisori Assegnati", "Revisioni Completate", "Ultima Attività"};
+        
+        tableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Tutte le celle sono di sola lettura
+            }
+        };
+        
+        // Popola la tabella con i dati delle sottomissioni (dinamici)
+        if (submissionData != null) {
+            for (SubmissionData data : submissionData) {
+                Object[] row = {
+                    data.id,
+                    data.title,
+                    data.authors,
+                    data.submissionDate,
+                    data.status,
+                    data.reviewersAssigned,
+                    data.reviewsCompleted,
+                    data.lastActivity
+                };
+                tableModel.addRow(row);
+            }
+        }
+        
+        dataTable = new JTable(tableModel);
+        dataTable.setFont(new Font("Arial", Font.PLAIN, 12));
+        dataTable.setRowHeight(30);
+        
+        // Imposta larghezza colonne
+        dataTable.getColumnModel().getColumn(0).setPreferredWidth(80);  // ID
+        dataTable.getColumnModel().getColumn(1).setPreferredWidth(300); // Titolo
+        dataTable.getColumnModel().getColumn(2).setPreferredWidth(200); // Autori
+        dataTable.getColumnModel().getColumn(3).setPreferredWidth(120); // Data Sottomissione
+        dataTable.getColumnModel().getColumn(4).setPreferredWidth(150); // Stato
+        dataTable.getColumnModel().getColumn(5).setPreferredWidth(120); // Revisori Assegnati
+        dataTable.getColumnModel().getColumn(6).setPreferredWidth(120); // Revisioni Completate
+        dataTable.getColumnModel().getColumn(7).setPreferredWidth(250); // Ultima Attività
+        
+        // Renderer per colorare le righe in base allo stato
+        dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, 
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component comp = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                
+                if (!isSelected) {
+                    String status = (String) table.getValueAt(row, 4); // Colonna "Stato"
+                    if ("Accettato".equals(status)) {
+                        comp.setBackground(new Color(220, 255, 220)); // Verde chiaro
+                    } else if ("Rifiutato".equals(status)) {
+                        comp.setBackground(new Color(255, 220, 220)); // Rosso chiaro
+                    } else if ("In revisione".equals(status) || "Revisione completata".equals(status)) {
+                        comp.setBackground(new Color(255, 255, 220)); // Giallo chiaro
+                    } else if ("Sottomesso".equals(status) || "Assegnazione revisori".equals(status)) {
+                        comp.setBackground(new Color(240, 240, 240)); // Grigio chiaro
+                    } else {
+                        comp.setBackground(Color.WHITE);
+                    }
+                }
+                
+                return comp;
+            }
+        });
     }
     
     /**

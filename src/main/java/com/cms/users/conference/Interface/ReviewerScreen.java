@@ -33,6 +33,9 @@ public class ReviewerScreen extends JFrame {
     private List<ArticleData> articles;
     private boolean[][] assignments; // Matrice revisore-articolo
     
+    // Riferimento al ConferenceControl per delegare le operazioni
+    private com.cms.users.conference.Control.ConferenceControl conferenceControl;
+    
     /**
      * Classe per i dati del revisore
      */
@@ -99,6 +102,13 @@ public class ReviewerScreen extends JFrame {
         setupLayout();
         setupEventHandlers();
         populateTable();
+    }
+    
+    /**
+     * Imposta il riferimento al ConferenceControl
+     */
+    public void setConferenceControl(com.cms.users.conference.Control.ConferenceControl conferenceControl) {
+        this.conferenceControl = conferenceControl;
     }
     
     /**
@@ -172,11 +182,11 @@ public class ReviewerScreen extends JFrame {
      * Inizializza la tabella
      */
     private void initializeTable() {
-        // Crea le colonne: "Revisore" + una colonna per ogni articolo
+        // Crea le colonne: "Revisore" + una colonna per ogni articolo con il suo titolo
         List<String> columnNames = new ArrayList<>();
         columnNames.add("Revisore");
         for (int i = 0; i < articles.size(); i++) {
-            columnNames.add("Articolo"); // Come nel mockup, tutte le colonne articolo hanno lo stesso nome
+            columnNames.add(articles.get(i).title); // Usa il titolo specifico dell'articolo
         }
         
         tableModel = new DefaultTableModel(columnNames.toArray(new String[0]), 0) {
@@ -383,6 +393,7 @@ public class ReviewerScreen extends JFrame {
         });
         
         // Bottone assegna per preferenze
+        // Bottone assegna per preferenze
         assegnaPerPreferenzeButton.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(this,
                 "Assegnare automaticamente i revisori basandosi sulle loro preferenze?",
@@ -390,8 +401,22 @@ public class ReviewerScreen extends JFrame {
                 JOptionPane.YES_NO_OPTION);
             
             if (confirm == JOptionPane.YES_OPTION) {
-                assignByPreferences();
-                JOptionPane.showMessageDialog(this, "Revisori assegnati per preferenze con successo!", "Successo", JOptionPane.INFORMATION_MESSAGE);
+                if (conferenceControl != null) {
+                    try {
+                        int idConferenza = Integer.parseInt(conferenceId);
+                        conferenceControl.assegnaPerPreferenze(idConferenza);
+                        // Ricarica i dati per mostrare le nuove assegnazioni
+                        loadRealData();
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Errore: ID conferenza non valido", 
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Errore: ConferenceControl non disponibile", 
+                        "Errore", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
         
@@ -403,15 +428,34 @@ public class ReviewerScreen extends JFrame {
                 JOptionPane.YES_NO_OPTION);
             
             if (confirm == JOptionPane.YES_OPTION) {
-                assignAutomatically();
-                JOptionPane.showMessageDialog(this, "Revisori assegnati automaticamente con successo!", "Successo", JOptionPane.INFORMATION_MESSAGE);
+                if (conferenceControl != null) {
+                    try {
+                        int idConferenza = Integer.parseInt(conferenceId);
+                        conferenceControl.assegnaAutomaticamenteRevisori(idConferenza);
+                        // Ricarica i dati per mostrare le nuove assegnazioni
+                        loadRealData();
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Errore: ID conferenza non valido", 
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Errore: ConferenceControl non disponibile", 
+                        "Errore", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
         
         // Bottone assegna
         assegnaButton.addActionListener(e -> {
-            saveAssignments();
-            JOptionPane.showMessageDialog(this, "Assegnazioni salvate con successo!", "Successo", JOptionPane.INFORMATION_MESSAGE);
+            if (conferenceControl != null) {
+                saveAssignments();
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Errore: ConferenceControl non disponibile", 
+                    "Errore", JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
     
@@ -437,63 +481,123 @@ public class ReviewerScreen extends JFrame {
     /**
      * Assegna revisori per preferenze (algoritmo simulato)
      */
-    private void assignByPreferences() {
-        // Reset assegnazioni
-        for (int i = 0; i < assignments.length; i++) {
-            for (int j = 0; j < assignments[i].length; j++) {
-                assignments[i][j] = false;
-            }
-        }
-        
-        // Algoritmo simulato basato su expertise
-        for (int i = 0; i < reviewers.size() && i < articles.size(); i++) {
-            assignments[i][i % articles.size()] = true;
-        }
-        
-        populateTable();
-    }
-    
     /**
-     * Assegna revisori automaticamente
-     */
-    private void assignAutomatically() {
-        // Reset assegnazioni
-        for (int i = 0; i < assignments.length; i++) {
-            for (int j = 0; j < assignments[i].length; j++) {
-                assignments[i][j] = false;
-            }
-        }
-        
-        // Assegnazione casuale
-        for (int i = 0; i < reviewers.size(); i++) {
-            int randomArticle = (int) (Math.random() * articles.size());
-            assignments[i][randomArticle] = true;
-        }
-        
-        populateTable();
-    }
-    
-    /**
-     * Salva le assegnazioni correnti
+     * Salva le assegnazioni correnti delegando al ConferenceControl
      */
     private void saveAssignments() {
         // Aggiorna la matrice con i valori dalla tabella
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             for (int j = 1; j < tableModel.getColumnCount(); j++) {
                 Boolean value = (Boolean) tableModel.getValueAt(i, j);
-                assignments[i][j - 1] = value != null && value;
-            }
-        }
-        
-        // Qui si potrebbe implementare il salvataggio su database
-        System.out.println("Assegnazioni salvate per conferenza: " + conferenceId);
-        for (int i = 0; i < reviewers.size(); i++) {
-            for (int j = 0; j < articles.size(); j++) {
-                if (assignments[i][j]) {
-                    System.out.println("Revisore " + reviewers.get(i).name + " -> Articolo " + articles.get(j).title);
+                if (i < assignments.length && (j - 1) < assignments[i].length) {
+                    assignments[i][j - 1] = value != null && value;
                 }
             }
         }
+        
+        // Delega al ConferenceControl per salvare nel database
+        if (conferenceControl != null) {
+            conferenceControl.salvaAssegnazioni(assignments, reviewers, articles);
+        } else {
+            JOptionPane.showMessageDialog(this, 
+                "Errore: ConferenceControl non disponibile", 
+                "Errore", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Carica i dati reali dal database tramite il ConferenceControl
+     */
+    public void loadRealData() {
+        if (conferenceControl != null) {
+            try {
+                int idConferenza = Integer.parseInt(conferenceId);
+                
+                // Carica revisori reali
+                this.reviewers = conferenceControl.ottieniRevisori(idConferenza);
+                
+                // Carica articoli reali
+                this.articles = conferenceControl.ottieniArticoli(idConferenza);
+                
+                // Carica le assegnazioni esistenti dal database
+                if (!reviewers.isEmpty() && !articles.isEmpty()) {
+                    assignments = conferenceControl.ottieniAssegnazioniEsistenti(idConferenza, reviewers, articles);
+                    System.out.println("Caricate " + contaAssegnazioniAttive() + " assegnazioni esistenti");
+                } else {
+                    assignments = new boolean[reviewers.size()][articles.size()];
+                }
+                
+                // Aggiorna la tabella con i nuovi dati
+                updateTableStructure();
+                populateTable();
+                
+                System.out.println("Dati reali caricati: " + reviewers.size() + " revisori, " + articles.size() + " articoli");
+                
+            } catch (NumberFormatException e) {
+                System.err.println("Errore: ID conferenza non valido: " + conferenceId);
+            } catch (Exception e) {
+                System.err.println("Errore durante il caricamento dei dati reali: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("ConferenceControl non impostato, impossibile caricare dati reali");
+        }
+    }
+    
+    /**
+     * Aggiorna la struttura della tabella quando cambiano i dati
+     */
+    private void updateTableStructure() {
+        // Crea le colonne: "Revisore" + una colonna per ogni articolo con il suo titolo
+        List<String> columnNames = new ArrayList<>();
+        columnNames.add("Revisore");
+        for (int i = 0; i < articles.size(); i++) {
+            columnNames.add(articles.get(i).title); // Usa il titolo specifico dell'articolo
+        }
+        
+        tableModel = new DefaultTableModel(columnNames.toArray(new String[0]), 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column > 0; // Solo le colonne degli articoli sono editabili
+            }
+            
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 0) {
+                    return String.class; // Prima colonna: nome revisore
+                } else {
+                    return Boolean.class; // Altre colonne: checkbox per assegnazione
+                }
+            }
+        };
+        
+        assignmentTable.setModel(tableModel);
+        
+        // Imposta larghezza colonne
+        if (assignmentTable.getColumnCount() > 0) {
+            assignmentTable.getColumnModel().getColumn(0).setPreferredWidth(200); // Revisore
+            for (int i = 1; i < assignmentTable.getColumnCount(); i++) {
+                assignmentTable.getColumnModel().getColumn(i).setPreferredWidth(100); // Articoli
+                assignmentTable.getColumnModel().getColumn(i).setCellRenderer(new GrayCheckboxRenderer());
+            }
+        }
+    }
+    
+    /**
+     * Conta il numero di assegnazioni attive nella matrice
+     */
+    private int contaAssegnazioniAttive() {
+        int count = 0;
+        if (assignments != null) {
+            for (int i = 0; i < assignments.length; i++) {
+                for (int j = 0; j < assignments[i].length; j++) {
+                    if (assignments[i][j]) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
     }
     
     /**

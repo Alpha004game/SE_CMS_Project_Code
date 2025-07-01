@@ -29,11 +29,9 @@ public class ConferenceManagementScreen extends JFrame {
     private JLabel deadlineVersioneFinaleValueLabel;
     private JLabel deadlineVersionePubblicazioneValueLabel;
     private JLabel luogoValueLabel;
-    private JLabel temiPrincipaliValueLabel;
     private JLabel keywordsValueLabel;
     private JLabel numeroArticoliPrevistiValueLabel;
     private JLabel numeroMinimoRevisoriValueLabel;
-    private JLabel numeroMassimoRevisoriValueLabel;
     private JLabel tassoAccettazioneValueLabel;
     
     // Bottoni di azione
@@ -60,11 +58,9 @@ public class ConferenceManagementScreen extends JFrame {
     private String deadlineVersioneFinale;
     private String deadlineVersionePubblicazione;
     private String luogo;
-    private String temiPrincipali;
     private String keywords;
     private String numeroArticoliPrevisti;
     private String numeroMinimoRevisori;
-    private String numeroMassimoRevisori;
     private String tassoAccettazione;
     
     /**
@@ -85,11 +81,9 @@ public class ConferenceManagementScreen extends JFrame {
         this.deadlineVersioneFinale = "01/08/2025";
         this.deadlineVersionePubblicazione = "15/08/2025";
         this.luogo = "Milano, Italia";
-        this.temiPrincipali = "Software Engineering, AI, Machine Learning";
         this.keywords = "software, engineering, artificial intelligence, agile";
         this.numeroArticoliPrevisti = "50";
         this.numeroMinimoRevisori = "3";
-        this.numeroMassimoRevisori = "5";
         this.tassoAccettazione = "30%";
         
         initializeComponents();
@@ -122,11 +116,9 @@ public class ConferenceManagementScreen extends JFrame {
         this.dataInizio = "01/01/2025";
         this.dataFine = "03/01/2025";
         this.luogo = "Sede della conferenza";
-        this.temiPrincipali = "Temi principali";
         this.keywords = "keywords";
         this.numeroArticoliPrevisti = "10";
         this.numeroMinimoRevisori = "2";
-        this.numeroMassimoRevisori = "4";
         this.tassoAccettazione = "25%";
     }
     
@@ -160,7 +152,6 @@ public class ConferenceManagementScreen extends JFrame {
         this.luogo = conferenza.getLuogo() != null ? conferenza.getLuogo() : "";
         this.numeroArticoliPrevisti = String.valueOf(conferenza.getNumeroArticoliPrevisti());
         this.numeroMinimoRevisori = String.valueOf(conferenza.getNumeroRevisoriPerArticolo());
-        this.numeroMassimoRevisori = String.valueOf(conferenza.getNumeroRevisoriPerArticolo());
         
         // Unisce le keywords in una stringa
         if (conferenza.getKeywords() != null && !conferenza.getKeywords().isEmpty()) {
@@ -196,7 +187,6 @@ public class ConferenceManagementScreen extends JFrame {
         keywordsValueLabel.setText(keywords);
         numeroArticoliPrevistiValueLabel.setText(numeroArticoliPrevisti);
         numeroMinimoRevisoriValueLabel.setText(numeroMinimoRevisori);
-        numeroMassimoRevisoriValueLabel.setText(numeroMassimoRevisori);
         tassoAccettazioneValueLabel.setText(tassoAccettazione);
     }
     
@@ -258,11 +248,9 @@ public class ConferenceManagementScreen extends JFrame {
         deadlineVersioneFinaleValueLabel = createInfoLabel(deadlineVersioneFinale, labelFont, backgroundColor);
         deadlineVersionePubblicazioneValueLabel = createInfoLabel(deadlineVersionePubblicazione, labelFont, backgroundColor);
         luogoValueLabel = createInfoLabel(luogo, labelFont, backgroundColor);
-        temiPrincipaliValueLabel = createInfoLabel(temiPrincipali, labelFont, backgroundColor);
         keywordsValueLabel = createInfoLabel(keywords, labelFont, backgroundColor);
         numeroArticoliPrevistiValueLabel = createInfoLabel(numeroArticoliPrevisti, labelFont, backgroundColor);
         numeroMinimoRevisoriValueLabel = createInfoLabel(numeroMinimoRevisori, labelFont, backgroundColor);
-        numeroMassimoRevisoriValueLabel = createInfoLabel(numeroMassimoRevisori, labelFont, backgroundColor);
         tassoAccettazioneValueLabel = createInfoLabel(tassoAccettazione, labelFont, backgroundColor);
         
         // Area di testo per l'abstract
@@ -442,9 +430,8 @@ public class ConferenceManagementScreen extends JFrame {
         addInfoField(infoPanel, gbc, "Data limite per l'invio della versione da pubblicare:", deadlineVersionePubblicazioneValueLabel, 0, row, 3);
         row++;
         
-        // Settima riga: Luogo e Temi principali
+        // Settima riga: Luogo (rimuove temi principali)
         addInfoField(infoPanel, gbc, "Luogo:", luogoValueLabel, 0, row, 1);
-        addInfoField(infoPanel, gbc, "Temi principali:", temiPrincipaliValueLabel, 2, row, 1);
         row++;
         
         // Ottava riga: Keywords e Numero articoli previsti
@@ -452,9 +439,8 @@ public class ConferenceManagementScreen extends JFrame {
         addInfoField(infoPanel, gbc, "Numero di articoli previsti:", numeroArticoliPrevistiValueLabel, 2, row, 1);
         row++;
         
-        // Nona riga: Numero revisori min e max
+        // Nona riga: Solo numero minimo revisori (rimuove numero massimo)
         addInfoField(infoPanel, gbc, "Numero minimo di revisori per articolo:", numeroMinimoRevisoriValueLabel, 0, row, 1);
-        addInfoField(infoPanel, gbc, "Numero massimo di articoli per revisore:", numeroMassimoRevisoriValueLabel, 2, row, 1);
         row++;
         
         // Decima riga: Tasso accettazione
@@ -577,20 +563,12 @@ public class ConferenceManagementScreen extends JFrame {
     
     /**
      * Invita un Co-Chair alla conferenza
+     * Implementa il sequence diagram: ConferenceManagementScreen -> ConferenceControl
      */
     public void invitaCoChairButton() {
-        String email = JOptionPane.showInputDialog(this, 
-            "Inserisci l'email del Co-Chair da invitare:", 
-            "Invita Co-Chair", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (email != null && !email.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Invito inviato a: " + email + "\nper la conferenza: " + titolo, 
-                "Invito Inviato", 
-                JOptionPane.INFORMATION_MESSAGE);
-            // Qui andrà la logica per inviare l'invito
-        }
+        // Segue il sequence diagram: crea ConferenceControl e chiama invitaCoChair
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.invitaCoChair(this.id);
     }
     
     /**
@@ -624,54 +602,45 @@ public class ConferenceManagementScreen extends JFrame {
      * Rimuove un revisore dalla conferenza
      */
     public void rimuoviReviewerButton() {
-        String email = JOptionPane.showInputDialog(this, 
-            "Inserisci l'email del revisore da rimuovere:", 
-            "Rimuovi Revisore", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (email != null && !email.trim().isEmpty()) {
-            int confirm = JOptionPane.showConfirmDialog(this, 
-                "Sei sicuro di voler rimuovere il revisore: " + email + "?", 
-                "Conferma Rimozione", 
-                JOptionPane.YES_NO_OPTION);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
-                JOptionPane.showMessageDialog(this, 
-                    "Revisore " + email + " rimosso dalla conferenza", 
-                    "Revisore Rimosso", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                // Qui andrà la logica per rimuovere il revisore
-            }
-        }
+        // Segue il sequence diagram: delega al ConferenceControl
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.rimuoviRevisore(this.id);
     }
     
     /**
      * Assegna un revisore ad un articolo
+     * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl -> ReviewerScreen
      */
     public void assegnaReviewerButton() {
-        String articolo = JOptionPane.showInputDialog(this, 
-            "Inserisci l'ID dell'articolo:", 
-            "Assegna Revisore", 
-            JOptionPane.QUESTION_MESSAGE);
-        
-        if (articolo != null && !articolo.trim().isEmpty()) {
-            String revisore = JOptionPane.showInputDialog(this, 
-                "Inserisci l'email del revisore da assegnare all'articolo " + articolo + ":", 
-                "Assegna Revisore", 
-                JOptionPane.QUESTION_MESSAGE);
+        try {
+            // Delega al ConferenceControl per aprire la ReviewerScreen
+            ConferenceControl conferenceControl = new ConferenceControl();
             
-            if (revisore != null && !revisore.trim().isEmpty()) {
+            // Imposta la conferenza attuale nel control
+            if (id > 0) {
+                conferenceControl.apriAssegnazioneRevisori(id);
+            } else {
                 JOptionPane.showMessageDialog(this, 
-                    "Revisore " + revisore + " assegnato all'articolo " + articolo, 
-                    "Assegnazione Completata", 
-                    JOptionPane.INFORMATION_MESSAGE);
-                // Qui andrà la logica per assegnare il revisore
+                    "Errore: ID conferenza non valido", 
+                    "Errore", JOptionPane.ERROR_MESSAGE);
             }
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura della schermata di assegnazione: " + e.getMessage());
+            e.printStackTrace();
+            
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della schermata di assegnazione: " + e.getMessage(), 
+                "Errore", JOptionPane.ERROR_MESSAGE);
         }
     }
     
     /**
      * Rimuove un revisore da un articolo
+     */
+    /**
+     * Rimuove un revisore da un articolo
+     * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl
      */
     public void rimuoviArticoloReviewerButton() {
         String articolo = JOptionPane.showInputDialog(this, 
@@ -692,11 +661,25 @@ public class ConferenceManagementScreen extends JFrame {
                     JOptionPane.YES_NO_OPTION);
                 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    JOptionPane.showMessageDialog(this, 
-                        "Revisore " + revisore + " rimosso dall'articolo " + articolo, 
-                        "Rimozione Completata", 
-                        JOptionPane.INFORMATION_MESSAGE);
-                    // Qui andrà la logica per rimuovere il revisore dall'articolo
+                    try {
+                        // Converte l'ID articolo da String a int
+                        int idArticolo = Integer.parseInt(articolo.trim());
+                        
+                        // Crea un'istanza di ConferenceControl e delega la rimozione
+                        ConferenceControl conferenceControl = new ConferenceControl();
+                        conferenceControl.rimuoviRevisoreArticolo(this.id, idArticolo, revisore.trim());
+                        
+                    } catch (NumberFormatException e) {
+                        JOptionPane.showMessageDialog(this, 
+                            "ID articolo non valido. Inserisci un numero.", 
+                            "Errore", 
+                            JOptionPane.ERROR_MESSAGE);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Errore durante la rimozione: " + e.getMessage(), 
+                            "Errore", 
+                            JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             }
         }
@@ -706,24 +689,9 @@ public class ConferenceManagementScreen extends JFrame {
      * Visualizza lo stato delle revisioni
      */
     public void visualizzaStatoRevisionButton() {
-        // Simula la visualizzazione dello stato delle revisioni
-        String statoContent = "=== STATO REVISIONI: " + titolo + " ===\n\n" +
-                              "Articoli sottomessi: 12\n" +
-                              "Articoli in revisione: 8\n" +
-                              "Articoli revisionati: 4\n" +
-                              "Articoli accettati: 2\n" +
-                              "Articoli rifiutati: 2\n\n" +
-                              "Revisori attivi: 7\n" +
-                              "Revisioni completate: 15\n" +
-                              "Revisioni in corso: 9\n\n" +
-                              "Prossima scadenza: " + deadlineRevisioni;
-        
-        JTextArea statoArea = new JTextArea(statoContent, 12, 40);
-        statoArea.setEditable(false);
-        statoArea.setFont(new Font("Arial", Font.PLAIN, 12));
-        
-        JScrollPane scrollPane = new JScrollPane(statoArea);
-        JOptionPane.showMessageDialog(this, scrollPane, "Stato Revisioni", JOptionPane.INFORMATION_MESSAGE);
+        // Delega al ConferenceControl per ottenere dati dinamici
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.visualizzaStatoSottomissioni(this.id);
     }
     
     /**
@@ -739,24 +707,10 @@ public class ConferenceManagementScreen extends JFrame {
     /**
      * Ottiene il log della conferenza
      */
-    public String getLogButton() {
-        // Simula la visualizzazione del log
-        String logContent = "=== LOG CONFERENZA: " + titolo + " ===\n" +
-                           "01/06/2025 10:00 - Conferenza creata\n" +
-                           "05/06/2025 14:30 - Aggiunti 5 revisori\n" +
-                           "10/06/2025 09:15 - Primo articolo sottomesso\n" +
-                           "15/06/2025 16:45 - Deadline sottomissioni scaduta\n" +
-                           "20/06/2025 11:20 - Inizio fase di revisione\n" +
-                           "=== FINE LOG ===";
-        
-        JTextArea logArea = new JTextArea(logContent, 15, 50);
-        logArea.setEditable(false);
-        logArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        
-        JScrollPane scrollPane = new JScrollPane(logArea);
-        JOptionPane.showMessageDialog(this, scrollPane, "Log Conferenza", JOptionPane.INFORMATION_MESSAGE);
-        
-        return logContent;
+    public void getLogButton() {
+        // Segue il sequence diagram: delega al ConferenceControl
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.getLog(this.id);
     }
     
     // Metodi di utilità e getter

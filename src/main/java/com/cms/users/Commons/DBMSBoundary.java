@@ -963,9 +963,308 @@ public class DBMSBoundary {
         return id;
     }
 
-    public String getConferenceLog(int conferenceId)
-    {
-        return null;
+    /**
+     * Ottiene il log dettagliato della conferenza dal database
+     * Implementa il metodo richiesto dal sequence diagram con informazioni complete
+     */
+    public String getConferenceLog(int conferenceId) {
+        StringBuilder log = new StringBuilder();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("Impossibile stabilire connessione al database per recuperare il log");
+                return generateDefaultLog(conferenceId);
+            }
+            
+            // === INFORMAZIONI GENERALI DELLA CONFERENZA ===
+            String query = "SELECT titolo, abstract, edizione, dataInizio, dataFine, " +
+                          "deadlineSottomissione, deadlineRitiro, deadlineRevisioni, deadlineVersioneFinale, " +
+                          "deadlineVersionePubblicazione, luogo, numRevisoriPerArticolo, numeroArticoliPrevisti, " +
+                          "tassoAccettazione FROM conferenze WHERE id = ?";
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, conferenceId);
+            rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                String titolo = rs.getString("titolo");
+                int anno = rs.getInt("edizione");
+                String abstractConf = rs.getString("abstract");
+                String luogo = rs.getString("luogo");
+                
+                log.append("=== INFORMAZIONI GENERALI CONFERENZA ===\n");
+                log.append("Titolo: ").append(titolo).append("\n");
+                log.append("Edizione: ").append(anno).append("\n");
+                log.append("Luogo: ").append(luogo != null ? luogo : "Non specificato").append("\n");
+                if (abstractConf != null && !abstractConf.trim().isEmpty()) {
+                    log.append("Abstract: ").append(abstractConf).append("\n");
+                }
+                
+                // === DATE E DEADLINE ===
+                log.append("\n=== DATE E DEADLINE ===\n");
+                java.sql.Date dataInizio = rs.getDate("dataInizio");
+                java.sql.Date dataFine = rs.getDate("dataFine");
+                java.sql.Date deadlineSottomissione = rs.getDate("deadlineSottomissione");
+                java.sql.Date deadlineRitiro = rs.getDate("deadlineRitiro");
+                java.sql.Date deadlineRevisioni = rs.getDate("deadlineRevisioni");
+                java.sql.Date deadlineVersioneFinale = rs.getDate("deadlineVersioneFinale");
+                java.sql.Date deadlineVersionePubblicazione = rs.getDate("deadlineVersionePubblicazione");
+                
+                if (dataInizio != null) log.append("Data inizio conferenza: ").append(dataInizio.toString()).append("\n");
+                if (dataFine != null) log.append("Data fine conferenza: ").append(dataFine.toString()).append("\n");
+                if (deadlineSottomissione != null) log.append("Deadline sottomissione: ").append(deadlineSottomissione.toString()).append("\n");
+                if (deadlineRitiro != null) log.append("Deadline ritiro: ").append(deadlineRitiro.toString()).append("\n");
+                if (deadlineRevisioni != null) log.append("Deadline revisioni: ").append(deadlineRevisioni.toString()).append("\n");
+                if (deadlineVersioneFinale != null) log.append("Deadline versione finale: ").append(deadlineVersioneFinale.toString()).append("\n");
+                if (deadlineVersionePubblicazione != null) log.append("Deadline pubblicazione: ").append(deadlineVersionePubblicazione.toString()).append("\n");
+                
+                // === PARAMETRI CONFERENZA ===
+                log.append("\n=== PARAMETRI CONFERENZA ===\n");
+                log.append("Numero revisori per articolo: ").append(rs.getInt("numRevisoriPerArticolo")).append("\n");
+                log.append("Numero articoli previsti: ").append(rs.getInt("numeroArticoliPrevisti")).append("\n");
+                log.append("Tasso di accettazione: ").append(rs.getInt("tassoAccettazione")).append("%\n");
+                
+                rs.close();
+                stmt.close();
+                
+                // === KEYWORDS DELLA CONFERENZA ===
+                log.append("\n=== KEYWORDS CONFERENZA ===\n");
+                ArrayList<String> keywords = getKeywordsConferenza(conn, conferenceId);
+                if (keywords != null && !keywords.isEmpty()) {
+                    log.append("Keywords: ").append(String.join(", ", keywords)).append("\n");
+                } else {
+                    log.append("Nessuna keyword specificata\n");
+                }
+                
+                // === CHAIR E CO-CHAIR ===
+                log.append("\n=== CHAIR E CO-CHAIR ===\n");
+                try {
+                    String chairQuery = "SELECT u.username, u.email, r.ruolo FROM utenti u " +
+                                       "INNER JOIN ruoli r ON u.id = r.idUtente " +
+                                       "WHERE r.idConferenza = ? AND r.ruolo IN (1, 4) ORDER BY r.ruolo";
+                    PreparedStatement chairStmt = conn.prepareStatement(chairQuery);
+                    chairStmt.setInt(1, conferenceId);
+                    ResultSet chairRs = chairStmt.executeQuery();
+                    
+                    int chairCount = 0;
+                    int coChairCount = 0;
+                    while (chairRs.next()) {
+                        String username = chairRs.getString("username");
+                        String email = chairRs.getString("email");
+                        int ruolo = chairRs.getInt("ruolo");
+                        
+                        if (ruolo == 1) {
+                            chairCount++;
+                            log.append("Chair: ").append(username).append(" (").append(email).append(")\n");
+                        } else if (ruolo == 4) {
+                            coChairCount++;
+                            log.append("Co-Chair: ").append(username).append(" (").append(email).append(")\n");
+                        }
+                    }
+                    
+                    if (chairCount == 0 && coChairCount == 0) {
+                        log.append("Nessun Chair o Co-Chair registrato\n");
+                    }
+                    
+                    chairRs.close();
+                    chairStmt.close();
+                } catch (SQLException e) {
+                    log.append("Errore nel recupero di Chair e Co-Chair: ").append(e.getMessage()).append("\n");
+                }
+                
+                // === REVISORI ===
+                log.append("\n=== REVISORI ===\n");
+                try {
+                    String revisoriQuery = "SELECT u.username, u.email, r.dataRichiesta, r.dataRisposta, r.dataRimozione FROM utenti u " +
+                                          "INNER JOIN ruoli r ON u.id = r.idUtente " +
+                                          "WHERE r.idConferenza = ? AND r.ruolo = 2 ORDER BY u.username";
+                    PreparedStatement revisoriStmt = conn.prepareStatement(revisoriQuery);
+                    revisoriStmt.setInt(1, conferenceId);
+                    ResultSet revisoriRs = revisoriStmt.executeQuery();
+                    
+                    int revisoriCount = 0;
+                    while (revisoriRs.next()) {
+                        revisoriCount++;
+                        String username = revisoriRs.getString("username");
+                        String email = revisoriRs.getString("email");
+                        java.sql.Date dataInizioRuolo = revisoriRs.getDate("dataRichiesta");
+                        java.sql.Date dataFineRuolo = revisoriRs.getDate("dataRisposta");
+                        java.sql.Date dataRimozione = revisoriRs.getDate("dataRimozione");
+                        
+                        log.append("Revisore ").append(revisoriCount).append(": ").append(username).append(" (").append(email).append(")");
+                        if (dataInizioRuolo != null) {
+                            log.append(" - data proposta: ").append(dataInizioRuolo.toString());
+                        }
+                        if (dataFineRuolo != null) {
+                            log.append(", data risposta: ").append(dataFineRuolo.toString());
+                        }
+                        if(dataRimozione != null) {
+                            log.append(", data rimozione: ").append(dataRimozione.toString());
+                        }
+                        log.append("\n");
+                    }
+                    
+                    log.append("Totale revisori: ").append(revisoriCount).append("\n");
+                    revisoriRs.close();
+                    revisoriStmt.close();
+                } catch (SQLException e) {
+                    log.append("Errore nel recupero dei revisori: ").append(e.getMessage()).append("\n");
+                }
+                
+                // === ARTICOLI E SOTTOMISSIONI ===
+                log.append("\n=== ARTICOLI E SOTTOMISSIONI ===\n");
+                try {
+                    String articoliQuery = "SELECT a.id, a.titolo, a.stato, a.ultimaModifica, " +
+                                          "GROUP_CONCAT(DISTINCT u.username SEPARATOR ', ') as autori " +
+                                          "FROM articoli a " +
+                                          "LEFT JOIN sottomette s ON a.id = s.idArticolo " +
+                                          "LEFT JOIN utenti u ON s.idUtente = u.id " +
+                                          "WHERE a.idConferenza = ? " +
+                                          "GROUP BY a.id, a.titolo, a.stato, a.ultimaModifica " +
+                                          "ORDER BY a.ultimaModifica DESC";
+                    PreparedStatement articoliStmt = conn.prepareStatement(articoliQuery);
+                    articoliStmt.setInt(1, conferenceId);
+                    ResultSet articoliRs = articoliStmt.executeQuery();
+                    
+                    int articoliCount = 0;
+                    java.util.Map<String, Integer> statiCount = new java.util.HashMap<>();
+                    
+                    while (articoliRs.next()) {
+                        articoliCount++;
+                        int idArticolo = articoliRs.getInt("id");
+                        String titoloArticolo = articoliRs.getString("titolo");
+                        String stato = articoliRs.getString("stato");
+                        String autori = articoliRs.getString("autori");
+                        java.sql.Date ultimaModifica = articoliRs.getDate("ultimaModifica");
+                        
+                        log.append("Articolo ").append(articoliCount).append(": ").append(titoloArticolo).append("\n");
+                        log.append("  - ID: ").append(idArticolo).append("\n");
+                        log.append("  - Stato: ").append(stato != null ? stato : "Non specificato").append("\n");
+                        log.append("  - Autori: ").append(autori != null ? autori : "Non specificati").append("\n");
+                        if (ultimaModifica != null) {
+                            log.append("  - Ultima modifica: ").append(ultimaModifica.toString()).append("\n");
+                        }
+                        log.append("\n");
+                        
+                        // Conta gli stati
+                        String statoKey = stato != null ? stato : "Non specificato";
+                        statiCount.put(statoKey, statiCount.getOrDefault(statoKey, 0) + 1);
+                    }
+                    
+                    log.append("Totale articoli sottomessi: ").append(articoliCount).append("\n");
+                    log.append("Riepilogo stati:\n");
+                    for (java.util.Map.Entry<String, Integer> entry : statiCount.entrySet()) {
+                        log.append("  - ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+                    }
+                    
+                    articoliRs.close();
+                    articoliStmt.close();
+                } catch (SQLException e) {
+                    log.append("Errore nel recupero degli articoli: ").append(e.getMessage()).append("\n");
+                    // Fallback: query semplificata
+                    try {
+                        String simpleQuery = "SELECT COUNT(*) as count FROM articoli WHERE idConferenza = ?";
+                        PreparedStatement simpleStmt = conn.prepareStatement(simpleQuery);
+                        simpleStmt.setInt(1, conferenceId);
+                        ResultSet simpleRs = simpleStmt.executeQuery();
+                        if (simpleRs.next()) {
+                            log.append("Totale articoli (conteggio semplificato): ").append(simpleRs.getInt("count")).append("\n");
+                        }
+                        simpleRs.close();
+                        simpleStmt.close();
+                    } catch (SQLException e2) {
+                        log.append("Impossibile recuperare il conteggio degli articoli\n");
+                    }
+                }
+                
+                // === NOTIFICHE ===
+                log.append("\n=== NOTIFICHE E COMUNICAZIONI ===\n");
+                try {
+                    String notificheQuery = "SELECT COUNT(*) as totale, " +
+                                           "COUNT(CASE WHEN tipo = 0 THEN 1 END) as comunicazioni, " +
+                                           "COUNT(CASE WHEN tipo = 1 THEN 1 END) as inviti, " +
+                                           "COUNT(CASE WHEN esito IS NULL THEN 1 END) as attive, " +
+                                           "COUNT(CASE WHEN esito IS NOT NULL THEN 1 END) as gestite " +
+                                           "FROM notifiche WHERE idConferenza = ?";
+                    PreparedStatement notificheStmt = conn.prepareStatement(notificheQuery);
+                    notificheStmt.setInt(1, conferenceId);
+                    ResultSet notificheRs = notificheStmt.executeQuery();
+                    
+                    if (notificheRs.next()) {
+                        int totaleNotifiche = notificheRs.getInt("totale");
+                        int comunicazioni = notificheRs.getInt("comunicazioni");
+                        int inviti = notificheRs.getInt("inviti");
+                        int attive = notificheRs.getInt("attive");
+                        int gestite = notificheRs.getInt("gestite");
+                        
+                        log.append("Totale notifiche inviate: ").append(totaleNotifiche).append("\n");
+                        log.append("  - Comunicazioni: ").append(comunicazioni).append("\n");
+                        log.append("  - Inviti: ").append(inviti).append("\n");
+                        log.append("  - Notifiche attive (non gestite): ").append(attive).append("\n");
+                        log.append("  - Notifiche gestite: ").append(gestite).append("\n");
+                    }
+                    
+                    notificheRs.close();
+                    notificheStmt.close();
+                } catch (SQLException e) {
+                    log.append("Errore nel recupero delle notifiche: ").append(e.getMessage()).append("\n");
+                }
+                
+               
+            } else {
+                log.append("ERRORE: Conferenza con ID ").append(conferenceId).append(" non trovata nel database\n");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante il recupero del log della conferenza: " + e.getMessage());
+            return generateDefaultLog(conferenceId);
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore durante la chiusura delle risorse del database: " + e.getMessage());
+            }
+        }
+        
+        String result = log.toString();
+        return result.isEmpty() ? generateDefaultLog(conferenceId) : result;
+    }
+    
+    /**
+     * Genera un log dettagliato di default quando non è possibile recuperare dati dal database
+     */
+    private String generateDefaultLog(int conferenceId) {
+        StringBuilder log = new StringBuilder();
+        String dataAttuale = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+        
+        log.append("=== LOG CONFERENZA (MODALITÀ FALLBACK) ===\n");
+        log.append("ID Conferenza: ").append(conferenceId).append("\n");
+        log.append("Data generazione: ").append(dataAttuale).append("\n");
+        log.append("Stato: Sistema non in grado di recuperare log dettagliati dal database\n\n");
+        
+        log.append("=== INFORMAZIONI DISPONIBILI ===\n");
+        log.append("- Conferenza presente nel sistema con ID: ").append(conferenceId).append("\n");
+        log.append("- Connessione al database non disponibile al momento della generazione\n");
+        log.append("- Log dettagliato non recuperabile\n\n");
+        
+        log.append("=== SUGGERIMENTI ===\n");
+        log.append("1. Verificare la connessione al database\n");
+        log.append("2. Controllare che la conferenza esista nella tabella 'conferenze'\n");
+        log.append("3. Riprovare la generazione del log più tardi\n");
+        log.append("4. Contattare l'amministratore di sistema se il problema persiste\n\n");
+        
+        log.append("=== INFORMAZIONI TECNICHE ===\n");
+        log.append("Sistema: Conference Management System (CMS)\n");
+        log.append("Modulo: DBMSBoundary.getConferenceLog()\n");
+        log.append("Tipo errore: Connessione database non disponibile\n");
+        log.append("Timestamp: ").append(dataAttuale).append("\n");
+        
+        return log.toString();
     }
     
     public Object getConferenceInfo(int idConferenza) {
@@ -1051,12 +1350,64 @@ public class DBMSBoundary {
     }
     
     public void setRevisoreArticolo(int idArticolo, int idRevisore) {
+
+        try
+        {
+            Connection con=getConnection();
+            PreparedStatement stmt=con.prepareStatement("INSERT INTO revisiona VALUES(NULL, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL)");
+            stmt.setInt(1, idRevisore);
+            stmt.setInt(2, idArticolo);
+            stmt.executeQuery();
+            stmt.close();
+            con.close();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
         
     }
 
-    public void rimuoviRevisore(int idConferenza, int idRevisore)
-    {
+    /**
+     * Rimuove un revisore da una conferenza
+     * Implementa il metodo richiesto dal sequence diagram
+     */
+    public void rimuoviRevisore(int idConferenza, int idRevisore) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
         
+        try {
+            conn = getConnection();
+            
+            // Rimuovi il revisore dalla tabella ruoli
+            String sql = "UPDATE ruoli SET stato=3, dataRimozione=CURRENT_DATE WHERE idUtente = ? AND idConferenza = ? AND ruolo = 2";
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, idRevisore);
+            stmt.setInt(2, idConferenza);
+            
+            int rowsAffected = stmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                System.out.println("Revisore " + idRevisore + " rimosso con successo dalla conferenza " + idConferenza);
+            } else {
+                System.out.println("Nessun revisore trovato con ID " + idRevisore + " per la conferenza " + idConferenza);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore durante la rimozione del revisore: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Errore generico durante la rimozione del revisore: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore chiusura connessione: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
     }
     
     public LinkedList<ArticoloE> getListaSottomissioni(int idConferenza) {
@@ -1085,10 +1436,11 @@ public class DBMSBoundary {
     }
     
     
+    /**
+     * Ottiene la lista di tutti gli articoli sottomessi per una conferenza
+     * Implementa il metodo richiesto per il calcolo delle statistiche
+     */
     public LinkedList<ArticoloE> getListaArticoli(int idConferenza) {
-        System.out.println("DEBUG DBMSBoundary: === INIZIO getListaArticoli ===");
-        System.out.println("DEBUG DBMSBoundary: idConferenza ricevuto: " + idConferenza);
-        
         LinkedList<ArticoloE> articoli = new LinkedList<>();
         Connection conn = null;
         PreparedStatement stmt = null;
