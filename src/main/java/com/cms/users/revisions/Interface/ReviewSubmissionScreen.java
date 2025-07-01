@@ -99,11 +99,47 @@ public class ReviewSubmissionScreen extends JFrame {
     }
     
     /**
+     * Costruttore con parametri e dati articolo dal database
+     * Utilizzato quando il chair apre la revisione da RevisionOverviewScreen
+     */
+    public ReviewSubmissionScreen(String submissionId, String submissionTitle, String reviewerId, com.cms.users.Entity.ArticoloE articolo) {
+        this.submissionId = submissionId != null ? submissionId : "SUB" + (int)(Math.random() * 10000);
+        this.submissionTitle = submissionTitle != null ? submissionTitle : "Articolo da Revisionare";
+        this.reviewerId = reviewerId != null ? reviewerId : "REV" + (int)(Math.random() * 1000);
+        this.gestioneControl = new com.cms.users.revisions.Control.GestioneRevisioneControl();
+        
+        // Se l'articolo è fornito, utilizza i suoi dati
+        if (articolo != null) {
+            this.submissionTitle = articolo.getTitolo();
+            // Opzionalmente, puoi impostare l'ID dall'articolo
+            this.submissionId = "ART" + articolo.getId();
+            
+            // Se è il Chair che sta facendo la revisione, aggiorna il titolo della finestra
+            if (com.cms.App.utenteAccesso != null && 
+                String.valueOf(com.cms.App.utenteAccesso.getId()).equals(reviewerId)) {
+                System.out.println("DEBUG ReviewSubmissionScreen: Chair sta revisionando l'articolo: " + this.submissionTitle);
+            }
+        }
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
      * Inizializza i componenti dell'interfaccia
      */
     private void initializeComponents() {
         // Configurazione finestra principale
-        setTitle("CMS - Revisione Sottomissione");
+        // Controlla se è il Chair che sta facendo la revisione
+        boolean isChairReviewing = com.cms.App.utenteAccesso != null && 
+                                   String.valueOf(com.cms.App.utenteAccesso.getId()).equals(reviewerId);
+        
+        String windowTitle = isChairReviewing ? 
+            "CMS - Revisione Sottomissione (Chair)" : 
+            "CMS - Revisione Sottomissione";
+            
+        setTitle(windowTitle);
         setSize(800, 700);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -284,8 +320,18 @@ public class ReviewSubmissionScreen extends JFrame {
         JLabel titleLabel = new JLabel("Compila i campi per la revisione");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         mainPanel.add(titleLabel);
+        
+        // Messaggio informativo se è il Chair che sta revisionando
+        
+        
+        // Sottotitolo con informazioni articolo
+        JLabel subtitleLabel = new JLabel("Articolo: " + submissionTitle);
+        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        subtitleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        mainPanel.add(subtitleLabel);
         
         // Bottoni azione
         mainPanel.add(createActionButtonsPanel());

@@ -804,7 +804,6 @@ public class DBMSBoundary {
             con.close();
             
             return conferenze;
-            
         } catch (SQLException e) {
             System.err.println("Errore SQL durante il recupero delle conferenze: " + e.getMessage());
             e.printStackTrace();
@@ -1205,7 +1204,7 @@ public class DBMSBoundary {
                     articoliRs.close();
                     articoliStmt.close();
                 } catch (SQLException e) {
-                    log.append("Errore nel recupero degli articoli: ").append(e.getMessage()).append("\n");
+                    log.append("Errore nel recupero degli articoli: " + e.getMessage() + "\n");
                     // Fallback: query semplificata
                     try {
                         String simpleQuery = "SELECT COUNT(*) as count FROM articoli WHERE idConferenza = ?";
@@ -2485,27 +2484,56 @@ public class DBMSBoundary {
 
     public void setInfoReview(String puntiDiforza, String puntiDiDebolezza, int livelloDiCompetenzaDelRevisore, String commentiPerAutori, int valutazione)
     {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO setInfoReview ===");
         Connection conn = null;
         PreparedStatement stmt = null;
         
         try {
             conn = getConnection();
             if (conn == null) {
-                System.err.println("Impossibile stabilire connessione al database");
+                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
                 return;
             }
             
             // Get current user ID from App.utenteAccesso
-            int idRevisore = com.cms.App.utenteAccesso.getId();
-            
-            // Get current article ID from session/context (will be set when opening ReviewSubmissionScreen)
-            // For now, we'll get it from a static variable that should be set when opening the review screen
+            int idUtenteCorrente = com.cms.App.utenteAccesso.getId();
             int idArticolo = getCurrentArticleId();
             
-            // Update the 'revisiona' table with review information
-            String query = "UPDATE revisiona SET puntiDiForza = ?, puntiDiDebolezza = ?, " +
-                          "livelloDiCompetenzaDelRevisore = ?, commentiPerAutori = ?, valutazione = ? " +
-                          "WHERE idRevisore = ? AND idArticolo = ?";
+            System.out.println("DEBUG DBMSBoundary: idUtenteCorrente=" + idUtenteCorrente + ", idArticolo=" + idArticolo);
+            
+            // Determina se l'utente corrente è il revisore principale o un sotto-revisore
+            // Controlla se l'utente ha ruolo "sotto-revisore" (ruolo 4) per questa conferenza
+            boolean isSottoRevisore = false;
+            
+            // Prima ottieni l'ID conferenza dall'articolo
+            int idConferenza = getIdConferenzaFromArticolo(idArticolo);
+            System.out.println("DEBUG DBMSBoundary: idConferenza=" + idConferenza);
+            
+            if (idConferenza > 0) {
+                String ruolo = getRuoloUtenteConferenza(idUtenteCorrente, idConferenza);
+                System.out.println("DEBUG DBMSBoundary: ruolo utente corrente=" + ruolo);
+                isSottoRevisore = "sotto-revisore".equals(ruolo);
+            }
+            
+            System.out.println("DEBUG DBMSBoundary: isSottoRevisore=" + isSottoRevisore);
+            
+            String query;
+            if (isSottoRevisore) {
+                // Se è un sotto-revisore, aggiorna i campi del sotto-revisore
+                // Trova la riga tramite idSottoRevisore nella tabella revisiona
+                query = "UPDATE revisiona SET puntiDiForza = ?, puntiDiDebolezza = ?, " +
+                       "livelloDiCompetenzaDelRevisore = ?, commentiPerAutori = ?, valutazione = ? " +
+                       "WHERE idSottoRevisore = ? AND idArticolo = ?";
+                
+                System.out.println("DEBUG DBMSBoundary: Aggiornamento SOTTO-REVISORE");
+            } else {
+                // Se è un revisore normale, aggiorna i campi del revisore principale
+                query = "UPDATE revisiona SET puntiDiForza = ?, puntiDiDebolezza = ?, " +
+                       "livelloDiCompetenzaDelRevisore = ?, commentiPerAutori = ?, valutazione = ? " +
+                       "WHERE idRevisore = ? AND idArticolo = ?";
+                
+                System.out.println("DEBUG DBMSBoundary: Aggiornamento REVISORE PRINCIPALE");
+            }
             
             stmt = conn.prepareStatement(query);
             stmt.setString(1, puntiDiforza);
@@ -2513,28 +2541,45 @@ public class DBMSBoundary {
             stmt.setInt(3, livelloDiCompetenzaDelRevisore);
             stmt.setString(4, commentiPerAutori);
             stmt.setInt(5, valutazione);
-            stmt.setInt(6, idRevisore);
+            stmt.setInt(6, idUtenteCorrente); // Può essere idRevisore o idSottoRevisore a seconda del caso
             stmt.setInt(7, idArticolo);
+            
+            System.out.println("DEBUG DBMSBoundary: Eseguendo query: " + query);
+            System.out.println("DEBUG DBMSBoundary: Parametri: ['" + puntiDiforza + "', '" + puntiDiDebolezza + "', " + 
+                             livelloDiCompetenzaDelRevisore + ", '" + commentiPerAutori + "', " + valutazione + 
+                             ", " + idUtenteCorrente + ", " + idArticolo + "]");
             
             int rowsUpdated = stmt.executeUpdate();
             
             if (rowsUpdated > 0) {
-                System.out.println("Revisione aggiornata con successo per revisore " + idRevisore + " e articolo " + idArticolo);
+                System.out.println("DEBUG DBMSBoundary: Revisione aggiornata con successo per " + 
+                                 (isSottoRevisore ? "sotto-revisore" : "revisore") + " " + idUtenteCorrente + 
+                                 " e articolo " + idArticolo);
             } else {
-                System.err.println("Nessuna riga aggiornata. Verificare che esista un record nella tabella 'revisiona' per revisore " + idRevisore + " e articolo " + idArticolo);
+                System.err.println("DEBUG DBMSBoundary: ERRORE - Nessuna riga aggiornata. Verificare che esista un record nella tabella 'revisiona' per " + 
+                                 (isSottoRevisore ? "idSottoRevisore" : "idRevisore") + "=" + idUtenteCorrente + 
+                                 " e idArticolo=" + idArticolo);
+                
+                // Debug aggiuntivo: mostra i record esistenti
+                debugRecordsRevisiona(idArticolo);
             }
             
         } catch (SQLException e) {
-            System.err.println("Errore durante l'aggiornamento della revisione: " + e.getMessage());
+            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante l'aggiornamento della revisione: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("DEBUG DBMSBoundary: ERRORE generico durante l'aggiornamento della revisione: " + e.getMessage());
             e.printStackTrace();
         } finally {
             try {
                 if (stmt != null) stmt.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
+                System.err.println("DEBUG DBMSBoundary: ERRORE durante la chiusura delle risorse: " + e.getMessage());
             }
         }
+        
+        System.out.println("DEBUG DBMSBoundary: === FINE setInfoReview ===");
     }
     
 
@@ -2546,6 +2591,7 @@ public class DBMSBoundary {
     public void insertNotifica(String text, int conferenceId, int receiverId, int type, String dettagli) {
         try
         {
+            System.out.println("DEBUG: ID conferenza passato: "+conferenceId);
             Connection con=getConnection();
             PreparedStatement stmt=con.prepareStatement("INSERT INTO notifiche VALUES (NULL, ?, ?, ?, ?, ?, NULL)");
             stmt.setInt(1, conferenceId);
@@ -2940,8 +2986,8 @@ public class DBMSBoundary {
             System.out.println("3. La tabella keywordsArticoli non ha dati per questo articolo");
         } else {
             System.out.println("Keywords trovate per l'articolo " + idArticolo + ":");
-            for (int i = 0; i < keywords.size(); i++) {
-                System.out.println("  " + (i + 1) + ". " + keywords.get(i));
+            for (String keyword : keywords) {
+                System.out.println("  - " + keyword);
             }
         }
         
@@ -3104,5 +3150,356 @@ public class DBMSBoundary {
         System.out.println("DEBUG: === FINE VERIFICA TUTTE LE NOTIFICHE ===");
     }
 
-    // ...existing methods...
+    /**
+     * Aggiorna o inserisce il ruolo di un utente per una specifica conferenza
+     * @param idUtente L'ID dell'utente
+     * @param idConferenza L'ID della conferenza
+     * @param nuovoRuolo Il nuovo ruolo numerico (4 = sotto-revisore)
+     * @return true se l'operazione è riuscita, false altrimenti
+     */
+    public boolean aggiornaRuoloUtente(int idUtente, int idConferenza, int nuovoRuolo) {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO aggiornaRuoloUtente ===");
+        System.out.println("DEBUG DBMSBoundary: idUtente=" + idUtente + ", idConferenza=" + idConferenza + ", nuovoRuolo=" + nuovoRuolo);
+        
+        Connection con = null;
+        PreparedStatement checkStmt = null;
+        PreparedStatement updateStmt = null;
+        PreparedStatement insertStmt = null;
+        ResultSet rs = null;
+        
+        try {
+            con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            
+            // Prima verifica se esiste già un record per questo utente e conferenza
+            String checkQuery = "SELECT ruolo FROM ruoli WHERE idUtente = ? AND idConferenza = ?";
+            checkStmt = con.prepareStatement(checkQuery);
+            checkStmt.setInt(1, idUtente);
+            checkStmt.setInt(2, idConferenza);
+            rs = checkStmt.executeQuery();
+            
+            if (rs.next()) {
+                // Record esistente: UPDATE
+                int ruoloCorrente = rs.getInt("ruolo");
+                System.out.println("DEBUG DBMSBoundary: Record esistente trovato. Ruolo corrente: " + ruoloCorrente);
+                
+                String updateQuery = "UPDATE ruoli SET ruolo = ? WHERE idUtente = ? AND idConferenza = ?";
+                updateStmt = con.prepareStatement(updateQuery);
+                updateStmt.setInt(1, nuovoRuolo);
+                updateStmt.setInt(2, idUtente);
+                updateStmt.setInt(3, idConferenza);
+                
+                int rowsUpdated = updateStmt.executeUpdate();
+                System.out.println("DEBUG DBMSBoundary: Righe aggiornate: " + rowsUpdated);
+                
+                if (rowsUpdated > 0) {
+                    System.out.println("DEBUG DBMSBoundary: Ruolo aggiornato con successo");
+                    return true;
+                }
+            } else {
+                // Record non esistente: INSERT
+                System.out.println("DEBUG DBMSBoundary: Nessun record esistente, inserimento nuovo ruolo");
+                
+                String insertQuery = "INSERT INTO ruoli (idUtente, idConferenza, ruolo, dataRichiesta, dataRisposta) VALUES (?, ?, ?, CURRENT_DATE, CURRENT_DATE)";
+                insertStmt = con.prepareStatement(insertQuery);
+                insertStmt.setInt(1, idUtente);
+                insertStmt.setInt(2, idConferenza);
+                insertStmt.setInt(3, nuovoRuolo);
+                
+                int rowsInserted = insertStmt.executeUpdate();
+                System.out.println("DEBUG DBMSBoundary: Righe inserite: " + rowsInserted);
+                
+                if (rowsInserted > 0) {
+                    System.out.println("DEBUG DBMSBoundary: Nuovo ruolo inserito con successo");
+                    return true;
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("DEBUG DBMSBoundary: Errore SQL durante aggiornaRuoloUtente: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("DEBUG DBMSBoundary: Errore generico durante aggiornaRuoloUtente: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (checkStmt != null) checkStmt.close();
+                if (updateStmt != null) updateStmt.close();
+                if (insertStmt != null) insertStmt.close();
+                if (con != null) con.close();
+            } catch (SQLException e) {
+                System.err.println("DEBUG DBMSBoundary: Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: aggiornaRuoloUtente fallita");
+        System.out.println("DEBUG DBMSBoundary: === FINE aggiornaRuoloUtente ===");
+        return false;
+    }
+
+    /**
+     * Assegna un sotto-revisore a un articolo specifico
+     * Aggiorna o inserisce un record nella tabella revisiona con idSottoRevisore
+     * @param idArticolo L'ID dell'articolo
+     * @param idRevisore L'ID del revisore principale che convoca il sotto-revisore
+     * @param idSottoRevisore L'ID del sotto-revisore da assegnare
+     * @return true se l'operazione è riuscita, false altrimenti
+     */
+    public boolean assegnaSottoRevisoreArticolo(int idArticolo, int idRevisore, int idSottoRevisore) {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO assegnaSottoRevisoreArticolo ===");
+        System.out.println("DEBUG DBMSBoundary: idArticolo=" + idArticolo + ", idRevisore=" + idRevisore + ", idSottoRevisore=" + idSottoRevisore);
+        
+        Connection con = null;
+        PreparedStatement checkStmt = null;
+        PreparedStatement updateStmt = null;
+        PreparedStatement insertStmt = null;
+        ResultSet rs = null;
+        
+        try {
+            con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            
+            // Prima verifica se esiste già un record per questo revisore e articolo
+            String checkQuery = "SELECT idSottoRevisore FROM revisiona WHERE idArticolo = ? AND idRevisore = ?";
+            checkStmt = con.prepareStatement(checkQuery);
+            checkStmt.setInt(1, idArticolo);
+            checkStmt.setInt(2, idRevisore);
+            rs = checkStmt.executeQuery();
+            
+            if (rs.next()) {
+                // Record esistente: UPDATE
+                Integer sottoRevisoreCorrente = rs.getObject("idSottoRevisore", Integer.class);
+                System.out.println("DEBUG DBMSBoundary: Record esistente trovato. SottoRevisore corrente: " + sottoRevisoreCorrente);
+                
+                String updateQuery = "UPDATE revisiona SET idSottoRevisore = ? WHERE idArticolo = ? AND idRevisore = ?";
+                updateStmt = con.prepareStatement(updateQuery);
+                updateStmt.setInt(1, idSottoRevisore);
+                updateStmt.setInt(2, idArticolo);
+                updateStmt.setInt(3, idRevisore);
+                
+                int rowsUpdated = updateStmt.executeUpdate();
+                System.out.println("DEBUG DBMSBoundary: Righe aggiornate: " + rowsUpdated);
+                
+                if (rowsUpdated > 0) {
+                    System.out.println("DEBUG DBMSBoundary: SottoRevisore assegnato con successo");
+                    return true;
+                }
+            } else {
+                // Record non esistente: INSERT
+                System.out.println("DEBUG DBMSBoundary: Nessun record esistente, inserimento nuova assegnazione");
+                
+                String insertQuery = "INSERT INTO revisiona (idArticolo, idRevisore, idSottoRevisore) VALUES (?, ?, ?)";
+                insertStmt = con.prepareStatement(insertQuery);
+                insertStmt.setInt(1, idArticolo);
+                insertStmt.setInt(2, idRevisore);
+                insertStmt.setInt(3, idSottoRevisore);
+                
+                int rowsInserted = insertStmt.executeUpdate();
+                System.out.println("DEBUG DBMSBoundary: Righe inserite: " + rowsInserted);
+                
+                if (rowsInserted > 0) {
+                    System.out.println("DEBUG DBMSBoundary: Nuova assegnazione sotto-revisore inserita con successo");
+                    return true;
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("DEBUG DBMSBoundary: Errore SQL durante assegnaSottoRevisoreArticolo: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("DEBUG DBMSBoundary: Errore generico durante assegnaSottoRevisoreArticolo: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (checkStmt != null) checkStmt.close();
+                if (updateStmt != null) updateStmt.close();
+                if (insertStmt != null) insertStmt.close();
+                if (con != null) con.close();
+            } catch (SQLException e) {
+                System.err.println("DEBUG DBMSBoundary: Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: assegnaSottoRevisoreArticolo fallita");
+        System.out.println("DEBUG DBMSBoundary: === FINE assegnaSottoRevisoreArticolo ===");
+        return false;
+    }
+
+    /**
+     * Ottiene l'articolo assegnato a un sotto-revisore per una conferenza specifica
+     * @param idSottoRevisore L'ID del sotto-revisore
+     * @param idConferenza L'ID della conferenza
+     * @return L'articolo assegnato al sotto-revisore, null se non trovato
+     */
+    public ArticoloE getArticoloAssegnatoSottoRevisore(int idSottoRevisore, int idConferenza) {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getArticoloAssegnatoSottoRevisore ===");
+        System.out.println("DEBUG DBMSBoundary: idSottoRevisore=" + idSottoRevisore + ", idConferenza=" + idConferenza);
+        
+        Connection con = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            con = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            
+            // Query per ottenere l'articolo assegnato al sotto-revisore per una specifica conferenza
+            String query = "SELECT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, a.stato, " +
+                          "a.idConferenza, a.ultimaModifica " +
+                          "FROM articoli a " +
+                          "INNER JOIN revisiona r ON a.id = r.idArticolo " +
+                          "WHERE r.idSottoRevisore = ? AND a.idConferenza = ?";
+            
+            stmt = con.prepareStatement(query);
+            stmt.setInt(1, idSottoRevisore);
+            stmt.setInt(2, idConferenza);
+            rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setAbstractText(rs.getString("abstract"));
+                articolo.setFileArticolo(rs.getBytes("fileArticolo"));
+                articolo.setAllegato(rs.getBytes("allegato"));
+                articolo.setStato(rs.getString("stato"));
+                articolo.setIdConferenza(rs.getInt("idConferenza"));
+                
+                java.sql.Date sqlDate = rs.getDate("ultimaModifica");
+                if (sqlDate != null) {
+                    articolo.setUltimaModifica(sqlDate.toLocalDate());
+                }
+                
+                System.out.println("DEBUG DBMSBoundary: Articolo trovato: " + articolo.getTitolo());
+                return articolo;
+            } else {
+                System.out.println("DEBUG DBMSBoundary: Nessun articolo assegnato al sotto-revisore");
+                return null;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("DEBUG DBMSBoundary: Errore SQL durante getArticoloAssegnatoSottoRevisore: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("DEBUG DBMSBoundary: Errore generico durante getArticoloAssegnatoSottoRevisore: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // Chiusura delle risorse
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (con != null) con.close();
+            } catch (SQLException e) {
+                System.err.println("DEBUG DBMSBoundary: Errore durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: === FINE getArticoloAssegnatoSottoRevisore ===");
+        return null;
+    }
+
+    /**
+     * Ottiene l'ID della conferenza a partire dall'ID dell'articolo
+     */
+    private int getIdConferenzaFromArticolo(int idArticolo) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
+                return -1;
+            }
+            
+            String query = "SELECT idConferenza FROM articoli WHERE id = ?";
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idArticolo);
+            rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                int idConferenza = rs.getInt("idConferenza");
+                System.out.println("DEBUG DBMSBoundary: Trovata idConferenza=" + idConferenza + " per idArticolo=" + idArticolo);
+                return idConferenza;
+            } else {
+                System.err.println("DEBUG DBMSBoundary: Nessuna conferenza trovata per idArticolo=" + idArticolo);
+                return -1;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante getIdConferenzaFromArticolo: " + e.getMessage());
+            e.printStackTrace();
+            return -1;
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("DEBUG DBMSBoundary: ERRORE durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Debug dei record nella tabella revisiona per un articolo specifico
+     */
+    private void debugRecordsRevisiona(int idArticolo) {
+        System.out.println("DEBUG DBMSBoundary: === DEBUG RECORDS REVISIONA per idArticolo=" + idArticolo + " ===");
+        
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            if (conn == null) {
+                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
+                return;
+            }
+            
+            String query = "SELECT * FROM revisiona WHERE idArticolo = ?";
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idArticolo);
+            rs = stmt.executeQuery();
+            
+            boolean hasRecords = false;
+            while (rs.next()) {
+                hasRecords = true;
+                System.out.println("DEBUG DBMSBoundary: Record trovato:");
+                System.out.println("  - id=" + rs.getInt("id"));
+                System.out.println("  - idRevisore=" + rs.getInt("idRevisore"));
+                System.out.println("  - idArticolo=" + rs.getInt("idArticolo"));
+                System.out.println("  - idSottoRevisore=" + rs.getObject("idSottoRevisore"));
+                System.out.println("  - puntiDiForza='" + rs.getString("puntiDiForza") + "'");
+                System.out.println("  - puntiDiDebolezza='" + rs.getString("puntiDiDebolezza") + "'");
+                System.out.println("  - commentiPerAutori='" + rs.getString("commentiPerAutori") + "'");
+                System.out.println("  - valutazione=" + rs.getObject("valutazione"));
+                System.out.println("  - livelloDiCompetenzaDelRevisore=" + rs.getObject("livelloDiCompetenzaDelRevisore"));
+                System.out.println("  ---");
+            }
+            
+            if (!hasRecords) {
+                System.out.println("DEBUG DBMSBoundary: Nessun record trovato nella tabella revisiona per idArticolo=" + idArticolo);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante debugRecordsRevisiona: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("DEBUG DBMSBoundary: ERRORE durante la chiusura delle risorse: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: === FINE DEBUG RECORDS REVISIONA ===");
+    }
+
+    // ...existing code...
 }

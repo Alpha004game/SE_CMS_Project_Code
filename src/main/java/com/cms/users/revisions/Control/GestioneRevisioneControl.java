@@ -769,33 +769,49 @@ public class GestioneRevisioneControl {
             // Ottieni informazioni sul revisore corrente
             String nomeRevisore = App.utenteAccesso != null ? App.utenteAccesso.getUsername() : "Revisore";
             
-            // Ottieni nome della conferenza
+            // Ottieni nome della conferenza e assicurati che idConferenza sia corretto
             String nomeConferenza = "Conferenza";
-            if (idConferenza > 0) {
-                com.cms.users.Entity.ConferenzaE conferenza = App.dbms.getConferenza(idConferenza);
+            int conferenceId = articolo.getIdConferenza(); // Usa sempre l'ID dall'articolo
+            
+            if (conferenceId > 0) {
+                com.cms.users.Entity.ConferenzaE conferenza = App.dbms.getConferenza(conferenceId);
                 if (conferenza != null) {
                     nomeConferenza = conferenza.getTitolo();
                 }
-            } else if (articolo.getIdConferenza() > 0) {
-                com.cms.users.Entity.ConferenzaE conferenza = App.dbms.getConferenza(articolo.getIdConferenza());
-                if (conferenza != null) {
-                    nomeConferenza = conferenza.getTitolo();
-                    idConferenza = articolo.getIdConferenza(); // Aggiorna l'ID conferenza
-                }
+                // Aggiorna l'ID conferenza locale se necessario
+                this.idConferenza = conferenceId;
+            } else {
+                System.err.println("ATTENZIONE: ID conferenza non valido dall'articolo: " + conferenceId);
+                throw new Exception("ID conferenza non valido: " + conferenceId);
             }
             
             // Prepara il testo della notifica
             String testoNotifica = "Sei stato invitato come ruolo di sottorevisore per l'articolo " + 
                                  articolo.getTitolo() + " dal revisore " + nomeRevisore;
             
-            // Inserisci la notifica nel database
-            App.dbms.insertNotifica(testoNotifica, idConferenza, idSottoRevisore, 1, "add-subRev");
+            System.out.println("DEBUG: Inserimento notifica - ID Conferenza: " + conferenceId + 
+                             ", ID Sotto-revisore: " + idSottoRevisore);
+            
+            // Inserisci la notifica nel database usando l'ID conferenza corretto
+            App.dbms.insertNotifica(testoNotifica, conferenceId, idSottoRevisore, 1, "add-subRev");
+            
+            // Assegna il sotto-revisore all'articolo nella tabella revisiona
+            int idRevisoreCorrente = App.utenteAccesso != null ? App.utenteAccesso.getId() : 1;
+            boolean assegnazioneRiuscita = App.dbms.assegnaSottoRevisoreArticolo(currentArticleId, idRevisoreCorrente, idSottoRevisore);
+            
+            if (!assegnazioneRiuscita) {
+                System.err.println("ATTENZIONE: Errore durante l'assegnazione del sotto-revisore all'articolo");
+            } else {
+                System.out.println("DEBUG: Sotto-revisore assegnato con successo all'articolo " + currentArticleId);
+            }
             
             // Prepara e invia l'email
             String emailSottoRevisore = sottoRevisore.getEmail();
             String subject = "Invito per sotto-revisione";
             String messageText = "Il revisore " + nomeRevisore + " ti ha invitato ad essere sottoRevisore per l'articolo " + 
                                 articolo.getTitolo() + " della conferenza " + nomeConferenza;
+            
+            System.out.println("DEBUG: Invio email a: " + emailSottoRevisore + " per conferenza ID: " + conferenceId);
             
             boolean emailInviata = com.cms.users.Commons.UtilsControl.sendMail(
                 emailSottoRevisore, 

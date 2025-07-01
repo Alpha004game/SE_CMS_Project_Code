@@ -211,6 +211,47 @@ public class NotificationControl {
             // Aggiorna anche l'oggetto locale
             notificaSelezionata.setStatus("accettato");
             
+            // Verifica se si tratta di una notifica per aggiungere un sotto-revisore
+            String dettagli = notificaSelezionata.getDettagli();
+            System.out.println("DEBUG NotificationControl: Dettagli notifica: '" + dettagli + "'");
+            
+            if ("add-subRev".equals(dettagli)) {
+                System.out.println("DEBUG NotificationControl: Rilevata notifica add-subRev, aggiornamento ruolo utente");
+                
+                // Ottieni i dati necessari per l'aggiornamento del ruolo
+                int idUtente = notificaSelezionata.getIdUtente();
+                int idConferenza = notificaSelezionata.getIdConferenza();
+                int nuovoRuolo = 4; // 4 = sotto-revisore
+                
+                System.out.println("DEBUG NotificationControl: Chiamata aggiornaRuoloUtente(" + idUtente + ", " + idConferenza + ", " + nuovoRuolo + ")");
+                
+                // Aggiorna il ruolo nel database
+                boolean aggiornamentoRiuscito = App.dbms.aggiornaRuoloUtente(idUtente, idConferenza, nuovoRuolo);
+                
+                if (aggiornamentoRiuscito) {
+                    System.out.println("DEBUG NotificationControl: Ruolo aggiornato con successo");
+                    
+                    // Mostra un messaggio di conferma all'utente
+                    javax.swing.JOptionPane.showMessageDialog(
+                        null, 
+                        "Congratulazioni! Sei stato nominato sotto-revisore per questa conferenza.\n" +
+                        "Ora potrai accedere alle funzionalità di revisione degli articoli.",
+                        "Ruolo Aggiornato", 
+                        javax.swing.JOptionPane.INFORMATION_MESSAGE
+                    );
+                } else {
+                    System.err.println("DEBUG NotificationControl: ERRORE - Aggiornamento ruolo fallito");
+                    
+                    // Mostra un messaggio di errore
+                    javax.swing.JOptionPane.showMessageDialog(
+                        null, 
+                        "Errore durante l'aggiornamento del ruolo. Contatta l'amministratore.",
+                        "Errore", 
+                        javax.swing.JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+            
             System.out.println("DEBUG NotificationControl: Accettazione registrata con successo");
             
         } catch (Exception e) {
