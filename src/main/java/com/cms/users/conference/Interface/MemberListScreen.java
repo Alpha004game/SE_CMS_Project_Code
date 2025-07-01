@@ -67,10 +67,10 @@ public class MemberListScreen extends JFrame {
     private List<UserData> userData;
     private boolean hasData;
     
-    // Statistiche per Chair
-    private int totalReviewers = 15;
-    private int neededReviewers = 20;
-    private int toSummonReviewers = 5;
+    // Statistiche per Chair (verranno calcolate dinamicamente)
+    private int totalReviewers = 0;
+    private int neededReviewers = 0;
+    private int toSummonReviewers = 0;
     private ConferenceControl conferenceControl;
     /**
      * Costruttore di default
@@ -88,6 +88,7 @@ public class MemberListScreen extends JFrame {
         this.conferenceControl = control;
         
         setupScreenTitle();
+        loadReviewerStatistics(); // Carica le statistiche dinamiche
         initializeData();
         initializeComponents();
         setupLayout();
@@ -178,6 +179,45 @@ public class MemberListScreen extends JFrame {
         } catch (Exception e) {
             e.printStackTrace();
             hasData = false;
+        }
+    }
+    
+    /**
+     * Carica le statistiche dinamiche dei revisori dal control
+     * Implementa la separazione boundary/control
+     */
+    private void loadReviewerStatistics() {
+        try {
+            if (conferenceControl != null && ConferenceControl.getConferenza() != null) {
+                // Ottieni le statistiche dinamiche dal control
+                ConferenceControl.ReviewerStats stats = conferenceControl.ottieniStatisticheRevisori();
+                
+                // Aggiorna i valori locali
+                this.totalReviewers = stats.getAttuali();
+                this.neededReviewers = stats.getNecessari();
+                this.toSummonReviewers = stats.getMancanti();
+                
+                System.out.println("Statistiche revisori caricate:");
+                System.out.println("- Attuali: " + totalReviewers);
+                System.out.println("- Necessari: " + neededReviewers);
+                System.out.println("- Mancanti: " + toSummonReviewers);
+                
+            } else {
+                // Valori di default se non è possibile calcolare
+                this.totalReviewers = 0;
+                this.neededReviewers = 0;
+                this.toSummonReviewers = 0;
+                
+                System.out.println("Impossibile caricare statistiche revisori: controllo o conferenza null");
+            }
+        } catch (Exception e) {
+            System.err.println("Errore durante il caricamento delle statistiche revisori: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Valori di default in caso di errore
+            this.totalReviewers = 0;
+            this.neededReviewers = 0;
+            this.toSummonReviewers = 0;
         }
     }
     
@@ -286,6 +326,21 @@ public class MemberListScreen extends JFrame {
     }
     
     /**
+     * Aggiorna le etichette delle statistiche con i valori correnti
+     */
+    private void updateStatsLabels() {
+        if (totalReviewersLabel != null) {
+            totalReviewersLabel.setText("Numero revisori totali: " + totalReviewers);
+        }
+        if (neededReviewersLabel != null) {
+            neededReviewersLabel.setText("Numero revisori necessari: " + neededReviewers);
+        }
+        if (toSummonReviewersLabel != null) {
+            toSummonReviewersLabel.setText("Numero revisori da convocare: " + toSummonReviewers);
+        }
+    }
+    
+    /**
      * Configura il layout dell'interfaccia
      */
     private void setupLayout() {
@@ -370,6 +425,9 @@ public class MemberListScreen extends JFrame {
      * Aggiorna la visualizzazione in base ai dati
      */
     private void updateDisplay() {
+        // Aggiorna le statistiche se necessario
+        updateStatsLabels();
+        
         centerPanel.removeAll();
         
         if (!hasData) {
@@ -636,7 +694,21 @@ public class MemberListScreen extends JFrame {
     }
     
     /**
-     * Imposta le statistiche dei revisori (per Chair)
+     * Ricarica le statistiche dei revisori dal control
+     * Metodo pubblico per aggiornare dinamicamente le statistiche
+     */
+    public void refreshReviewerStatistics() {
+        loadReviewerStatistics();
+        updateStatsLabels();
+        if (statsPanel != null) {
+            statsPanel.revalidate();
+            statsPanel.repaint();
+        }
+    }
+    
+    /**
+     * Imposta le statistiche dei revisori (per Chair) - metodo legacy
+     * Preferire l'uso di refreshReviewerStatistics() per dati dinamici
      */
     public void setReviewerStats(int total, int needed, int toSummon) {
         this.totalReviewers = total;
