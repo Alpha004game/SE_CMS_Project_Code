@@ -3,11 +3,18 @@ package com.cms.users.conference.Control;
 import com.cms.App;
 import com.cms.users.Commons.SuccessScreen;
 import com.cms.users.Commons.UtilsControl;
+import com.cms.users.Entity.ArticoloE;
 import com.cms.users.Entity.ConferenzaE;
 import com.cms.users.Entity.UtenteE;
 import com.cms.users.conference.Interface.ConferenceManagementScreen;
 import com.cms.users.conference.Interface.MemberListScreen;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 // Import per iTextPDF
 import com.itextpdf.text.Document;
@@ -1015,79 +1022,137 @@ public class ConferenceControl {
     }
     
     /**
-     * Ottiene la lista dei revisori per la conferenza dalla DBMSBoundary
-     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary
+     * Apre la schermata di gestione dei revisori per gli articoli
+     * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl -> ReviewerScreen
+     * @param idConferenza ID della conferenza
      */
-    public java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> ottieniRevisori(int idConferenza) {
-        java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> reviewerDataList = 
-            new java.util.ArrayList<>();
-        
+    public void apriGestioneRevisori(int idConferenza) {
         try {
-            // Ottieni revisori dal database tramite DBMSBoundary
-            java.util.LinkedList<UtenteE> revisori = App.dbms.getRevisori(idConferenza);
-            
-            if (revisori != null) {
-                for (UtenteE revisore : revisori) {
-                    com.cms.users.conference.Interface.ReviewerScreen.ReviewerData reviewerData = 
-                        new com.cms.users.conference.Interface.ReviewerScreen.ReviewerData(
-                            String.valueOf(revisore.getId()),
-                            revisore.getUsername(),
-                            revisore.getEmail(),
-                            "N/A" // UtenteE non ha keywords specifiche, utilizziamo un valore di default
-                        );
-                    reviewerDataList.add(reviewerData);
-                }
+            // Carica i dati della conferenza se necessario
+            if (conferenzaSelezionata == null || conferenzaSelezionata.getId() != idConferenza) {
+                ConferenzaE conferenza = (ConferenzaE) App.dbms.getConferenceInfo(idConferenza);
+                setConferenza(conferenza);
             }
             
-            System.out.println("Caricati " + reviewerDataList.size() + " revisori per conferenza ID: " + idConferenza);
+            System.out.println("Apertura schermata gestione revisori per conferenza ID: " + idConferenza);
+            
+            // Crea la ReviewerScreen
+            com.cms.users.conference.Interface.ReviewerScreen reviewerScreen = 
+                new com.cms.users.conference.Interface.ReviewerScreen();
+            
+            // Configura la ReviewerScreen
+            reviewerScreen.setConferenceControl(this);
+            reviewerScreen.setConferenceId(String.valueOf(idConferenza));
+            
+            // Carica i dati reali dal database
+            reviewerScreen.loadRealData();
+            
+            // Mostra la schermata
+            reviewerScreen.setVisible(true);
             
         } catch (Exception e) {
-            System.err.println("Errore durante il caricamento dei revisori: " + e.getMessage());
+            System.err.println("Errore durante l'apertura della schermata di gestione revisori: " + e.getMessage());
             e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante l'apertura della schermata di gestione revisori: " + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
         }
-        
-        return reviewerDataList;
     }
     
     /**
-     * Ottiene la lista degli articoli per la conferenza dalla DBMSBoundary
-     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary
+     * Ottiene la lista dei revisori per la ReviewerScreen
+     * @param idConferenza ID della conferenza
+     * @return Lista di ReviewerData contenente le informazioni dei revisori
      */
-    public java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> ottieniArticoli(int idConferenza) {
-        java.util.List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> articleDataList = 
-            new java.util.ArrayList<>();
-        
+    public List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> ottieniRevisori(int idConferenza) {
         try {
-            // Ottieni articoli dal database tramite DBMSBoundary
-            java.util.LinkedList<com.cms.users.Entity.ArticoloE> articoli = App.dbms.getListaArticoli(idConferenza);
+            List<com.cms.users.conference.Interface.ReviewerScreen.ReviewerData> result = new ArrayList<>();
             
-            if (articoli != null) {
-                for (com.cms.users.Entity.ArticoloE articolo : articoli) {
-                    // Converti le keywords da LinkedList<String> a String
-                    String keywordsString = "N/A";
-                    if (articolo.getKeywords() != null && !articolo.getKeywords().isEmpty()) {
-                        keywordsString = String.join(", ", articolo.getKeywords());
-                    }
+            // Ottiene i revisori dalla DBMSBoundary
+            LinkedList<UtenteE> revisori = App.dbms.getRevisori(idConferenza);
+            
+            if (revisori != null) {
+                for (UtenteE revisore : revisori) {
+                    // Converte UtenteE in ReviewerData
+                    String id = String.valueOf(revisore.getId());
+                    String name = revisore.getUsername();
+                    String email = revisore.getEmail();
+                    String expertise = ""; // L'expertise non è disponibile nel modello UtenteE
                     
-                    com.cms.users.conference.Interface.ReviewerScreen.ArticleData articleData = 
-                        new com.cms.users.conference.Interface.ReviewerScreen.ArticleData(
-                            String.valueOf(articolo.getId()),
-                            articolo.getTitolo(),
-                            getAuthorsString(articolo),
-                            keywordsString
-                        );
-                    articleDataList.add(articleData);
+                    result.add(new com.cms.users.conference.Interface.ReviewerScreen.ReviewerData(id, name, email, expertise));
                 }
             }
             
-            System.out.println("Caricati " + articleDataList.size() + " articoli per conferenza ID: " + idConferenza);
+            return result;
             
         } catch (Exception e) {
-            System.err.println("Errore durante il caricamento degli articoli: " + e.getMessage());
+            System.err.println("Errore durante il recupero dei revisori: " + e.getMessage());
             e.printStackTrace();
+            return new ArrayList<>();
         }
-        
-        return articleDataList;
+    }
+    
+    /**
+     * Ottiene la lista degli articoli per la ReviewerScreen
+     * @param idConferenza ID della conferenza
+     * @return Lista di ArticleData contenente le informazioni degli articoli
+     */
+    public List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> ottieniArticoli(int idConferenza) {
+        try {
+            List<com.cms.users.conference.Interface.ReviewerScreen.ArticleData> result = new ArrayList<>();
+            
+            // Ottiene gli articoli dalla DBMSBoundary
+            LinkedList<ArticoloE> articoli = App.dbms.getListaArticoli(idConferenza);
+            
+            if (articoli != null) {
+                for (ArticoloE articolo : articoli) {
+                    // Converte ArticoloE in ArticleData
+                    String id = String.valueOf(articolo.getId());
+                    String title = articolo.getTitolo();
+                    
+                    // Ottiene autori dell'articolo
+                    LinkedList<UtenteE> autori = App.dbms.getArticleAuthors(articolo.getId());
+                    StringBuilder authorsBuilder = new StringBuilder();
+                    
+                    if (autori != null && !autori.isEmpty()) {
+                        for (int i = 0; i < autori.size(); i++) {
+                            authorsBuilder.append(autori.get(i).getUsername());
+                            if (i < autori.size() - 1) {
+                                authorsBuilder.append(", ");
+                            }
+                        }
+                    } else {
+                        authorsBuilder.append("N/D");
+                    }
+                    
+                    // Ottiene keywords dell'articolo
+                    ArrayList<String> keywords = App.dbms.getKeywordsArticolo(articolo.getId());
+                    StringBuilder keywordsBuilder = new StringBuilder();
+                    
+                    if (keywords != null && !keywords.isEmpty()) {
+                        for (int i = 0; i < keywords.size(); i++) {
+                            keywordsBuilder.append(keywords.get(i));
+                            if (i < keywords.size() - 1) {
+                                keywordsBuilder.append(", ");
+                            }
+                        }
+                    } else {
+                        keywordsBuilder.append("N/D");
+                    }
+                    
+                    result.add(new com.cms.users.conference.Interface.ReviewerScreen.ArticleData(
+                        id, title, authorsBuilder.toString(), keywordsBuilder.toString()));
+                }
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il recupero degli articoli: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
     }
     
     /**
@@ -1108,7 +1173,7 @@ public class ConferenceControl {
                     int idArticolo = Integer.parseInt(articles.get(j).id);
                     
                     // Verifica se esiste l'assegnazione nel database
-                    boolean assegnato = verificaAssegnazioneEsistente(idArticolo, idRevisore);
+                    boolean assegnato = App.dbms.verificaAssegnazioneEsistente(idArticolo, idRevisore);
                     assignments[i][j] = assegnato;
                     
                     if (assegnato) {
@@ -1141,50 +1206,7 @@ public class ConferenceControl {
      * Verifica se esiste un'assegnazione tra un articolo e un revisore
      * Controlla direttamente nel database nella tabella revisiona
      */
-    private boolean verificaAssegnazioneEsistente(int idArticolo, int idRevisore) {
-        try {
-            // Usa una query diretta per verificare l'esistenza dell'assegnazione
-            java.sql.Connection conn = null;
-            java.sql.PreparedStatement stmt = null;
-            java.sql.ResultSet rs = null;
-            
-            try {
-                // Accede direttamente al database (stessa connessione di DBMSBoundary)
-                conn = java.sql.DriverManager.getConnection(
-                    "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS", 
-                    "ids", 
-                    "IngegneriaDelSoftware"
-                );
-                
-                String sql = "SELECT COUNT(*) FROM revisiona WHERE idRevisore = ? AND idArticolo = ?";
-                stmt = conn.prepareStatement(sql);
-                stmt.setInt(1, idRevisore);
-                stmt.setInt(2, idArticolo);
-                
-                rs = stmt.executeQuery();
-                if (rs.next()) {
-                    boolean assegnato = rs.getInt(1) > 0;
-                    if (assegnato) {
-                        System.out.println("Assegnazione trovata nel DB: Revisore " + idRevisore + 
-                                         " -> Articolo " + idArticolo);
-                    }
-                    return assegnato;
-                }
-                
-            } finally {
-                if (rs != null) rs.close();
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
-            }
-            
-            return false;
-            
-        } catch (Exception e) {
-            System.err.println("Errore nella verifica dell'assegnazione per articolo " + idArticolo + 
-                             " e revisore " + idRevisore + ": " + e.getMessage());
-            return false;
-        }
-    }
+    
     
     /**
      * Assegna automaticamente i revisori agli articoli
@@ -1233,14 +1255,20 @@ public class ConferenceControl {
                 for (int i = 0; i < Math.min(numeroRevisoriPerArticolo, revisoriDisponibili.size()); i++) {
                     UtenteE revisore = revisoriDisponibili.get(i);
                     
-                    // Usa setRevisoreArticolo della DBMSBoundary per salvare l'assegnazione
-                    App.dbms.setRevisoreArticolo(articolo.getId(), revisore.getId());
-                    
-                    revisoriAssegnati.add(revisore);
-                    assegnazioniEffettuate++;
-                    
-                    System.out.println("Assegnato revisore " + revisore.getUsername() + 
-                                     " all'articolo " + articolo.getTitolo());
+                    // Verifica se l'assegnazione esiste già
+                    if (!App.dbms.verificaAssegnazioneEsistente(articolo.getId(), revisore.getId())) {
+                        // Usa il nostro metodo setRevisoreArticolo che fa già il controllo di duplicati
+                        this.setRevisoreArticolo(articolo.getId(), revisore.getId());
+                        
+                        revisoriAssegnati.add(revisore);
+                        assegnazioniEffettuate++;
+                        
+                        System.out.println("Assegnato revisore " + revisore.getUsername() + 
+                                         " all'articolo " + articolo.getTitolo());
+                    } else {
+                        System.out.println("Assegnazione già esistente per revisore " + 
+                                         revisore.getUsername() + " e articolo " + articolo.getTitolo());
+                    }
                 }
             }
             
@@ -1313,13 +1341,19 @@ public class ConferenceControl {
                 for (int i = 0; i < Math.min(numeroRevisoriPerArticolo, revisoriCompatibili.size()); i++) {
                     UtenteE revisore = revisoriCompatibili.get(i);
                     
-                    // Usa setRevisoreArticolo della DBMSBoundary per salvare l'assegnazione
-                    App.dbms.setRevisoreArticolo(articolo.getId(), revisore.getId());
-                    
-                    assegnazioniEffettuate++;
-                    
-                    System.out.println("Assegnato per preferenze revisore " + revisore.getUsername() + 
-                                     " all'articolo " + articolo.getTitolo());
+                    // Verifica se l'assegnazione esiste già
+                    if (!App.dbms.verificaAssegnazioneEsistente(articolo.getId(), revisore.getId())) {
+                        // Usa il nostro metodo setRevisoreArticolo che fa già il controllo di duplicati
+                        this.setRevisoreArticolo(articolo.getId(), revisore.getId());
+                        
+                        assegnazioniEffettuate++;
+                        
+                        System.out.println("Assegnato per preferenze revisore " + revisore.getUsername() + 
+                                         " all'articolo " + articolo.getTitolo());
+                    } else {
+                        System.out.println("Assegnazione già esistente per revisore " + 
+                                         revisore.getUsername() + " e articolo " + articolo.getTitolo());
+                    }
                 }
             }
             
@@ -1359,10 +1393,15 @@ public class ConferenceControl {
                         int idRevisore = Integer.parseInt(reviewers.get(i).id);
                         int idArticolo = Integer.parseInt(articles.get(j).id);
                         
-                        // Usa setRevisoreArticolo della DBMSBoundary
-                        App.dbms.setRevisoreArticolo(idArticolo, idRevisore);
-                        
-                        assegnazioniSalvate++;
+                        // Verifica se l'assegnazione esiste già
+                        if (!App.dbms.verificaAssegnazioneEsistente(idArticolo, idRevisore)) {
+                            // Usa il nostro metodo setRevisoreArticolo che fa già il controllo di duplicati
+                            this.setRevisoreArticolo(idArticolo, idRevisore);
+                            assegnazioniSalvate++;
+                        } else {
+                            System.out.println("Assegnazione già esistente: Revisore " + reviewers.get(i).name +
+                                             " -> Articolo " + articles.get(j).title + ". Ignorata.");
+                        }
                         
                         System.out.println("Salvata assegnazione: Revisore " + reviewers.get(i).name + 
                                          " -> Articolo " + articles.get(j).title);
@@ -1433,115 +1472,70 @@ public class ConferenceControl {
      * Rimuove un revisore da un articolo specifico
      * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl -> DBMSBoundary -> ListScreen
      */
-    public void rimuoviRevisoreArticolo(int idConferenza, int idArticolo, String emailRevisore) {
+    public void rimuoviRevisoreArticolo(int idArticolo, int idRevisore) {
         try {
             if (conferenzaSelezionata == null) {
                 System.err.println("Errore: nessuna conferenza selezionata");
                 return;
             }
             
-            // Verifica che la conferenza corrisponda
-            if (conferenzaSelezionata.getId() != idConferenza) {
-                System.err.println("Errore: conferenza selezionata non corrisponde all'ID richiesto");
-                return;
-            }
+            // Verifico se l'articolo appartiene alla conferenza
+            int idConferenza = conferenzaSelezionata.getId();
             
-            // Ottieni l'ID del revisore dall'email tramite DBMSBoundary
-            java.util.LinkedList<UtenteE> tuttiRevisori = App.dbms.getRevisori(idConferenza);
-            UtenteE revisoreTarget = null;
+            System.out.println("Rimozione revisore ID " + idRevisore + " dall'articolo ID " + idArticolo);
             
-            for (UtenteE revisore : tuttiRevisori) {
-                if (revisore.getEmail().equals(emailRevisore)) {
-                    revisoreTarget = revisore;
-                    break;
-                }
-            }
-            
-            if (revisoreTarget == null) {
-                javax.swing.JOptionPane.showMessageDialog(null,
-                    "Revisore con email " + emailRevisore + " non trovato nella conferenza",
-                    "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            
-            // Verifica che l'articolo esista nella conferenza
-            java.util.LinkedList<com.cms.users.Entity.ArticoloE> articoli = App.dbms.getListaArticoli(idConferenza);
-            boolean articoloTrovato = false;
-            
-            for (com.cms.users.Entity.ArticoloE articolo : articoli) {
-                if (articolo.getId() == idArticolo) {
-                    articoloTrovato = true;
-                    break;
-                }
-            }
-            
-            if (!articoloTrovato) {
-                javax.swing.JOptionPane.showMessageDialog(null,
-                    "Articolo con ID " + idArticolo + " non trovato nella conferenza",
-                    "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            
-            // Esegui la rimozione tramite query diretta (seguendo lo stesso pattern di verificaAssegnazioneEsistente)
-            boolean rimossoConSuccesso = rimuoviAssegnazioneArticoloRevisore(idArticolo, revisoreTarget.getId());
-            
-            if (rimossoConSuccesso) {
-                System.out.println("Revisore " + revisoreTarget.getUsername() + " rimosso con successo dall'articolo ID: " + idArticolo);
-                
-                // Mostra la ListScreen per visualizzare lo stato aggiornato come indicato nel sequence diagram
-                mostraListScreenRimozioneRevisore(idConferenza);
-                
-                // Mostra messaggio di successo
-                javax.swing.JOptionPane.showMessageDialog(null,
-                    "Revisore " + revisoreTarget.getUsername() + " rimosso con successo dall'articolo " + idArticolo,
-                    "Rimozione Completata", javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                
-            } else {
-                javax.swing.JOptionPane.showMessageDialog(null,
-                    "Impossibile rimuovere il revisore: assegnazione non trovata",
-                    "Errore", javax.swing.JOptionPane.WARNING_MESSAGE);
-            }
-            
-        } catch (Exception e) {
-            System.err.println("Errore durante la rimozione del revisore dall'articolo: " + e.getMessage());
-            e.printStackTrace();
-            
-            javax.swing.JOptionPane.showMessageDialog(null,
-                "Errore durante la rimozione del revisore: " + e.getMessage(),
-                "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    /**
-     * Rimuove un'assegnazione revisore-articolo dal database
-     * Utilizza accesso diretto al database seguendo lo stesso pattern di verificaAssegnazioneEsistente
-     */
-    private boolean rimuoviAssegnazioneArticoloRevisore(int idArticolo, int idRevisore) {
-        try {
-            java.sql.Connection conn = null;
-            java.sql.PreparedStatement stmt = null;
+            // Eseguo la rimozione tramite SQL diretto, poiché DBMSBoundary non ha un metodo specifico
+            // ma possiamo usare una connessione diretta come fatto in altre parti del codice
+            Connection conn = null;
+            PreparedStatement stmt = null;
             
             try {
-                // Accede direttamente al database (stessa connessione di DBMSBoundary)
-                conn = java.sql.DriverManager.getConnection(
+                // Creo una connessione al database
+                conn = DriverManager.getConnection(
                     "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS", 
                     "ids", 
                     "IngegneriaDelSoftware"
                 );
                 
-                String sql = "DELETE FROM revisiona WHERE idRevisore = ? AND idArticolo = ?";
+                // Elimino la relazione nella tabella revisiona
+                String sql = "DELETE FROM revisiona WHERE idArticolo = ? AND idRevisore = ?";
                 stmt = conn.prepareStatement(sql);
-                stmt.setInt(1, idRevisore);
-                stmt.setInt(2, idArticolo);
+                stmt.setInt(1, idArticolo);
+                stmt.setInt(2, idRevisore);
                 
-                int rowsDeleted = stmt.executeUpdate();
+                int rowsAffected = stmt.executeUpdate();
                 
-                if (rowsDeleted > 0) {
-                    System.out.println("Rimossa assegnazione: Revisore ID " + idRevisore + " -> Articolo ID " + idArticolo);
-                    return true;
+                if (rowsAffected > 0) {
+                    System.out.println("Rimosso con successo il revisore ID " + idRevisore + 
+                                    " dall'articolo ID " + idArticolo);
+                    
+                    // Ottieni informazioni sul revisore e sull'articolo per le notifiche
+                    UtenteE revisore = App.dbms.getUser(idRevisore);
+                    ArticoloE articolo = App.dbms.getArticolo(idArticolo);
+                    
+                    if (revisore != null && articolo != null) {
+                        // Invia notifica al revisore
+                        String notificaText = "Sei stato rimosso dalla revisione dell'articolo: \"" + 
+                                            articolo.getTitolo() + "\" per la conferenza: " + 
+                                            conferenzaSelezionata.getTitolo();
+                        
+                        App.dbms.insertNotifica(notificaText, idConferenza, idRevisore, 1, "REMOVE-REVISORE-ARTICOLO");
+                        
+                        // Invia email di notifica
+                        String emailSubject = "Rimozione revisione articolo - Conferenza: " + conferenzaSelezionata.getTitolo();
+                        String emailBody = "Gentile " + revisore.getUsername() + ",\n\n" +
+                                        "Ti informiamo che sei stato rimosso dalla revisione dell'articolo:\n" +
+                                        "\"" + articolo.getTitolo() + "\"\n\n" +
+                                        "nella conferenza \"" + conferenzaSelezionata.getTitolo() + "\"\n\n" +
+                                        "Questa operazione è stata effettuata dal Chair della conferenza.\n\n" +
+                                        "Cordiali saluti,\n" +
+                                        "Sistema di Gestione Conferenze";
+                        
+                        UtilsControl.sendMail(revisore.getEmail(), emailSubject, emailBody);
+                    }
                 } else {
-                    System.out.println("Nessuna assegnazione trovata per Revisore ID " + idRevisore + " e Articolo ID " + idArticolo);
-                    return false;
+                    System.err.println("Nessuna assegnazione trovata per il revisore ID " + idRevisore + 
+                                    " e l'articolo ID " + idArticolo);
                 }
                 
             } finally {
@@ -1550,34 +1544,68 @@ public class ConferenceControl {
             }
             
         } catch (Exception e) {
-            System.err.println("Errore durante la rimozione dell'assegnazione per articolo " + idArticolo + 
-                             " e revisore " + idRevisore + ": " + e.getMessage());
-            return false;
+            System.err.println("Errore durante la rimozione del revisore dall'articolo: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante la rimozione del revisore dall'articolo: " + e.getMessage(), 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }
     
     /**
-     * Mostra la ListScreen per la rimozione revisori come indicato nel sequence diagram
+     * Assegna un revisore a un articolo specifico
+     * Wrapper per il metodo DBMSBoundary.setRevisoreArticolo
+     * Prima verifica se l'assegnazione esiste già per evitare duplicati
+     * @param idArticolo ID dell'articolo
+     * @param idRevisore ID del revisore
      */
-    private void mostraListScreenRimozioneRevisore(int idConferenza) {
+    public void setRevisoreArticolo(int idArticolo, int idRevisore) {
         try {
-            // Crea e mostra la ListScreen per la funzione "Rimuovi revisore"
-            com.cms.users.Commons.ListScreen listScreen = 
-                new com.cms.users.Commons.ListScreen(
-                    com.cms.users.Commons.ListScreen.UserRole.CHAIR,
-                    com.cms.users.Commons.ListScreen.ChairFunction.REMOVE_REVIEWER
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: nessuna conferenza selezionata");
+                return;
+            }
+            
+            // Verifica se l'assegnazione esiste già
+            boolean assegnazioneEsistente = App.dbms.verificaAssegnazioneEsistente(idArticolo, idRevisore);
+            
+            if (assegnazioneEsistente) {
+                System.out.println("Assegnazione già esistente per revisore ID " + idRevisore + 
+                                 " e articolo ID " + idArticolo + ". Operazione ignorata.");
+                return;
+            }
+            
+            System.out.println("Creazione nuova assegnazione: revisore ID " + idRevisore + 
+                             " all'articolo ID " + idArticolo);
+            
+            // Chiamo il metodo della boundary
+            App.dbms.setRevisoreArticolo(idArticolo, idRevisore);
+            
+            // Ottieni informazioni sul revisore e sull'articolo per le notifiche
+            UtenteE revisore = App.dbms.getUser(idRevisore);
+            ArticoloE articolo = App.dbms.getArticolo(idArticolo);
+            
+            if (revisore != null && articolo != null) {
+                System.out.println("Assegnato revisore " + revisore.getUsername() + 
+                                " all'articolo '" + articolo.getTitolo() + "'");
+                
+                // Invia notifica al revisore
+                String testoNotifica = "Sei stato assegnato come revisore per l'articolo: '" + 
+                                     articolo.getTitolo() + "' nella conferenza: " + 
+                                     conferenzaSelezionata.getTitolo();
+                
+                App.dbms.insertNotifica(
+                    testoNotifica, 
+                    conferenzaSelezionata.getId(), 
+                    idRevisore, 
+                    1, // tipo notifica
+                    "ASSEGNAZIONE-REVISORE-ARTICOLO"
                 );
-            
-            // Imposta che ci sono dati da visualizzare
-            listScreen.setHasData(true);
-            
-            // Mostra la schermata
-            listScreen.setVisible(true);
-            
-            System.out.println("ListScreen per rimozione revisore aperta per conferenza ID: " + idConferenza);
+            }
             
         } catch (Exception e) {
-            System.err.println("Errore durante l'apertura della ListScreen: " + e.getMessage());
+            System.err.println("Errore durante l'assegnazione del revisore all'articolo: " + e.getMessage());
             e.printStackTrace();
         }
     }

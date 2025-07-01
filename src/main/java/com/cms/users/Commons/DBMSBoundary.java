@@ -50,6 +50,48 @@ public class DBMSBoundary {
         return currentArticleId;
     }
 
+    public boolean verificaAssegnazioneEsistente(int idArticolo, int idRevisore) {
+        try {
+            // Usa una query diretta per verificare l'esistenza dell'assegnazione
+            java.sql.Connection conn = null;
+            java.sql.PreparedStatement stmt = null;
+            java.sql.ResultSet rs = null;
+            
+            try
+            {
+
+            
+                conn=getConnection();    
+                String sql = "SELECT COUNT(*) FROM revisiona WHERE idRevisore = ? AND idArticolo = ?";
+                stmt = conn.prepareStatement(sql);
+                stmt.setInt(1, idRevisore);
+                stmt.setInt(2, idArticolo);
+                
+                rs = stmt.executeQuery();
+                if (rs.next()) {
+                    boolean assegnato = rs.getInt(1) > 0;
+                    if (assegnato) {
+                        System.out.println("Assegnazione trovata nel DB: Revisore " + idRevisore + 
+                                         " -> Articolo " + idArticolo);
+                    }
+                    return assegnato;
+                }
+                
+            } finally {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            System.err.println("Errore nella verifica dell'assegnazione per articolo " + idArticolo + 
+                             " e revisore " + idRevisore + ": " + e.getMessage());
+            return false;
+        }
+    }
+
     private Connection getConnection()
     {
         try{

@@ -287,7 +287,7 @@ public class ConferenceManagementScreen extends JFrame {
         invitaCoChairButton = createActionButton("Invita Co-Chair", buttonFont, buttonColor, textColor);
         aggiungiRevisoriButton = createActionButton("Aggiungi revisori", buttonFont, buttonColor, textColor);
         rimuoviRevisoreButton = createActionButton("Rimuovi revisore", buttonFont, buttonColor, textColor);
-        assegnaRevisoreButton = createActionButton("Assegna revisore ad articolo", buttonFont, buttonColor, textColor);
+        assegnaRevisoreButton = createActionButton("Gestione revisori-articoli", buttonFont, buttonColor, textColor);
         inviaComunicazioneButton = createActionButton("Invia comunicazione", buttonFont, buttonColor, textColor);
         ottieniLogButton = createActionButton("Ottieni log", buttonFont, buttonColor, textColor);
         visualizzaStatoButton = createActionButton("Visualizza stato revisione attuale", buttonFont, buttonColor, textColor);
@@ -612,27 +612,9 @@ public class ConferenceManagementScreen extends JFrame {
      * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl -> ReviewerScreen
      */
     public void assegnaReviewerButton() {
-        try {
-            // Delega al ConferenceControl per aprire la ReviewerScreen
-            ConferenceControl conferenceControl = new ConferenceControl();
-            
-            // Imposta la conferenza attuale nel control
-            if (id > 0) {
-                conferenceControl.apriAssegnazioneRevisori(id);
-            } else {
-                JOptionPane.showMessageDialog(this, 
-                    "Errore: ID conferenza non valido", 
-                    "Errore", JOptionPane.ERROR_MESSAGE);
-            }
-            
-        } catch (Exception e) {
-            System.err.println("Errore durante l'apertura della schermata di assegnazione: " + e.getMessage());
-            e.printStackTrace();
-            
-            JOptionPane.showMessageDialog(this, 
-                "Errore durante l'apertura della schermata di assegnazione: " + e.getMessage(), 
-                "Errore", JOptionPane.ERROR_MESSAGE);
-        }
+        // Crea un'istanza di ConferenceControl e delega l'apertura della ReviewerScreen
+        ConferenceControl conferenceControl = new ConferenceControl();
+        conferenceControl.apriGestioneRevisori(this.id);
     }
     
     /**
@@ -665,9 +647,27 @@ public class ConferenceManagementScreen extends JFrame {
                         // Converte l'ID articolo da String a int
                         int idArticolo = Integer.parseInt(articolo.trim());
                         
+                        // Ottieni l'ID del revisore dall'email (simulazione)
+                        int idRevisore = -1;
+                        try {
+                            // Qui dovremmo cercare l'utente per email, ma per ora mostriamo un messaggio
+                            JOptionPane.showMessageDialog(this, 
+                                "Funzionalità sostituita dalla nuova schermata di gestione revisori-articoli.\n" + 
+                                "Utilizzare il pulsante 'Gestione revisori-articoli' per un'interfaccia più completa.",
+                                "Informazione",
+                                JOptionPane.INFORMATION_MESSAGE);
+                            
+                        } catch (Exception ex) {
+                            JOptionPane.showMessageDialog(this, 
+                                "Errore durante il recupero dell'ID revisore: " + ex.getMessage(), 
+                                "Errore", 
+                                JOptionPane.ERROR_MESSAGE);
+                            
+                        }
+                        
                         // Crea un'istanza di ConferenceControl e delega la rimozione
                         ConferenceControl conferenceControl = new ConferenceControl();
-                        conferenceControl.rimuoviRevisoreArticolo(this.id, idArticolo, revisore.trim());
+                        conferenceControl.rimuoviRevisoreArticolo(idArticolo, idRevisore);
                         
                     } catch (NumberFormatException e) {
                         JOptionPane.showMessageDialog(this, 
