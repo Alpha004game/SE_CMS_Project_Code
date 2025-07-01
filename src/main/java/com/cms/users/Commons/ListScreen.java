@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import com.cms.users.Entity.ArticoloE;
+import com.cms.users.revisions.Interface.RevisionOverviewScreen;
 
 /**
  * <<boundary>>
@@ -1080,21 +1081,73 @@ public class ListScreen extends JFrame {
         private void handleRevisoreButtonClick(int row, int column) {
             if (row < revisoreArticleData.size()) {
                 RevisoreArticleData article = revisoreArticleData.get(row);
-                String action = "";
                 
                 switch (column) {
                     case 1:
-                        action = "Visualizza revisione delegata per: " + article.title;
+                        // Visualizza revisione delegata
+                        String action1 = "Visualizza revisione delegata per: " + article.title;
+                        JOptionPane.showMessageDialog(ListScreen.this, action1, "Azione Revisore", JOptionPane.INFORMATION_MESSAGE);
                         break;
                     case 2:
-                        action = "Visualizza revisioni per: " + article.title;
+                        // Visualizza revisioni
+                        try {
+                            DBMSBoundary dbms = new DBMSBoundary();
+                            
+                            // Converti l'ID da String a int
+                            int articleId = Integer.parseInt(article.id);
+                            
+                            // Verifica se l'articolo ha revisioni
+                            Object reviewStatusObj = dbms.getReviewStatus(articleId);
+                            boolean hasReviews = (reviewStatusObj instanceof Boolean) ? (Boolean) reviewStatusObj : false;
+                            
+                            if (hasReviews) {
+                                // Ottieni i dati delle revisioni
+                                Object reviewInfoObj = dbms.getInfoReview(articleId);
+                                @SuppressWarnings("unchecked")
+                                ArrayList<Object> revisionsData = (reviewInfoObj instanceof ArrayList) ? 
+                                    (ArrayList<Object>) reviewInfoObj : null;
+                                
+                                // Apri la schermata delle revisioni
+                                RevisionOverviewScreen revisionScreen = new RevisionOverviewScreen(
+                                    RevisionOverviewScreen.UserRole.REVISORE, 
+                                    article.title, 
+                                    article.id,
+                                    revisionsData
+                                );
+                                revisionScreen.setVisible(true);
+                            } else {
+                                JOptionPane.showMessageDialog(ListScreen.this, 
+                                    "Nessuna revisione disponibile per l'articolo: " + article.title, 
+                                    "Nessuna Revisione", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                        } catch (NumberFormatException e) {
+                            JOptionPane.showMessageDialog(ListScreen.this, 
+                                "ID articolo non valido: " + article.id, 
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                        } catch (Exception e) {
+                            System.err.println("Errore nel visualizzare le revisioni: " + e.getMessage());
+                            e.printStackTrace();
+                            JOptionPane.showMessageDialog(ListScreen.this, 
+                                "Errore nel recuperare le revisioni: " + e.getMessage(), 
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                        }
                         break;
                     case 3:
-                        action = "Revisiona articolo: " + article.title;
+                        // Revisiona articolo - apri ReviewSubmissionScreen
+                        try {
+                            // Importa e usa GestioneRevisioneControl
+                            com.cms.users.revisions.Control.GestioneRevisioneControl gestioneControl = 
+                                new com.cms.users.revisions.Control.GestioneRevisioneControl();
+                            gestioneControl.apriRevisioneArticolo(article.id, article.title);
+                        } catch (Exception e) {
+                            System.err.println("Errore nell'aprire la revisione dell'articolo: " + e.getMessage());
+                            e.printStackTrace();
+                            JOptionPane.showMessageDialog(ListScreen.this, 
+                                "Errore nell'aprire la revisione dell'articolo: " + e.getMessage(), 
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                        }
                         break;
                 }
-                
-                JOptionPane.showMessageDialog(ListScreen.this, action, "Azione Revisore", JOptionPane.INFORMATION_MESSAGE);
             }
         }
     }
@@ -1228,14 +1281,54 @@ public class ListScreen extends JFrame {
                 
                 switch (column) {
                     case 1:
-                        action = "Visualizza revisioni per: " + article.title;
+                        // Visualizza revisioni
+                        try {
+                            DBMSBoundary dbms = new DBMSBoundary();
+                            
+                            // Converti l'ID da String a int
+                            int articleId = Integer.parseInt(article.id);
+                            
+                            // Verifica se l'articolo ha revisioni
+                            Object reviewStatusObj = dbms.getReviewStatus(articleId);
+                            boolean hasReviews = (reviewStatusObj instanceof Boolean) ? (Boolean) reviewStatusObj : false;
+                            
+                            if (hasReviews) {
+                                // Ottieni i dati delle revisioni
+                                Object reviewInfoObj = dbms.getInfoReview(articleId);
+                                @SuppressWarnings("unchecked")
+                                ArrayList<Object> revisionsData = (reviewInfoObj instanceof ArrayList) ? 
+                                    (ArrayList<Object>) reviewInfoObj : null;
+                                
+                                // Apri la schermata delle revisioni
+                                RevisionOverviewScreen revisionScreen = new RevisionOverviewScreen(
+                                    RevisionOverviewScreen.UserRole.REVISORE, 
+                                    article.title, 
+                                    article.id,
+                                    revisionsData
+                                );
+                                revisionScreen.setVisible(true);
+                            } else {
+                                JOptionPane.showMessageDialog(ListScreen.this, 
+                                    "Nessuna revisione disponibile per l'articolo: " + article.title, 
+                                    "Nessuna Revisione", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                        } catch (NumberFormatException e) {
+                            JOptionPane.showMessageDialog(ListScreen.this, 
+                                "ID articolo non valido: " + article.id, 
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                        } catch (Exception e) {
+                            System.err.println("Errore nel visualizzare le revisioni: " + e.getMessage());
+                            e.printStackTrace();
+                            JOptionPane.showMessageDialog(ListScreen.this, 
+                                "Errore nel recuperare le revisioni: " + e.getMessage(), 
+                                "Errore", JOptionPane.ERROR_MESSAGE);
+                        }
                         break;
                     case 2:
                         action = "Revisiona articolo: " + article.title;
+                        JOptionPane.showMessageDialog(ListScreen.this, action, "Azione SottoRevisore", JOptionPane.INFORMATION_MESSAGE);
                         break;
                 }
-                
-                JOptionPane.showMessageDialog(ListScreen.this, action, "Azione SottoRevisore", JOptionPane.INFORMATION_MESSAGE);
             }
         }
     }

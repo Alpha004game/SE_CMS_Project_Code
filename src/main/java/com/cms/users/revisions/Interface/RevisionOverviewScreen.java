@@ -69,6 +69,20 @@ public class RevisionOverviewScreen extends JFrame {
     }
     
     /**
+     * Costruttore con dati reali delle revisioni dal database
+     */
+    public RevisionOverviewScreen(UserRole userRole, String articleTitle, String articleId, ArrayList<Object> revisionsData) {
+        this.userRole = userRole != null ? userRole : UserRole.CHAIR;
+        this.articleTitle = articleTitle != null ? articleTitle : "Titolo articolo";
+        this.articleId = articleId != null ? articleId : "ART" + (int)(Math.random() * 10000);
+        
+        initializeDataFromDatabase(revisionsData);
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
      * Inizializza i dati di esempio
      */
     private void initializeData() {
@@ -82,6 +96,34 @@ public class RevisionOverviewScreen extends JFrame {
         revisions.add(new RevisionData("REV003", "Prof.ssa Anna Bianchi", 
             "Lavoro ben strutturato con bibliografia completa...", 
             "Da iniziare"));
+    }
+    
+    /**
+     * Inizializza i dati dalle revisioni del database
+     */
+    private void initializeDataFromDatabase(ArrayList<Object> revisionsData) {
+        revisions = new ArrayList<>();
+        
+        if (revisionsData != null) {
+            for (Object obj : revisionsData) {
+                if (obj instanceof String[]) {
+                    String[] revisionArray = (String[]) obj;
+                    if (revisionArray.length >= 4) {
+                        revisions.add(new RevisionData(
+                            revisionArray[0], // revisionId
+                            revisionArray[1], // reviewerName
+                            revisionArray[2], // comment
+                            revisionArray[3]  // status
+                        ));
+                    }
+                }
+            }
+        }
+        
+        // Se non ci sono revisioni dal database, aggiungi un messaggio
+        if (revisions.isEmpty()) {
+            revisions.add(new RevisionData("", "Nessuna revisione", "Nessuna revisione disponibile per questo articolo", ""));
+        }
     }
     
     /**

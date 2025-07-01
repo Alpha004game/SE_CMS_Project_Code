@@ -2,12 +2,37 @@ package com.cms.users.revisions.Interface;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * <<boundary>>
  * ReviewSubmissionScreen - Schermata per la revisione di una sottomissione
+ * 
+ * FLUSSO IMPLEMENTATO:
+ * 1. L'utente clicca "Revisiona Articolo" nella ListScreen (per revisori)
+ * 2. La ListScreen chiama GestioneRevisioneControl.apriRevisioneArticolo()
+ * 3. Il control:
+ *    - Imposta l'ID articolo corrente nel DBMSBoundary
+ *    - Recupera l'oggetto ArticoloE completo dal database
+ *    - Avvia il download automatico del file dell'articolo (se presente)
+ *    - Crea e apre la ReviewSubmissionScreen
+ * 4. L'utente compila i campi della revisione:
+ *    - Punti di forza (obbligatorio)
+ *    - Punti di debolezza (obbligatorio)  
+ *    - Livello di competenza del revisore (1-10, obbligatorio)
+ *    - Commenti per autori (obbligatorio)
+ *    - Valutazione numerica (1-10, tramite spinner)
+ * 5. Al click su "Invia revisione":
+ *    - Validazione dei campi
+ *    - Conferma dell'utente
+ *    - Chiamata a DBMSBoundary.setInfoReview() per salvare nel database
+ *    - Chiusura della schermata
+ * 
+ * FUNZIONALITÀ AGGIUNTIVE:
+ * - Download automatico del file articolo all'apertura
+ * - Validazione completa dei campi
+ * - Gestione errori robusta
+ * - Placeholder per il campo livello di competenza
+ * - Conferma prima dell'invio
  */
 public class ReviewSubmissionScreen extends JFrame {
     
@@ -25,6 +50,7 @@ public class ReviewSubmissionScreen extends JFrame {
     private JTextArea puntiDiDebolezzaTextArea;
     private JTextArea livelloCompetenzaTextArea;
     private JTextArea commentiAutoriTextArea;
+    private JSpinner valutazioneSpinner; // Campo per la valutazione numerica (1-10)
     
     // Bottone invio
     private JButton inviaRevisioneButton;
@@ -160,6 +186,27 @@ public class ReviewSubmissionScreen extends JFrame {
         livelloCompetenzaTextArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         livelloCompetenzaTextArea.setLineWrap(true);
         livelloCompetenzaTextArea.setWrapStyleWord(true);
+        livelloCompetenzaTextArea.setText("Inserisci un numero da 1 a 10 che rappresenta il tuo livello di competenza su questo argomento");
+        livelloCompetenzaTextArea.setForeground(Color.GRAY);
+        
+        // Aggiunge focus listener per gestire placeholder
+        livelloCompetenzaTextArea.addFocusListener(new java.awt.event.FocusListener() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                if (livelloCompetenzaTextArea.getText().equals("Inserisci un numero da 1 a 10 che rappresenta il tuo livello di competenza su questo argomento")) {
+                    livelloCompetenzaTextArea.setText("");
+                    livelloCompetenzaTextArea.setForeground(Color.BLACK);
+                }
+            }
+            
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                if (livelloCompetenzaTextArea.getText().trim().isEmpty()) {
+                    livelloCompetenzaTextArea.setText("Inserisci un numero da 1 a 10 che rappresenta il tuo livello di competenza su questo argomento");
+                    livelloCompetenzaTextArea.setForeground(Color.GRAY);
+                }
+            }
+        });
         
         // Commenti per autori
         commentiAutoriTextArea = new JTextArea(3, 40);
@@ -168,6 +215,12 @@ public class ReviewSubmissionScreen extends JFrame {
         commentiAutoriTextArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         commentiAutoriTextArea.setLineWrap(true);
         commentiAutoriTextArea.setWrapStyleWord(true);
+        
+        // Valutazione numerica (1-10)
+        valutazioneSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 10, 1));
+        valutazioneSpinner.setFont(fieldFont);
+        valutazioneSpinner.setPreferredSize(new Dimension(100, 30));
+        ((JSpinner.DefaultEditor) valutazioneSpinner.getEditor()).getTextField().setBackground(fieldColor);
     }
     
     /**
@@ -247,6 +300,10 @@ public class ReviewSubmissionScreen extends JFrame {
         
         // Sezione commenti autori
         mainPanel.add(createFormSection("Commenti per autori:", commentiAutoriTextArea));
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        
+        // Sezione valutazione numerica
+        mainPanel.add(createValutazioneSection());
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
         
         // Bottone invia revisione
@@ -293,6 +350,40 @@ public class ReviewSubmissionScreen extends JFrame {
         panel.add(scrollPane);
         
         return panel;
+    }
+    
+    /**
+     * Crea la sezione per la valutazione numerica
+     */
+    private JPanel createValutazioneSection() {
+        JPanel sectionPanel = new JPanel();
+        sectionPanel.setLayout(new BoxLayout(sectionPanel, BoxLayout.Y_AXIS));
+        sectionPanel.setBackground(Color.WHITE);
+        sectionPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        
+        // Label
+        JLabel label = new JLabel("Valutazione (1-10):");
+        label.setFont(new Font("Arial", Font.BOLD, 16));
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        sectionPanel.add(label);
+        
+        // Pannello per lo spinner con descrizione
+        JPanel spinnerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        spinnerPanel.setBackground(Color.WHITE);
+        spinnerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        spinnerPanel.add(valutazioneSpinner);
+        
+        // Aggiunge descrizione della scala di valutazione
+        JLabel descriptionLabel = new JLabel("  (1=Pessimo, 5=Sufficiente, 10=Eccellente)");
+        descriptionLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+        descriptionLabel.setForeground(Color.GRAY);
+        spinnerPanel.add(descriptionLabel);
+        
+        sectionPanel.add(spinnerPanel);
+        
+        return sectionPanel;
     }
     
     /**
@@ -429,6 +520,7 @@ public class ReviewSubmissionScreen extends JFrame {
         summary.append("Punti di debolezza: ").append(puntiDiDebolezza.substring(0, Math.min(30, puntiDiDebolezza.length()))).append("...\n");
         summary.append("Livello competenza: ").append(livelloDiCompetenzaDelRevisore.substring(0, Math.min(30, livelloDiCompetenzaDelRevisore.length()))).append("...\n");
         summary.append("Commenti autori: ").append(commentiPerAutori.substring(0, Math.min(30, commentiPerAutori.length()))).append("...\n");
+        summary.append("Valutazione: ").append(valutazione).append("/10\n");
         
         int result = JOptionPane.showConfirmDialog(this,
             summary.toString(),
@@ -436,20 +528,64 @@ public class ReviewSubmissionScreen extends JFrame {
             JOptionPane.YES_NO_OPTION);
         
         if (result == JOptionPane.YES_OPTION) {
-            // Simula l'invio della revisione
-            JOptionPane.showMessageDialog(this,
-                "Revisione inviata con successo!\n\n" +
-                "ID Revisione: REV" + (int)(Math.random() * 10000) + "\n" +
-                "La tua revisione è stata ricevuta e sarà processata.\n" +
-                "Gli autori riceveranno notifica dei feedback forniti.",
-                "Invio Completato",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Qui andrà la logica per salvare la revisione nel database
-            System.out.println("Revisione inviata per sottomissione: " + submissionId);
-            
-            // Chiude la schermata
-            dispose();
+            try {
+                // Salva la revisione nel database usando DBMSBoundary
+                System.out.println("DEBUG ReviewSubmissionScreen: Salvando revisione nel database...");
+                System.out.println("DEBUG ReviewSubmissionScreen: Punti di forza: " + puntiDiForza);
+                System.out.println("DEBUG ReviewSubmissionScreen: Punti di debolezza: " + puntiDiDebolezza);
+                System.out.println("DEBUG ReviewSubmissionScreen: Livello competenza: " + livelloDiCompetenzaDelRevisore);
+                System.out.println("DEBUG ReviewSubmissionScreen: Commenti autori: " + commentiPerAutori);
+                System.out.println("DEBUG ReviewSubmissionScreen: Valutazione: " + valutazione);
+                
+                // Chiama il metodo setInfoReview della DBMSBoundary
+                // Nota: il livello di competenza deve essere un numero da 1 a 10
+                int livelloCompetenza;
+                try {
+                    livelloCompetenza = Integer.parseInt(livelloDiCompetenzaDelRevisore);
+                    if (livelloCompetenza < 1 || livelloCompetenza > 10) {
+                        throw new NumberFormatException("Livello di competenza deve essere tra 1 e 10");
+                    }
+                } catch (NumberFormatException e) {
+                    throw new NumberFormatException("Il livello di competenza deve essere un numero intero tra 1 e 10. Valore inserito: '" + livelloDiCompetenzaDelRevisore + "'");
+                }
+                
+                com.cms.App.dbms.setInfoReview(
+                    puntiDiForza,
+                    puntiDiDebolezza, 
+                    livelloCompetenza,
+                    commentiPerAutori,
+                    valutazione
+                );
+                
+                System.out.println("DEBUG ReviewSubmissionScreen: Revisione salvata con successo nel database");
+                
+                // Mostra messaggio di successo
+                JOptionPane.showMessageDialog(this,
+                    "Revisione inviata con successo!\n\n" +
+                    "ID Sottomissione: " + submissionId + "\n" +
+                    "La tua revisione è stata salvata nel database.\n" +
+                    "Gli autori riceveranno notifica dei feedback forniti.",
+                    "Invio Completato",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                System.out.println("DEBUG ReviewSubmissionScreen: Revisione inviata per sottomissione: " + submissionId);
+                
+                // Chiude la schermata
+                dispose();
+                
+            } catch (NumberFormatException e) {
+                System.err.println("DEBUG ReviewSubmissionScreen: ERRORE - Livello di competenza non valido: " + livelloDiCompetenzaDelRevisore);
+                showError("Il livello di competenza deve essere un numero intero (1-10)");
+            } catch (Exception e) {
+                System.err.println("DEBUG ReviewSubmissionScreen: ERRORE durante il salvataggio della revisione: " + e.getMessage());
+                e.printStackTrace();
+                
+                JOptionPane.showMessageDialog(this,
+                    "Errore durante il salvataggio della revisione:\n" + e.getMessage() + 
+                    "\n\nRiprova o contatta l'amministratore di sistema.",
+                    "Errore Salvataggio",
+                    JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
     
@@ -467,8 +603,21 @@ public class ReviewSubmissionScreen extends JFrame {
             return false;
         }
         
-        if (livelloCompetenzaTextArea.getText().trim().isEmpty()) {
+        String livelloText = livelloCompetenzaTextArea.getText().trim();
+        if (livelloText.isEmpty() || livelloText.equals("Inserisci un numero da 1 a 10 che rappresenta il tuo livello di competenza su questo argomento")) {
             showError("Il livello di competenza del revisore è obbligatorio!", livelloCompetenzaTextArea);
+            return false;
+        }
+        
+        // Valida che il livello di competenza sia un numero tra 1 e 10
+        try {
+            int livello = Integer.parseInt(livelloText);
+            if (livello < 1 || livello > 10) {
+                showError("Il livello di competenza deve essere un numero tra 1 e 10!", livelloCompetenzaTextArea);
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            showError("Il livello di competenza deve essere un numero intero tra 1 e 10!", livelloCompetenzaTextArea);
             return false;
         }
         
@@ -486,8 +635,17 @@ public class ReviewSubmissionScreen extends JFrame {
     private void collectFormData() {
         this.puntiDiForza = puntiDiForzaTextArea.getText().trim();
         this.puntiDiDebolezza = puntiDiDebolezzaTextArea.getText().trim();
-        this.livelloDiCompetenzaDelRevisore = livelloCompetenzaTextArea.getText().trim();
+        
+        // Gestisce il placeholder per il livello di competenza
+        String livelloText = livelloCompetenzaTextArea.getText().trim();
+        if (livelloText.equals("Inserisci un numero da 1 a 10 che rappresenta il tuo livello di competenza su questo argomento")) {
+            this.livelloDiCompetenzaDelRevisore = "";
+        } else {
+            this.livelloDiCompetenzaDelRevisore = livelloText;
+        }
+        
         this.commentiPerAutori = commentiAutoriTextArea.getText().trim();
+        this.valutazione = (Integer) valutazioneSpinner.getValue();
     }
     
     /**
