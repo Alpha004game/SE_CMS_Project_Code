@@ -3,6 +3,7 @@ package com.cms.users.conference.Interface;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -109,6 +110,14 @@ public class ReviewerScreen extends JFrame {
      */
     public void setConferenceControl(com.cms.users.conference.Control.ConferenceControl conferenceControl) {
         this.conferenceControl = conferenceControl;
+    }
+    
+    /**
+     * Imposta l'ID della conferenza
+     * @param conferenceId ID della conferenza
+     */
+    public void setConferenceId(String conferenceId) {
+        this.conferenceId = conferenceId;
     }
     
     /**
@@ -225,23 +234,30 @@ public class ReviewerScreen extends JFrame {
     /**
      * Renderer per checkbox grigie nelle colonne degli articoli
      */
-    private class GrayCheckboxRenderer extends DefaultTableCellRenderer {
-        private JCheckBox checkbox;
-        
+    private class GrayCheckboxRenderer extends JCheckBox implements TableCellRenderer {
         public GrayCheckboxRenderer() {
-            checkbox = new JCheckBox();
-            checkbox.setHorizontalAlignment(JCheckBox.CENTER);
-            checkbox.setBackground(new Color(240, 240, 240)); // Grigio chiaro
+            setHorizontalAlignment(JCheckBox.CENTER);
+            setOpaque(true);
         }
         
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
+                                                    boolean isSelected, boolean hasFocus,
+                                                    int row, int column) {
+            if (value instanceof Boolean) {
+                setSelected((Boolean) value);
+            }
             
-            checkbox.setSelected(value != null && (Boolean) value);
-            checkbox.setBackground(isSelected ? table.getSelectionBackground() : new Color(240, 240, 240));
+            // Se è una cella disabilitata, usa lo sfondo grigio
+            if (!table.isCellEditable(row, column)) {
+                setBackground(new Color(240, 240, 240));
+                setEnabled(false);
+            } else {
+                setBackground(isSelected ? table.getSelectionBackground() : table.getBackground());
+                setEnabled(true);
+            }
             
-            return checkbox;
+            return this;
         }
     }
     
@@ -457,6 +473,19 @@ public class ReviewerScreen extends JFrame {
                     "Errore", JOptionPane.ERROR_MESSAGE);
             }
         });
+        
+        // Gestione eventi modifica checkbox
+        assignmentTable.addPropertyChangeListener(evt -> {
+            if ("tableCellEditor".equals(evt.getPropertyName()) && evt.getNewValue() == null) {
+                int row = assignmentTable.getSelectedRow();
+                int column = assignmentTable.getSelectedColumn();
+                
+                if (row >= 0 && column > 0) { // Escludi intestazione e prima colonna
+                    boolean isSelected = (Boolean) tableModel.getValueAt(row, column);
+                    handleAssignmentChange(row, column - 1, isSelected);
+                }
+            }
+        });
     }
     
     /**
@@ -475,6 +504,26 @@ public class ReviewerScreen extends JFrame {
             }
             
             tableModel.addRow(row);
+        }
+        
+        // Aggiungiamo un item listener per tutti i checkbox nella tabella
+        for (int i = 0; i < assignmentTable.getRowCount(); i++) {
+            for (int j = 1; j < assignmentTable.getColumnCount(); j++) {
+                final int rowIndex = i;
+                final int colIndex = j;
+                
+                // Configuriamo l'editor con l'evento che gestisce sia selezione che deselezione
+                JCheckBox checkBox = new JCheckBox();
+                checkBox.setHorizontalAlignment(JCheckBox.CENTER);
+                
+                checkBox.addActionListener(e -> {
+                    boolean selected = checkBox.isSelected();
+                    tableModel.setValueAt(selected, rowIndex, colIndex);
+                    handleAssignmentChange(rowIndex, colIndex - 1, selected);
+                });
+                
+                assignmentTable.getColumnModel().getColumn(j).setCellEditor(new DefaultCellEditor(checkBox));
+            }
         }
     }
     
@@ -503,6 +552,7 @@ public class ReviewerScreen extends JFrame {
                 "Errore: ConferenceControl non disponibile", 
                 "Errore", JOptionPane.ERROR_MESSAGE);
         }
+        this.dispose();
     }
     
     /**
@@ -607,5 +657,47 @@ public class ReviewerScreen extends JFrame {
         SwingUtilities.invokeLater(() -> {
             new ReviewerScreen().setVisible(true);
         });
+    }
+    
+    /**
+     * Gestisce le modifiche alle assegnazioni quando un checkbox viene cliccato
+     * @param revisoreIdx Indice del revisore
+     * @param articoloIdx Indice dell'articolo
+     * @param isSelected Stato del checkbox
+     */
+    private void handleAssignmentChange(int revisoreIdx, int articoloIdx, boolean isSelected) {
+        try {
+            if (conferenceControl == null) {
+                JOptionPane.showMessageDialog(this, 
+                    "Errore: Nessun controller configurato", 
+                    "Errore", 
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            int idRevisore = Integer.parseInt(reviewers.get(revisoreIdx).id);
+            int idArticolo = Integer.parseInt(articles.get(articoloIdx).id);
+            
+            if (isSelected) {
+                // Se il checkbox è stato selezionato, aggiungiamo il revisore all'articolo
+                conferenceControl.setRevisoreArticolo(idArticolo, idRevisore);
+                assignments[revisoreIdx][articoloIdx] = true;
+                System.out.println("Revisore " + reviewers.get(revisoreIdx).name + 
+                                " assegnato all'articolo: " + articles.get(articoloIdx).title);
+            } else {
+                // Se il checkbox è stato deselezionato, rimuoviamo il revisore dall'articolo
+                conferenceControl.rimuoviRevisoreArticolo(idArticolo, idRevisore);
+                assignments[revisoreIdx][articoloIdx] = false;
+                System.out.println("Revisore " + reviewers.get(revisoreIdx).name + 
+                                " rimosso dall'articolo: " + articles.get(articoloIdx).title);
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'aggiornamento dell'assegnazione: " + e.getMessage(), 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 }
