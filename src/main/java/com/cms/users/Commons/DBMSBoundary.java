@@ -2553,7 +2553,10 @@ public class DBMSBoundary {
             stmt.setString(3, text);
             stmt.setInt(4, type);
             stmt.setString(5, dettagli);
-            stmt.executeQuery();
+            int rowsInserted = stmt.executeUpdate();
+            if (rowsInserted > 0) {
+                System.out.println("DEBUG: Notifica inserita con successo per utente ID: " + receiverId);
+            }
             stmt.close();
             con.close();
         }
