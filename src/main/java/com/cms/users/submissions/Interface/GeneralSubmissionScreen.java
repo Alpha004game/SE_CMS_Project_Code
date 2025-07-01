@@ -26,7 +26,6 @@ public class GeneralSubmissionScreen extends JFrame {
     
     // Dati degli articoli
     private List<ArticlePreference> articlePreferences;
-    private com.cms.users.submissions.Control.GestionePreferenzeControl gestionePreferenzeControl;
     
     /**
      * Classe interna per rappresentare le preferenze di un articolo
@@ -61,29 +60,20 @@ public class GeneralSubmissionScreen extends JFrame {
      * Costruttore di default
      */
     public GeneralSubmissionScreen() {
-        this((List<String>) null, null);
+        // Inizializza con dati di esempio
+        initializeArticleData();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
     }
     
     /**
      * Costruttore con lista di articoli
      */
     public GeneralSubmissionScreen(List<String> articoli) {
-        this(articoli, null);
-    }
-    
-    /**
-     * Costruttore con lista di articoli e control
-     */
-    public GeneralSubmissionScreen(List<String> articoli, com.cms.users.submissions.Control.GestionePreferenzeControl control) {
-        this.gestionePreferenzeControl = control;
-        
-        if (articoli != null) {
-            // Inizializza con gli articoli forniti
-            initializeArticleData(articoli);
-        } else {
-            // Inizializza con dati di esempio
-            initializeArticleData();
-        }
+        // Inizializza con gli articoli forniti
+        initializeArticleData(articoli);
         
         initializeComponents();
         setupLayout();
@@ -475,61 +465,24 @@ public class GeneralSubmissionScreen extends JFrame {
             JOptionPane.QUESTION_MESSAGE);
         
         if (result == JOptionPane.YES_OPTION) {
-            // Salva usando il control se disponibile
-            if (gestionePreferenzeControl != null) {
-                try {
-                    System.out.println("DEBUG GeneralSubmissionScreen: Salvando tramite GestionePreferenzeControl");
-                    gestionePreferenzeControl.salvaPreferenze(articlePreferences);
-                    
-                    // Conferma successo
-                    JOptionPane.showMessageDialog(this,
-                        "Preferenze salvate con successo!\n" +
-                        "Le tue preferenze sono state aggiornate nel database.",
-                        "Successo",
-                        JOptionPane.INFORMATION_MESSAGE);
-                    
-                    // Chiude la schermata e torna alla HomeScreen
-                    dispose();
-                    try {
-                        Class<?> homeScreenClass = Class.forName("com.cms.users.Commons.HomeScreen");
-                        Object homeScreen = homeScreenClass.getDeclaredConstructor().newInstance();
-                        java.lang.reflect.Method displayMethod = homeScreenClass.getMethod("displayUserDashboard");
-                        displayMethod.invoke(homeScreen);
-                    } catch (Exception ex) {
-                        System.err.println("Errore nell'apertura della HomeScreen: " + ex.getMessage());
-                    }
-                    
-                } catch (Exception ex) {
-                    System.err.println("Errore durante il salvataggio delle preferenze: " + ex.getMessage());
-                    ex.printStackTrace();
-                    
-                    JOptionPane.showMessageDialog(this,
-                        "Errore durante il salvataggio delle preferenze.\nRiprovare più tardi.",
-                        "Errore",
-                        JOptionPane.ERROR_MESSAGE);
+            // Simula il salvataggio
+            JOptionPane.showMessageDialog(this,
+                "Preferenze salvate con successo!\n" +
+                "Le tue preferenze sono state aggiornate per tutti gli articoli.",
+                "Successo",
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Qui andrà la logica per salvare nel database
+            System.out.println("Preferenze salvate:");
+            for (ArticlePreference pref : articlePreferences) {
+                if (pref.isInteresse() || pref.isConflittoInteresse()) {
+                    System.out.println(pref.getTitolo() + " - Interesse: " + 
+                                     pref.isInteresse() + ", Conflitto: " + pref.isConflittoInteresse());
                 }
-            } else {
-                // Modalità standalone (senza control) - comportamento originale
-                System.out.println("DEBUG GeneralSubmissionScreen: Modalità standalone - non salvo nel DB");
-                
-                JOptionPane.showMessageDialog(this,
-                    "Preferenze salvate con successo!\n" +
-                    "Le tue preferenze sono state aggiornate per tutti gli articoli.",
-                    "Successo",
-                    JOptionPane.INFORMATION_MESSAGE);
-                
-                // Debug output
-                System.out.println("Preferenze salvate:");
-                for (ArticlePreference pref : articlePreferences) {
-                    if (pref.isInteresse() || pref.isConflittoInteresse()) {
-                        System.out.println(pref.getTitolo() + " - Interesse: " + 
-                                         pref.isInteresse() + ", Conflitto: " + pref.isConflittoInteresse());
-                    }
-                }
-                
-                // Chiude la schermata
-                dispose();
             }
+            
+            // Chiude la schermata
+            dispose();
         }
     }
     

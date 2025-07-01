@@ -28,26 +28,8 @@ public class DBMSBoundary {
     private final String DB_URL = "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS";
     private final String DB_USER = "ids";
     private final String DB_PASSWORD = "IngegneriaDelSoftware";
-    
-    // Static variable to track current article being reviewed
-    private static int currentArticleId = -1;
-    
     public DBMSBoundary() {
         
-    }
-    
-    /**
-     * Sets the current article ID being reviewed
-     */
-    public static void setCurrentArticleId(int articleId) {
-        currentArticleId = articleId;
-    }
-    
-    /**
-     * Gets the current article ID being reviewed
-     */
-    private static int getCurrentArticleId() {
-        return currentArticleId;
     }
 
     private Connection getConnection()
@@ -327,79 +309,7 @@ public class DBMSBoundary {
 
     public void sendNewSkillInformation(int idUtente, int idConferenza, Object Skills)
     {
-        System.out.println("DEBUG DBMSBoundary: === INIZIO sendNewSkillInformation ===");
-        System.out.println("DEBUG DBMSBoundary: idUtente=" + idUtente + ", idConferenza=" + idConferenza);
-        System.out.println("DEBUG DBMSBoundary: Skills ricevuto: " + Skills);
-        
-        try {
-            // Converte Object Skills in List<String>
-            @SuppressWarnings("unchecked")
-            java.util.List<String> selectedSkills = (java.util.List<String>) Skills;
-            
-            if (selectedSkills == null || selectedSkills.isEmpty()) {
-                System.out.println("DEBUG DBMSBoundary: Nessuna skill selezionata, non salvo nulla");
-                return;
-            }
-            
-            Connection con = getConnection();
-            if (con == null) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
-                return;
-            }
-            
-            // Prima rimuovi tutte le competenze esistenti per questo utente e conferenza
-            System.out.println("DEBUG DBMSBoundary: Rimozione competenze esistenti...");
-            PreparedStatement deleteStmt = con.prepareStatement(
-                "DELETE FROM competenzeRevisore WHERE idUtente = ? AND idConferenza = ?"
-            );
-            deleteStmt.setInt(1, idUtente);
-            deleteStmt.setInt(2, idConferenza);
-            int deleted = deleteStmt.executeUpdate();
-            System.out.println("DEBUG DBMSBoundary: Rimosse " + deleted + " competenze esistenti");
-            deleteStmt.close();
-            
-            // Poi inserisci le nuove competenze selezionate
-            System.out.println("DEBUG DBMSBoundary: Inserimento " + selectedSkills.size() + " nuove competenze...");
-            
-            for (String skill : selectedSkills) {
-                if (skill != null && !skill.trim().isEmpty()) {
-                    // Ottieni l'ID della keyword (creandola se non esiste)
-                    int idKeyword = inserisciOOttieniKeyword(con, skill.trim());
-                    
-                    if (idKeyword > 0) {
-                        // Inserisci la relazione nella tabella specificaCompetenza
-                        PreparedStatement insertStmt = con.prepareStatement(
-                            "INSERT INTO competenzeRevisore (idUtente, idConferenza, idKeyword) VALUES (?, ?, ?)"
-                        );
-                        insertStmt.setInt(1, idUtente);
-                        insertStmt.setInt(2, idConferenza);
-                        insertStmt.setInt(3, idKeyword);
-                        
-                        int inserted = insertStmt.executeUpdate();
-                        if (inserted > 0) {
-                            System.out.println("DEBUG DBMSBoundary: Inserita competenza: '" + skill + "' (idKeyword=" + idKeyword + ")");
-                        } else {
-                            System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile inserire competenza: '" + skill + "'");
-                        }
-                        insertStmt.close();
-                    } else {
-                        System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile ottenere ID per keyword: '" + skill + "'");
-                    }
-                }
-            }
-            
-            con.close();
-            System.out.println("DEBUG DBMSBoundary: Competenze salvate con successo");
-            
-        } catch (ClassCastException e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE - Skills non è del tipo corretto: " + e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE durante sendNewSkillInformation: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        System.out.println("DEBUG DBMSBoundary: === FINE sendNewSkillInformation ===");
+
     }
 
     //RIVEDERE
@@ -539,98 +449,20 @@ public class DBMSBoundary {
         try
         {
             Connection con=getConnection();
-            
-            // Prima recupera le informazioni della notifica per determinare il tipo e i dati
-            PreparedStatement selectStmt = con.prepareStatement(
-                "SELECT N.idConferenza, N.idUtente, N.tipo, N.dettagli FROM notifiche AS N WHERE N.id= ?"
-            );
-            selectStmt.setInt(1, idNotification);
-            ResultSet notificationResult = selectStmt.executeQuery();
-            
-            int idConferenza = -1;
-            int idUtente = -1;
-            int tipoNotifica = -1;
-            String dettagli = null;
-            
-            if (notificationResult.next()) {
-                idConferenza = notificationResult.getInt("idConferenza");
-                idUtente = notificationResult.getInt("idUtente");
-                tipoNotifica = notificationResult.getInt("tipo");
-                dettagli = notificationResult.getString("dettagli");
-                
-                System.out.println("DEBUG DBMSBoundary: Notifica trovata:");
-                System.out.println("  - ID Conferenza: " + idConferenza);
-                System.out.println("  - ID Utente: " + idUtente);
-                System.out.println("  - Tipo: " + tipoNotifica);
-                System.out.println("  - Dettagli: '" + dettagli + "'");
-            }
-            notificationResult.close();
-            selectStmt.close();
-            
-            // Aggiorna lo status della notifica
-            PreparedStatement updateStmt = con.prepareStatement("UPDATE notifiche SET esito= ? WHERE id= ?");
-            updateStmt.setString(1, status);
-            updateStmt.setInt(2, idNotification);
+            // Corretto: aggiorna il campo 'esito' invece di 'status'
+            PreparedStatement stmt=con.prepareStatement("UPDATE notifiche SET esito= ? WHERE id= ?");
+            stmt.setString(1, status);
+            stmt.setInt(2, idNotification);
             
             System.out.println("DEBUG DBMSBoundary: Eseguendo query: UPDATE notifiche SET esito='" + status + "' WHERE id=" + idNotification);
             
-            int rowsUpdated = updateStmt.executeUpdate();
+            int rowsUpdated = stmt.executeUpdate();
             if (rowsUpdated > 0) {
                 System.out.println("DEBUG DBMSBoundary: Stato aggiornato con successo. Righe modificate: " + rowsUpdated);
             } else {
                 System.err.println("DEBUG DBMSBoundary: ATTENZIONE - Nessuna riga aggiornata. Verificare che l'ID notifica esista.");
             }
-            updateStmt.close();
-            
-            // Gestione speciale per inviti a revisore (tipo 1 = accetta/rifiuta) accettati
-            if (tipoNotifica == 1 && "1".equals(status) && idConferenza != -1 && idUtente != -1) {
-                // Verifica se è un invito a revisore controllando i dettagli o il testo
-                if (dettagli != null && (dettagli.toLowerCase().contains("add-revisore") || 
-                    dettagli.toLowerCase().contains("reviewer") || 
-                    dettagli.toLowerCase().contains("invito"))) {
-                    
-                    System.out.println("DEBUG DBMSBoundary: Rilevato invito a revisore accettato - aggiungendo ruolo revisore");
-                    
-                    // Controlla se l'utente è già revisore per questa conferenza
-                    PreparedStatement checkStmt = con.prepareStatement(
-                        "SELECT COUNT(*) as count FROM ruoli WHERE idUtente = ? AND idConferenza = ? AND ruolo = 2"
-                    );
-                    checkStmt.setInt(1, idUtente);
-                    checkStmt.setInt(2, idConferenza);
-                    ResultSet checkResult = checkStmt.executeQuery();
-                    
-                    boolean alreadyReviewer = false;
-                    if (checkResult.next()) {
-                        alreadyReviewer = checkResult.getInt("count") > 0;
-                    }
-                    checkResult.close();
-                    checkStmt.close();
-                    
-                    if (!alreadyReviewer) {
-                        // Aggiungi l'utente come revisore (ruolo = 2) per la conferenza
-                        PreparedStatement insertStmt = con.prepareStatement(
-                            "INSERT INTO ruoli (idUtente, idConferenza, ruolo, dataRichiesta, dataRisposta, stato) VALUES (?, ?, 2, CURRENT_DATE, CURRENT_DATE, 1)"
-                        );
-                        insertStmt.setInt(1, idUtente);
-                        insertStmt.setInt(2, idConferenza);
-                        
-                        int insertedRows = insertStmt.executeUpdate();
-                        if (insertedRows > 0) {
-                            System.out.println("DEBUG DBMSBoundary: Utente " + idUtente + " aggiunto come revisore per conferenza " + idConferenza);
-                        } else {
-                            System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile aggiungere l'utente come revisore");
-                        }
-                        insertStmt.close();
-                    } else {
-                        System.out.println("DEBUG DBMSBoundary: L'utente " + idUtente + " è già revisore per la conferenza " + idConferenza);
-                    }
-                } else {
-                    System.out.println("DEBUG DBMSBoundary: Notifica accettata ma non è un invito a revisore (dettagli: '" + dettagli + "')");
-                }
-            } else {
-                System.out.println("DEBUG DBMSBoundary: Nessuna azione aggiuntiva richiesta (tipo=" + tipoNotifica + ", status='" + status + "')");
-            }
-            
+            stmt.close();
             con.close();
         }
         catch(Exception e)
@@ -776,32 +608,7 @@ public class DBMSBoundary {
 
     public ArrayList<String> getKeywords(int idConferenza)
     {
-        System.out.println("DEBUG DBMSBoundary: === INIZIO getKeywords ===");
-        System.out.println("DEBUG DBMSBoundary: idConferenza ricevuto: " + idConferenza);
-        
-        ArrayList<String> keywords = new ArrayList<>();
-        try {
-            Connection con = getConnection();
-            if (con == null) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
-                return keywords;
-            }
-            
-            keywords = this.getKeywordsConferenza(con, idConferenza);
-            con.close();
-            
-            System.out.println("DEBUG DBMSBoundary: Keywords recuperate: " + keywords.size());
-            for (int i = 0; i < keywords.size(); i++) {
-                System.out.println("  [" + i + "] '" + keywords.get(i) + "'");
-            }
-            
-        } catch (Exception e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE durante getKeywords: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        System.out.println("DEBUG DBMSBoundary: === FINE getKeywords ===");
-        return keywords;
+        return this.getKeywordsConferenza(getConnection(), idConferenza);
     }
     
     private ArrayList<String> getKeywordsConferenza(Connection con, int idConferenza) {
@@ -1419,20 +1226,7 @@ public class DBMSBoundary {
     }
     
     public Object getKeywordsList(int idConferenza) { //vedere se dublicato
-        System.out.println("DEBUG DBMSBoundary: === INIZIO getKeywordsList ===");
-        System.out.println("DEBUG DBMSBoundary: idConferenza ricevuto: " + idConferenza);
-        
-        try {
-            // Riutilizza il metodo getKeywords esistente
-            ArrayList<String> keywords = getKeywords(idConferenza);
-            System.out.println("DEBUG DBMSBoundary: Risultato getKeywords: " + 
-                              (keywords != null ? keywords.size() + " keywords" : "null"));
-            return keywords;
-        } catch (Exception e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE durante getKeywordsList: " + e.getMessage());
-            e.printStackTrace();
-            return new ArrayList<String>(); // Restituisce lista vuota in caso di errore
-        }
+        return null;
     }
     
     
@@ -1448,236 +1242,97 @@ public class DBMSBoundary {
         
         try {
             conn = getConnection();
-            if (conn == null) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
-                return articoli;
-            }
             
             // Query per ottenere tutti gli articoli di una conferenza
-            String query = "SELECT id, titolo, abstract, fileArticolo, allegato, stato, idConferenza, ultimaModifica " +
-                          "FROM articoli WHERE idConferenza = ? ORDER BY titolo";
+            String sql = "SELECT a.id, a.titolo, a.stato " +
+                        "FROM articoli a " +
+                        "JOIN sottomette s ON a.id = s.idArticolo " +
+                        "WHERE a.idConferenza = ?";
             
-            stmt = conn.prepareStatement(query);
+            stmt = conn.prepareStatement(sql);
             stmt.setInt(1, idConferenza);
             rs = stmt.executeQuery();
             
             while (rs.next()) {
-                // Crea l'oggetto ArticoloE usando il costruttore disponibile
-                ArticoloE articolo = new ArticoloE(
-                    rs.getInt("id"),
-                    rs.getString("titolo"),
-                    rs.getString("abstract"),
-                    rs.getObject("fileArticolo"), // BLOB
-                    rs.getObject("allegato"), // BLOB
-                    rs.getString("stato"),
-                    rs.getInt("idConferenza"),
-                    rs.getTimestamp("ultimaModifica") != null ? 
-                        rs.getTimestamp("ultimaModifica").toLocalDateTime().toLocalDate() : null
-                );
-                
-                // Ottieni e imposta le keywords per questo articolo
-                ArrayList<String> keywords = getKeywordsArticolo(rs.getInt("id"));
-                if (keywords != null && !keywords.isEmpty()) {
-                    LinkedList<String> keywordsList = new LinkedList<>();
-                    keywordsList.addAll(keywords);
-                    articolo.setKeywords(keywordsList);
-                }
-                
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setStato(rs.getString("stato"));
                 articoli.add(articolo);
-                System.out.println("DEBUG DBMSBoundary: Articolo recuperato - ID: " + articolo.getId() + 
-                                 ", Titolo: '" + articolo.getTitolo() + "'");
             }
             
-            System.out.println("DEBUG DBMSBoundary: Totale articoli recuperati: " + articoli.size());
+            System.out.println("Trovati " + articoli.size() + " articoli per la conferenza " + idConferenza);
             
         } catch (SQLException e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante getListaArticoli: " + e.getMessage());
+            System.err.println("Errore SQL durante il recupero degli articoli: " + e.getMessage());
             e.printStackTrace();
+            // In caso di errore, prova una query semplificata
+            return getListaArticoliSemplificata(idConferenza);
         } catch (Exception e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE generico durante getListaArticoli: " + e.getMessage());
+            System.err.println("Errore generico durante il recupero degli articoli: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            // Chiusura delle risorse
             try {
                 if (rs != null) rs.close();
                 if (stmt != null) stmt.close();
                 if (conn != null) conn.close();
             } catch (SQLException e) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE durante la chiusura delle risorse: " + e.getMessage());
+                System.err.println("Errore chiusura connessione: " + e.getMessage());
+                e.printStackTrace();
             }
         }
         
-        System.out.println("DEBUG DBMSBoundary: === FINE getListaArticoli ===");
+        return articoli;
+    }
+    
+    /**
+     * Metodo di fallback per recuperare gli articoli quando la tabella sottomette non esiste
+     */
+    private LinkedList<ArticoloE> getListaArticoliSemplificata(int idConferenza) {
+        LinkedList<ArticoloE> articoli = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query semplificata che assume una relazione diretta
+            String sql = "SELECT id, titolo, stato FROM articoli WHERE idConferenza = ?";
+            
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs.getInt("id"));
+                articolo.setTitolo(rs.getString("titolo"));
+                articolo.setStato(rs.getString("stato"));
+                articoli.add(articolo);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Errore anche nella query semplificata: " + e.getMessage());
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("Errore chiusura connessione: " + e.getMessage());
+            }
+        }
+        
         return articoli;
     }
     
     public void newConflitto(int idConferenza, int idUtente, int idArticolo) {
-        System.out.println("DEBUG DBMSBoundary: === INIZIO newConflitto ===");
-        System.out.println("DEBUG DBMSBoundary: idConferenza=" + idConferenza + ", idUtente=" + idUtente + ", idArticolo=" + idArticolo);
         
-        try {
-            Connection con = getConnection();
-            if (con == null) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
-                return;
-            }
-
-            String checkQuery2 = "SELECT COUNT(*) as count FROM specificaInfoAggiuntive WHERE idUtente = ? AND idArticolo = ? AND interesse=TRUE";
-            PreparedStatement checkStmt2 = con.prepareStatement(checkQuery2);
-            checkStmt2.setInt(1, idUtente);
-            checkStmt2.setInt(2, idArticolo);
-            
-            ResultSet checkResult2 = checkStmt2.executeQuery();
-            boolean recordExists2 = false;
-            if (checkResult2.next()) {
-                recordExists2 = checkResult2.getInt("count") > 0;
-            }
-            checkResult2.close();
-            checkStmt2.close();
-
-            if(recordExists2){
-                String updateQuery2 = "UPDATE specificaInfoAggiuntive SET interesse = FALSE WHERE idUtente = ? AND idArticolo = ?";
-                PreparedStatement updateStmt2 = con.prepareStatement(updateQuery2);
-                updateStmt2.setInt(1, idUtente);
-                updateStmt2.setInt(2, idArticolo);
-                
-                int updated = updateStmt2.executeUpdate();
-                System.out.println("DEBUG DBMSBoundary: Record conflitto aggiornato: " + (updated > 0 ? "successo" : "fallito"));
-                updateStmt2.close();
-            }
-            
-            // Controlla se esiste già un record per questo utente, conferenza e articolo
-            String checkQuery = "SELECT COUNT(*) as count FROM specificaInfoAggiuntive WHERE idUtente = ? AND idArticolo = ?";
-            PreparedStatement checkStmt = con.prepareStatement(checkQuery);
-            checkStmt.setInt(1, idUtente);
-            checkStmt.setInt(2, idArticolo);
-            
-            ResultSet checkResult = checkStmt.executeQuery();
-            boolean recordExists = false;
-            if (checkResult.next()) {
-                recordExists = checkResult.getInt("count") > 0;
-            }
-            checkResult.close();
-            checkStmt.close();
-            
-            if (recordExists) {
-                // Aggiorna il record esistente
-                String updateQuery = "UPDATE specificaInfoAggiuntive SET conflitto = TRUE WHERE idUtente = ? AND idArticolo = ?";
-                PreparedStatement updateStmt = con.prepareStatement(updateQuery);
-                updateStmt.setInt(1, idUtente);
-                updateStmt.setInt(2, idArticolo);
-                
-                int updated = updateStmt.executeUpdate();
-                System.out.println("DEBUG DBMSBoundary: Record conflitto aggiornato: " + (updated > 0 ? "successo" : "fallito"));
-                updateStmt.close();
-            } else {
-                // Inserisci nuovo record
-                String insertQuery = "INSERT INTO specificaInfoAggiuntive (idUtente, idArticolo, conflitto, interesse) VALUES (?, ?, TRUE, FALSE)";
-                PreparedStatement insertStmt = con.prepareStatement(insertQuery);
-                insertStmt.setInt(1, idUtente);
-                insertStmt.setInt(2, idArticolo);
-                
-                int inserted = insertStmt.executeUpdate();
-                System.out.println("DEBUG DBMSBoundary: Nuovo record conflitto inserito: " + (inserted > 0 ? "successo" : "fallito"));
-                insertStmt.close();
-            }
-            
-            con.close();
-            
-        } catch (SQLException e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante newConflitto: " + e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE generico durante newConflitto: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        System.out.println("DEBUG DBMSBoundary: === FINE newConflitto ===");
     }
     
     public void newInteresse(int idConferenza, int idUtente, int idArticolo) {
-        System.out.println("DEBUG DBMSBoundary: === INIZIO newInteresse ===");
-        System.out.println("DEBUG DBMSBoundary: idConferenza=" + idConferenza + ", idUtente=" + idUtente + ", idArticolo=" + idArticolo);
         
-        try {
-            Connection con = getConnection();
-            if (con == null) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
-                return;
-            }
-            
-            String checkQuery2 = "SELECT COUNT(*) as count FROM specificaInfoAggiuntive WHERE idUtente = ? AND idArticolo = ? AND conflitto=TRUE";
-            PreparedStatement checkStmt2 = con.prepareStatement(checkQuery2);
-            checkStmt2.setInt(1, idUtente);
-            checkStmt2.setInt(2, idArticolo);
-            
-            ResultSet checkResult2 = checkStmt2.executeQuery();
-            boolean recordExists2 = false;
-            if (checkResult2.next()) {
-                recordExists2 = checkResult2.getInt("count") > 0;
-            }
-            checkResult2.close();
-            checkStmt2.close();
-
-            if(recordExists2){
-                String updateQuery2 = "UPDATE specificaInfoAggiuntive SET conflitto = FALSE WHERE idUtente = ? AND idArticolo = ?";
-                PreparedStatement updateStmt2 = con.prepareStatement(updateQuery2);
-                updateStmt2.setInt(1, idUtente);
-                updateStmt2.setInt(2, idArticolo);
-                
-                int updated = updateStmt2.executeUpdate();
-                System.out.println("DEBUG DBMSBoundary: Record conflitto aggiornato: " + (updated > 0 ? "successo" : "fallito"));
-                updateStmt2.close();
-            }
-
-
-            // Controlla se esiste già un record per questo utente, conferenza e articolo
-            String checkQuery = "SELECT COUNT(*) as count FROM specificaInfoAggiuntive WHERE idUtente = ? AND idArticolo = ?";
-            PreparedStatement checkStmt = con.prepareStatement(checkQuery);
-            checkStmt.setInt(1, idUtente);
-            checkStmt.setInt(2, idArticolo);
-            
-            ResultSet checkResult = checkStmt.executeQuery();
-            boolean recordExists = false;
-            if (checkResult.next()) {
-                recordExists = checkResult.getInt("count") > 0;
-            }
-            checkResult.close();
-            checkStmt.close();
-            
-            if (recordExists) {
-                // Aggiorna il record esistente
-                String updateQuery = "UPDATE specificaInfoAggiuntive SET interesse = TRUE WHERE idUtente = ? AND idArticolo = ?";
-                PreparedStatement updateStmt = con.prepareStatement(updateQuery);
-                updateStmt.setInt(1, idUtente);
-                updateStmt.setInt(2, idArticolo);
-                
-                int updated = updateStmt.executeUpdate();
-                System.out.println("DEBUG DBMSBoundary: Record interesse aggiornato: " + (updated > 0 ? "successo" : "fallito"));
-                updateStmt.close();
-            } else {
-                // Inserisci nuovo record
-                String insertQuery = "INSERT INTO specificaInfoAggiuntive (idUtente, idArticolo, conflitto, interesse) VALUES (?, ?, FALSE, TRUE)";
-                PreparedStatement insertStmt = con.prepareStatement(insertQuery);
-                insertStmt.setInt(1, idUtente);
-                insertStmt.setInt(2, idArticolo);
-                
-                int inserted = insertStmt.executeUpdate();
-                System.out.println("DEBUG DBMSBoundary: Nuovo record interesse inserito: " + (inserted > 0 ? "successo" : "fallito"));
-                insertStmt.close();
-            }
-            
-            con.close();
-            
-        } catch (SQLException e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante newInteresse: " + e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE generico durante newInteresse: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        System.out.println("DEBUG DBMSBoundary: === FINE newInteresse ===");
     }
     
     
@@ -2375,56 +2030,7 @@ public class DBMSBoundary {
 
     public void setInfoReview(String puntiDiforza, String puntiDiDebolezza, int livelloDiCompetenzaDelRevisore, String commentiPerAutori, int valutazione)
     {
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        
-        try {
-            conn = getConnection();
-            if (conn == null) {
-                System.err.println("Impossibile stabilire connessione al database");
-                return;
-            }
-            
-            // Get current user ID from App.utenteAccesso
-            int idRevisore = com.cms.App.utenteAccesso.getId();
-            
-            // Get current article ID from session/context (will be set when opening ReviewSubmissionScreen)
-            // For now, we'll get it from a static variable that should be set when opening the review screen
-            int idArticolo = getCurrentArticleId();
-            
-            // Update the 'revisiona' table with review information
-            String query = "UPDATE revisiona SET puntiDiForza = ?, puntiDiDebolezza = ?, " +
-                          "livelloDiCompetenzaDelRevisore = ?, commentiPerAutori = ?, valutazione = ? " +
-                          "WHERE idRevisore = ? AND idArticolo = ?";
-            
-            stmt = conn.prepareStatement(query);
-            stmt.setString(1, puntiDiforza);
-            stmt.setString(2, puntiDiDebolezza);
-            stmt.setInt(3, livelloDiCompetenzaDelRevisore);
-            stmt.setString(4, commentiPerAutori);
-            stmt.setInt(5, valutazione);
-            stmt.setInt(6, idRevisore);
-            stmt.setInt(7, idArticolo);
-            
-            int rowsUpdated = stmt.executeUpdate();
-            
-            if (rowsUpdated > 0) {
-                System.out.println("Revisione aggiornata con successo per revisore " + idRevisore + " e articolo " + idArticolo);
-            } else {
-                System.err.println("Nessuna riga aggiornata. Verificare che esista un record nella tabella 'revisiona' per revisore " + idRevisore + " e articolo " + idArticolo);
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Errore durante l'aggiornamento della revisione: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            try {
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                System.err.println("Errore durante la chiusura delle risorse: " + e.getMessage());
-            }
-        }
+
     }
     
 
@@ -2479,83 +2085,7 @@ public class DBMSBoundary {
 
     public LinkedList<ArticoloE> getListaArticoliAssegnati(int idRevisore, int idConferenza)
     {
-        System.out.println("DEBUG DBMSBoundary: === INIZIO getListaArticoliAssegnati ===");
-        System.out.println("DEBUG DBMSBoundary: idRevisore=" + idRevisore + ", idConferenza=" + idConferenza);
-        
-        LinkedList<ArticoloE> articoliAssegnati = new LinkedList<>();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        
-        try {
-            conn = getConnection();
-            if (conn == null) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE - Impossibile stabilire connessione al database");
-                return articoliAssegnati;
-            }
-            
-            // Query per ottenere gli articoli assegnati al revisore per una specifica conferenza
-            // Utilizza le tabelle 'revisiona' e 'articoli' come indicato nello schema E/R
-            String query = "SELECT a.id, a.titolo, a.abstract, a.fileArticolo, a.allegato, a.stato, " +
-                          "a.idConferenza, a.ultimaModifica " +
-                          "FROM articoli a " +
-                          "INNER JOIN revisiona r ON a.id = r.idArticolo " +
-                          "WHERE r.idRevisore = ? AND a.idConferenza = ? " +
-                          "ORDER BY a.titolo";
-            
-            stmt = conn.prepareStatement(query);
-            stmt.setInt(1, idRevisore);
-            stmt.setInt(2, idConferenza);
-            rs = stmt.executeQuery();
-            
-            while (rs.next()) {
-                // Crea l'oggetto ArticoloE usando il costruttore disponibile
-                ArticoloE articolo = new ArticoloE(
-                    rs.getInt("id"),
-                    rs.getString("titolo"),
-                    rs.getString("abstract"),
-                    rs.getObject("fileArticolo"), // BLOB
-                    rs.getObject("allegato"), // BLOB
-                    rs.getString("stato"),
-                    rs.getInt("idConferenza"),
-                    rs.getTimestamp("ultimaModifica") != null ? 
-                        rs.getTimestamp("ultimaModifica").toLocalDateTime().toLocalDate() : null
-                );
-                
-                // Ottieni e imposta le keywords per questo articolo
-                ArrayList<String> keywords = getKeywordsArticolo(rs.getInt("id"));
-                if (keywords != null && !keywords.isEmpty()) {
-                    LinkedList<String> keywordsList = new LinkedList<>();
-                    keywordsList.addAll(keywords);
-                    articolo.setKeywords(keywordsList);
-                }
-                
-                articoliAssegnati.add(articolo);
-                System.out.println("DEBUG DBMSBoundary: Articolo assegnato recuperato - ID: " + articolo.getId() + 
-                                 ", Titolo: '" + articolo.getTitolo() + "'");
-            }
-            
-            System.out.println("DEBUG DBMSBoundary: Totale articoli assegnati recuperati: " + articoliAssegnati.size());
-            
-        } catch (SQLException e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE SQL durante getListaArticoliAssegnati: " + e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            System.err.println("DEBUG DBMSBoundary: ERRORE generico durante getListaArticoliAssegnati: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            // Chiusura delle risorse
-            try {
-                if (rs != null) rs.close();
-                if (stmt != null) stmt.close();
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                System.err.println("DEBUG DBMSBoundary: ERRORE durante la chiusura delle risorse: " + e.getMessage());
-            }
-        }
-        
-        System.out.println("DEBUG DBMSBoundary: === FINE getListaArticoliAssegnati ===");
-        return articoliAssegnati;
+        return null;
     }
     
     public LinkedList<Object> getListaArticoliSottoRevisioni(Object sottoRevisore, Object conferenza, Object articolo) {
