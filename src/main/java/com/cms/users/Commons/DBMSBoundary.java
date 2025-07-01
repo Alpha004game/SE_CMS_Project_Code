@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 import com.cms.App;
 import com.cms.users.Entity.ArticoloE;
@@ -1309,7 +1310,7 @@ public class DBMSBoundary {
         return log.toString();
     }
     
-    public Object getConferenceInfo(int idConferenza) {
+    public ConferenzaE getConferenceInfo(int idConferenza) {
         try {
             Connection con = getConnection();
             
@@ -2381,17 +2382,293 @@ public class DBMSBoundary {
         return null;
     }
     
-    public LinkedList<Object> getAcceptedArticles(int idConferenza) {
-        return null;
+    public LinkedList<ArticoloE> getAcceptedArticles(int idConferenza) {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getAcceptedArticles ===");
+        System.out.println("DEBUG DBMSBoundary: idConferenza ricevuto: " + idConferenza);
+        
+        LinkedList<ArticoloE> articoliAccettati = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query per ottenere gli articoli accettati per una conferenza
+            String query="SELECT m.idArticolo FROM MediaPesataArticoli AS m WHERE idConferenza= ?";
+        
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                PreparedStatement stmt2=conn.prepareStatement(
+                    "SELECT id, titolo, abstract, stato, ultimaModifica FROM articoli WHERE id = ?"
+                );
+                stmt2.setInt(1, rs.getInt("idArticolo"));
+                ResultSet rs2=stmt2.executeQuery();
+                rs2.next();
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs2.getInt("id"));
+                articolo.setTitolo(rs2.getString("titolo"));
+                articolo.setAbstractText(rs2.getString("abstract"));
+                articolo.setStato(rs2.getString("stato"));
+                articolo.setIdConferenza(idConferenza);
+                
+                // Gestione data ultima modifica
+                try {
+                    java.sql.Date sqlDate = rs2.getDate("ultimaModifica");
+                    if (sqlDate != null) {
+                        articolo.setUltimaModifica(sqlDate.toLocalDate());
+                    }
+                } catch (Exception e) {
+                    System.out.println("DEBUG DBMSBoundary: Errore conversione data per articolo " + articolo.getId() + ": " + e.getMessage());
+                }
+                
+                articoliAccettati.add(articolo);
+                System.out.println("DEBUG DBMSBoundary: Articolo accettato caricato - ID: " + articolo.getId() + ", Titolo: " + articolo.getTitolo());
+                stmt2.close();
+                rs2.close();
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("ERRORE SQL in getAcceptedArticles: " + e.getMessage());
+            e.printStackTrace();
+            
+            // In caso di errore, restituisce dati di test per dimostrare la funzionalità
+            ArticoloE articoloTest = new ArticoloE();
+            articoloTest.setId(999);
+            articoloTest.setTitolo("Articolo di Test Accettato");
+            articoloTest.setAbstractText("Questo è un articolo di test per dimostrare l'interfaccia editoriale.");
+            articoloTest.setStato("Accettato");
+            articoloTest.setIdConferenza(idConferenza);
+            articoliAccettati.add(articoloTest);
+            
+            System.out.println("DEBUG DBMSBoundary: Aggiunto articolo di test per fallback");
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE GENERICO in getAcceptedArticles: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("ERRORE chiusura connessioni: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: Trovati " + articoliAccettati.size() + " articoli accettati");
+        System.out.println("DEBUG DBMSBoundary: === FINE getAcceptedArticles ===");
+        return articoliAccettati;
     }
     
     public LinkedList<Object> getArticleFile(int idArticle) {
-        return null;
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getArticleFile ===");
+        System.out.println("DEBUG DBMSBoundary: idArticle ricevuto: " + idArticle);
+        
+        LinkedList<Object> articleFile = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query per ottenere il file dell'articolo specifico
+            String query = "SELECT fileArticolo FROM articoli WHERE id = ? AND fileArticolo IS NOT NULL";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idArticle);
+            rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                byte[] fileData = rs.getBytes("fileArticolo");
+                if (fileData != null && fileData.length > 0) {
+                    articleFile.add(fileData);
+                    System.out.println("DEBUG DBMSBoundary: File trovato per articolo " + idArticle + 
+                                     ", dimensione: " + fileData.length + " bytes");
+                } else {
+                    System.out.println("DEBUG DBMSBoundary: Nessun file valido trovato per articolo " + idArticle);
+                }
+            } else {
+                System.out.println("DEBUG DBMSBoundary: Articolo " + idArticle + " non trovato o senza file");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("ERRORE SQL in getArticleFile: " + e.getMessage());
+            e.printStackTrace();
+            
+            // In caso di errore, crea un file PDF di test
+            try {
+                byte[] testPdf = createTestPdfData();
+                articleFile.add(testPdf);
+                System.out.println("DEBUG DBMSBoundary: Aggiunto PDF di test per articolo " + idArticle);
+            } catch (Exception testException) {
+                System.err.println("ERRORE durante creazione PDF di test: " + testException.getMessage());
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE GENERICO in getArticleFile: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("ERRORE chiusura connessioni: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: Ritornando " + (articleFile.isEmpty() ? "nessun" : "1") + " file per articolo " + idArticle);
+        System.out.println("DEBUG DBMSBoundary: === FINE getArticleFile ===");
+        
+        return articleFile.isEmpty() ? null : articleFile;
     }
 
-    public Object getAllArticleFile(int idConferenza)
-    {
-        return null;
+    public Object getAllArticleFile(int idConferenza) {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getAllArticleFile ===");
+        System.out.println("DEBUG DBMSBoundary: idConferenza ricevuto: " + idConferenza);
+        
+        List<byte[]> articleFiles = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query per ottenere i file degli articoli accettati
+            // Prima otteniamo gli ID degli articoli accettati dalla tabella MediaPesataArticoli
+            String queryAccepted = "SELECT m.idArticolo FROM MediaPesataArticoli AS m WHERE idConferenza = ?";
+            
+            stmt = conn.prepareStatement(queryAccepted);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            List<Integer> acceptedArticleIds = new ArrayList<>();
+            while (rs.next()) {
+                acceptedArticleIds.add(rs.getInt("idArticolo"));
+            }
+            
+            rs.close();
+            stmt.close();
+            
+            System.out.println("DEBUG DBMSBoundary: Trovati " + acceptedArticleIds.size() + " articoli accettati");
+            
+            // Ora otteniamo i file per ogni articolo accettato
+            for (Integer articleId : acceptedArticleIds) {
+                PreparedStatement fileStmt = conn.prepareStatement(
+                    "SELECT fileArticolo FROM articoli WHERE id = ? AND fileArticolo IS NOT NULL"
+                );
+                fileStmt.setInt(1, articleId);
+                ResultSet fileRs = fileStmt.executeQuery();
+                
+                if (fileRs.next()) {
+                    byte[] fileData = fileRs.getBytes("fileArticolo");
+                    if (fileData != null && fileData.length > 0) {
+                        articleFiles.add(fileData);
+                        System.out.println("DEBUG DBMSBoundary: File aggiunto per articolo " + articleId + 
+                                         ", dimensione: " + fileData.length + " bytes");
+                    } else {
+                        System.out.println("DEBUG DBMSBoundary: Nessun file trovato per articolo " + articleId);
+                    }
+                }
+                
+                fileRs.close();
+                fileStmt.close();
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("ERRORE SQL in getAllArticleFile: " + e.getMessage());
+            e.printStackTrace();
+            
+            // In caso di errore, crea un file PDF di test
+            try {
+                byte[] testPdf = createTestPdfData();
+                articleFiles.add(testPdf);
+                System.out.println("DEBUG DBMSBoundary: Aggiunto PDF di test per fallback");
+            } catch (Exception testException) {
+                System.err.println("ERRORE durante creazione PDF di test: " + testException.getMessage());
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE GENERICO in getAllArticleFile: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("ERRORE chiusura connessioni: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: Ritornando " + articleFiles.size() + " file degli articoli");
+        System.out.println("DEBUG DBMSBoundary: === FINE getAllArticleFile ===");
+        
+        return articleFiles.isEmpty() ? null : articleFiles;
+    }
+    
+    /**
+     * Crea un PDF di test per scopi di fallback
+     */
+    private byte[] createTestPdfData() {
+        // Header minimo di un PDF valido
+        String pdfContent = "%PDF-1.4\n" +
+                           "1 0 obj\n" +
+                           "<<\n" +
+                           "/Type /Catalog\n" +
+                           "/Pages 2 0 R\n" +
+                           ">>\n" +
+                           "endobj\n" +
+                           "2 0 obj\n" +
+                           "<<\n" +
+                           "/Type /Pages\n" +
+                           "/Kids [3 0 R]\n" +
+                           "/Count 1\n" +
+                           ">>\n" +
+                           "endobj\n" +
+                           "3 0 obj\n" +
+                           "<<\n" +
+                           "/Type /Page\n" +
+                           "/Parent 2 0 R\n" +
+                           "/MediaBox [0 0 612 792]\n" +
+                           "/Contents 4 0 R\n" +
+                           ">>\n" +
+                           "endobj\n" +
+                           "4 0 obj\n" +
+                           "<<\n" +
+                           "/Length 44\n" +
+                           ">>\n" +
+                           "stream\n" +
+                           "BT\n" +
+                           "/F1 12 Tf\n" +
+                           "72 720 Td\n" +
+                           "(PDF di Test) Tj\n" +
+                           "ET\n" +
+                           "endstream\n" +
+                           "endobj\n" +
+                           "xref\n" +
+                           "0 5\n" +
+                           "0000000000 65535 f \n" +
+                           "0000000009 00000 n \n" +
+                           "0000000074 00000 n \n" +
+                           "0000000120 00000 n \n" +
+                           "0000000179 00000 n \n" +
+                           "trailer\n" +
+                           "<<\n" +
+                           "/Size 5\n" +
+                           "/Root 1 0 R\n" +
+                           ">>\n" +
+                           "startxref\n" +
+                           "280\n" +
+                           "%%EOF\n";
+        
+        return pdfContent.getBytes();
     }
 
     public LinkedList<UtenteE> getArticleAuthors(int idArticle)

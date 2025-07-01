@@ -15,6 +15,7 @@ import com.cms.users.submissions.Control.GestioneArticoliControl;
 import com.cms.users.submissions.Control.GestionePreferenzeControl;
 import com.cms.users.account.Control.GestionePCControl;
 import com.cms.users.revisions.Control.GestioneRevisioneControl;
+import com.cms.users.publications.Control.PubblicazioneControl;
 import com.cms.App;
 
 /**
@@ -359,7 +360,8 @@ public class HomeScreen extends JFrame {
                 visualizzaArticoliAssegnatiRevisore(conferenza.id);
                 break;
             case "editore":
-                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Editore...");
+                // Implementazione del sequence diagram: HomeScreen -> PubblicazioneControl -> DBMSBoundary -> ListScreen
+                apriInterfacciaEditoriale(conferenza.id);
                 break;
             case "sotto-revisore":
                 JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Sotto-revisore...");
@@ -855,5 +857,39 @@ public class HomeScreen extends JFrame {
             
             homeScreen.displayUserDashboard();
         });
+    }
+    
+    /**
+     * Apre l'interfaccia editoriale per visualizzare gli articoli accettati
+     * Implementa il sequence diagram: HomeScreen -> PubblicazioneControl -> DBMSBoundary -> ListScreen
+     */
+    private void apriInterfacciaEditoriale(int idConferenza) {
+        System.out.println("DEBUG HomeScreen: === INIZIO apriInterfacciaEditoriale ===");
+        System.out.println("DEBUG HomeScreen: idConferenza ricevuto: " + idConferenza);
+        
+        try {
+            // Crea il control per gestire la pubblicazione
+            System.out.println("DEBUG HomeScreen: Creando PubblicazioneControl");
+            PubblicazioneControl pubblicazioneControl = new PubblicazioneControl();
+            
+            // Invoca il metodo per aprire l'interfaccia editoriale
+            System.out.println("DEBUG HomeScreen: Chiamando apriInterfacciaEditoriale sul control");
+            pubblicazioneControl.apriInterfacciaEditoriale(idConferenza);
+            
+            // Chiudi questa finestra (l'utente passa alla ListScreen)
+            this.dispose();
+            
+            System.out.println("DEBUG HomeScreen: === FINE apriInterfacciaEditoriale ===");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG HomeScreen: ERRORE durante apriInterfacciaEditoriale: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Mostra un messaggio di errore all'utente
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura dell'interfaccia editoriale.\nRiprovare più tardi.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
