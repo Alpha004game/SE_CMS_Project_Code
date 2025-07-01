@@ -485,7 +485,6 @@ public class ConferenceManagementScreen extends JFrame {
         actionPanel.add(inviaComunicazioneButton);
         actionPanel.add(ottieniLogButton);
         actionPanel.add(visualizzaStatoButton);
-        actionPanel.add(rimuoviRevisoreArticoloButton);
         
         return actionPanel;
     }

@@ -372,7 +372,6 @@ public class ReviewerScreen extends JFrame {
         // Prima riga: bottoni assegnazione automatica
         JPanel firstRowPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         firstRowPanel.setBackground(Color.WHITE);
-        firstRowPanel.add(assegnaPerPreferenzeButton);
         firstRowPanel.add(assegnaAutomaticamenteButton);
         
         // Seconda riga: bottone assegna

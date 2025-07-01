@@ -43,7 +43,6 @@ public class ReviewSubmissionScreen extends JFrame {
     
     // Bottoni azione principali
     private JButton convocaSottoRevisoreButton;
-    private JButton rinunciaRevisioneButton;
     
     // Campi del form di revisione
     private JTextArea puntiDiForzaTextArea;
@@ -175,14 +174,7 @@ public class ReviewSubmissionScreen extends JFrame {
         convocaSottoRevisoreButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         convocaSottoRevisoreButton.setFocusPainted(false);
         convocaSottoRevisoreButton.setPreferredSize(new Dimension(180, 35));
-        
-        rinunciaRevisioneButton = new JButton("Rinuncia alla revisione");
-        rinunciaRevisioneButton.setBackground(Color.ORANGE);
-        rinunciaRevisioneButton.setForeground(Color.WHITE);
-        rinunciaRevisioneButton.setFont(new Font("Arial", Font.BOLD, 12));
-        rinunciaRevisioneButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        rinunciaRevisioneButton.setFocusPainted(false);
-        rinunciaRevisioneButton.setPreferredSize(new Dimension(180, 35));
+    
         
         // Campi del form
         initializeFormFields();
@@ -374,7 +366,6 @@ public class ReviewSubmissionScreen extends JFrame {
         panel.setBackground(Color.WHITE);
         
         panel.add(convocaSottoRevisoreButton);
-        panel.add(rinunciaRevisioneButton);
         
         return panel;
     }
@@ -446,7 +437,6 @@ public class ReviewSubmissionScreen extends JFrame {
         profiloButton.addActionListener(e -> handleProfiloAction());
         
         convocaSottoRevisoreButton.addActionListener(e -> handleConvocaSottoRevisore());
-        rinunciaRevisioneButton.addActionListener(e -> handleRinunciaRevisione());
         inviaRevisioneButton.addActionListener(e -> handleInviaRevisione());
     }
     

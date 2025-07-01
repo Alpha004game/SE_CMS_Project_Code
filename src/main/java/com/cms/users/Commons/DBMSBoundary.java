@@ -923,6 +923,7 @@ public class DBMSBoundary {
 
             stmt=con.prepareStatement("INSERT INTO ruoli VALUES (?, ?, 1, 1, CURRENT_DATE, CURRENT_DATE, NULL)");
             stmt.setInt(1, App.utenteAccesso.getId());
+            System.out.println("Debug: ID CONFERENZA " + getLastInsertedConferenceId(con));
             stmt.setInt(2, getLastInsertedConferenceId(con));
             int rowsInsertedRuolo = stmt.executeUpdate();
             if (rowsInsertedRuolo > 0) {
@@ -943,7 +944,7 @@ public class DBMSBoundary {
     }
     
     private int getLastInsertedConferenceId(Connection con) throws SQLException {
-        PreparedStatement stmt = con.prepareStatement("SELECT LAST_INSERT_ID() as id");
+        PreparedStatement stmt = con.prepareStatement("SELECT conferenze.id from conferenze where id=(SELECT MAX(id) from conferenze)");
         ResultSet rs = stmt.executeQuery();
         int id = 0;
         if (rs.next()) {
