@@ -923,6 +923,7 @@ public class DBMSBoundary {
 
             stmt=con.prepareStatement("INSERT INTO ruoli VALUES (?, ?, 1, 1, CURRENT_DATE, CURRENT_DATE, NULL)");
             stmt.setInt(1, App.utenteAccesso.getId());
+            System.out.println("Debug: ID CONFERENZA " + getLastInsertedConferenceId(con));
             stmt.setInt(2, getLastInsertedConferenceId(con));
             int rowsInsertedRuolo = stmt.executeUpdate();
             if (rowsInsertedRuolo > 0) {
@@ -943,7 +944,7 @@ public class DBMSBoundary {
     }
     
     private int getLastInsertedConferenceId(Connection con) throws SQLException {
-        PreparedStatement stmt = con.prepareStatement("SELECT LAST_INSERT_ID() as id");
+        PreparedStatement stmt = con.prepareStatement("SELECT conferenze.id from conferenze where id=(SELECT MAX(id) from conferenze)");
         ResultSet rs = stmt.executeQuery();
         int id = 0;
         if (rs.next()) {
@@ -2672,7 +2673,29 @@ public class DBMSBoundary {
 
     public LinkedList<UtenteE> getArticleAuthors(int idArticle)
     {
-        return null;
+        try
+        {
+            LinkedList<UtenteE> autori = new LinkedList<>();
+            Connection con = getConnection();
+            PreparedStatement stmt = con.prepareStatement(
+                "SELECT U.id, U.username, U.email FROM utenti AS U " +
+                "JOIN sottomette AS S ON U.id = S.idUtente " +
+                "WHERE S.idArticolo = ?"
+            );
+            stmt.setInt(1, idArticle);
+            ResultSet ris = stmt.executeQuery();
+            while (ris.next())
+            {
+                autori.add(new UtenteE(ris.getInt("id"), ris.getString("username"), ris.getString("email")));
+            }
+            return autori;
+        }
+        catch (Exception e)
+        {
+            System.err.println("Errore durante il recupero degli autori dell'articolo: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
     
     public LinkedList<UtenteE> getListaAutori(int idConferenza) {

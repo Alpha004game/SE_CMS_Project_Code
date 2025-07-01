@@ -19,7 +19,6 @@ public class NotificationScreen extends JFrame {
     private JButton homeButton;
     private JButton notificheButton;
     private JButton profiloButton;
-    private JButton mostraTutteButton;
     private JTable notificationTable;
     private DefaultTableModel tableModel;
     private JPanel centerPanel;
@@ -94,12 +93,7 @@ public class NotificationScreen extends JFrame {
         notificheButton.setBackground(new Color(255, 140, 0));
         
         // Bottone "Mostra tutte le notifiche"
-        mostraTutteButton = new JButton("Mostra tutte le notifiche");
-        mostraTutteButton.setBackground(Color.ORANGE);
-        mostraTutteButton.setForeground(Color.BLACK);
-        mostraTutteButton.setFont(new Font("Arial", Font.BOLD, 14));
-        mostraTutteButton.setFocusPainted(false);
-        mostraTutteButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+       
         
         // Label per stato vuoto
         emptyLabel = new JLabel("Nessuna nuova notifica trovata");
@@ -189,7 +183,6 @@ public class NotificationScreen extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
-        buttonPanel.add(mostraTutteButton);
         topPanel.add(buttonPanel, BorderLayout.CENTER);
         
         mainPanel.add(topPanel, BorderLayout.NORTH);
@@ -321,10 +314,7 @@ public class NotificationScreen extends JFrame {
             JOptionPane.showMessageDialog(this, "Apertura profilo utente...");
         });
         
-        // Bottone "Mostra tutte le notifiche"
-        mostraTutteButton.addActionListener(e -> {
-            MostraTutteLeNotificheButton();
-        });
+        
         
         // Double click sulla tabella per selezionare notifica
         // NOTA: La tabella viene creata dinamicamente, quindi questo listener verrà configurato in createNotificationTable()

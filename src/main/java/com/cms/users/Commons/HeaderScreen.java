@@ -77,7 +77,7 @@ public class HeaderScreen extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         
         // Bottone Home
-        homeButton = new JButton("🏠");
+        homeButton = new JButton("HOME");
         homeButton.setBackground(Color.ORANGE);
         homeButton.setForeground(Color.BLACK);
         homeButton.setFont(new Font("Arial", Font.BOLD, 20));
@@ -91,7 +91,7 @@ public class HeaderScreen extends JPanel {
         updateNotificationButton();
         
         // Bottone Profilo
-        profileButton = new JButton("👤");
+        profileButton = new JButton("PROFILO");
         profileButton.setBackground(Color.ORANGE);
         profileButton.setForeground(Color.BLACK);
         profileButton.setFont(new Font("Arial", Font.BOLD, 18));
@@ -109,7 +109,7 @@ public class HeaderScreen extends JPanel {
      * Aggiorna il bottone delle notifiche
      */
     private void updateNotificationButton() {
-        String notificationText = notificationBadge && unreadNotifications > 0 ? "🔔•" : "🔔";
+        String notificationText = notificationBadge && unreadNotifications > 0 ? "NOTIFICA (leggi)" : "NOTIFICA";
         
         if (notificationButton == null) {
             notificationButton = new JButton(notificationText);
