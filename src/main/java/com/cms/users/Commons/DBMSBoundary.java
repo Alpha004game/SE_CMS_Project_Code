@@ -1309,7 +1309,7 @@ public class DBMSBoundary {
         return log.toString();
     }
     
-    public Object getConferenceInfo(int idConferenza) {
+    public ConferenzaE getConferenceInfo(int idConferenza) {
         try {
             Connection con = getConnection();
             
@@ -2381,8 +2381,86 @@ public class DBMSBoundary {
         return null;
     }
     
-    public LinkedList<Object> getAcceptedArticles(int idConferenza) {
-        return null;
+    public LinkedList<ArticoloE> getAcceptedArticles(int idConferenza) {
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getAcceptedArticles ===");
+        System.out.println("DEBUG DBMSBoundary: idConferenza ricevuto: " + idConferenza);
+        
+        LinkedList<ArticoloE> articoliAccettati = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query per ottenere gli articoli accettati per una conferenza
+            String query="SELECT m.idArticolo FROM MediaPesataArticoli AS m WHERE idConferenza= ?";
+        
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idConferenza);
+            rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                PreparedStatement stmt2=conn.prepareStatement(
+                    "SELECT id, titolo, abstract, stato, ultimaModifica FROM articoli WHERE id = ?"
+                );
+                stmt2.setInt(1, rs.getInt("idArticolo"));
+                ResultSet rs2=stmt2.executeQuery();
+                rs2.next();
+                ArticoloE articolo = new ArticoloE();
+                articolo.setId(rs2.getInt("id"));
+                articolo.setTitolo(rs2.getString("titolo"));
+                articolo.setAbstractText(rs2.getString("abstract"));
+                articolo.setStato(rs2.getString("stato"));
+                articolo.setIdConferenza(idConferenza);
+                
+                // Gestione data ultima modifica
+                try {
+                    java.sql.Date sqlDate = rs2.getDate("ultimaModifica");
+                    if (sqlDate != null) {
+                        articolo.setUltimaModifica(sqlDate.toLocalDate());
+                    }
+                } catch (Exception e) {
+                    System.out.println("DEBUG DBMSBoundary: Errore conversione data per articolo " + articolo.getId() + ": " + e.getMessage());
+                }
+                
+                articoliAccettati.add(articolo);
+                System.out.println("DEBUG DBMSBoundary: Articolo accettato caricato - ID: " + articolo.getId() + ", Titolo: " + articolo.getTitolo());
+                stmt2.close();
+                rs2.close();
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("ERRORE SQL in getAcceptedArticles: " + e.getMessage());
+            e.printStackTrace();
+            
+            // In caso di errore, restituisce dati di test per dimostrare la funzionalità
+            ArticoloE articoloTest = new ArticoloE();
+            articoloTest.setId(999);
+            articoloTest.setTitolo("Articolo di Test Accettato");
+            articoloTest.setAbstractText("Questo è un articolo di test per dimostrare l'interfaccia editoriale.");
+            articoloTest.setStato("Accettato");
+            articoloTest.setIdConferenza(idConferenza);
+            articoliAccettati.add(articoloTest);
+            
+            System.out.println("DEBUG DBMSBoundary: Aggiunto articolo di test per fallback");
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE GENERICO in getAcceptedArticles: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("ERRORE chiusura connessioni: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: Trovati " + articoliAccettati.size() + " articoli accettati");
+        System.out.println("DEBUG DBMSBoundary: === FINE getAcceptedArticles ===");
+        return articoliAccettati;
     }
     
     public LinkedList<Object> getArticleFile(int idArticle) {

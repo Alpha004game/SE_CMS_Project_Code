@@ -19,7 +19,7 @@ public class ListScreen extends JFrame {
     
     // Enumerazioni per ruoli e funzionalità
     public enum UserRole {
-        CHAIR, REVISORE, AUTORE, SOTTOREVISORE
+        CHAIR, REVISORE, AUTORE, SOTTOREVISORE, EDITORE
     }
     
     public enum ChairFunction {
@@ -1551,40 +1551,31 @@ public class ListScreen extends JFrame {
     }
     
     /**
-     * Metodo main per test standalone
+     * Imposta i dati degli articoli accettati per l'editore
+     * @param articoliAccettati Lista degli articoli accettati per la pubblicazione
      */
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            // Test funzione "Rimuovi revisore" con dati (Chair)
-            ListScreen screen1 = new ListScreen(UserRole.CHAIR, ChairFunction.REMOVE_REVIEWER);
-            screen1.setLocation(0, 0);
-            screen1.setVisible(true);
+    public void setAcceptedArticles(List<EditoreArticleData> articoliAccettati) {
+        System.out.println("DEBUG ListScreen: === INIZIO setAcceptedArticles ===");
+        System.out.println("DEBUG ListScreen: Ricevuti " + (articoliAccettati != null ? articoliAccettati.size() : 0) + " articoli accettati");
+        
+        if (editoreArticleData == null) {
+            editoreArticleData = new ArrayList<>();
+        }
+        
+        // Pulisce i dati esistenti
+        editoreArticleData.clear();
+        
+        // Aggiunge i nuovi dati
+        if (articoliAccettati != null) {
+            editoreArticleData.addAll(articoliAccettati);
             
-            // Test funzione "Revisiona articolo" (Chair)
-            ListScreen screen2 = new ListScreen(UserRole.CHAIR, ChairFunction.REVIEW_ARTICLE);
-            screen2.setLocation(300, 0);
-            screen2.setVisible(true);
-            
-            // Test funzione "Articoli da revisionare" (Revisore)
-            ListScreen screen3 = new ListScreen(UserRole.REVISORE, RevisoreFunction.ARTICLES_TO_REVIEW);
-            screen3.setLocation(600, 0);
-            screen3.setVisible(true);
-            
-            // Test funzione "Articoli da revisionare" (SottoRevisore) con dati
-            ListScreen screen4 = new ListScreen(UserRole.SOTTOREVISORE, SottoRevisoreFunction.ARTICLES_TO_REVIEW);
-            screen4.setLocation(900, 0);
-            screen4.setVisible(true);
-            
-            // Test funzione "Articoli accettati" (Editore)
-            ListScreen screen5 = new ListScreen(UserRole.AUTORE, EditoreFunction.ACCEPTED_ARTICLES);
-            screen5.setLocation(0, 350);
-            screen5.setVisible(true);
-            
-            // Test senza dati (SottoRevisore)
-            ListScreen screen6 = new ListScreen(UserRole.SOTTOREVISORE, SottoRevisoreFunction.ARTICLES_TO_REVIEW);
-            screen6.setHasData(false);
-            screen6.setLocation(300, 350);
-            screen6.setVisible(true);
-        });
+            for (EditoreArticleData data : articoliAccettati) {
+                System.out.println("DEBUG ListScreen: Articolo aggiunto - ID: " + data.id + ", Titolo: " + data.title);
+            }
+        }
+        
+        setHasData(!editoreArticleData.isEmpty());
+        
+        System.out.println("DEBUG ListScreen: === FINE setAcceptedArticles ===");
     }
 }
