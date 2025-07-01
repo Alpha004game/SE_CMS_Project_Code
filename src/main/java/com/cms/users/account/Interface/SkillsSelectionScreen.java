@@ -25,28 +25,17 @@ public class SkillsSelectionScreen extends JFrame {
     private List<String> availableKeywords;
     private List<String> selectedKeywords;
     private List<JButton> keywordButtons;
-    private com.cms.users.account.Control.GestionePCControl gestionePCControl;
     
     /**
      * Costruttore
      */
     public SkillsSelectionScreen() {
-        this(null);
-    }
-    
-    /**
-     * Costruttore con GestionePCControl
-     */
-    public SkillsSelectionScreen(com.cms.users.account.Control.GestionePCControl control) {
         this.availableKeywords = new ArrayList<>();
         this.selectedKeywords = new ArrayList<>();
         this.keywordButtons = new ArrayList<>();
-        this.gestionePCControl = control;
         
-        // Popola con keywords di esempio solo se non c'è un control (modalità standalone)
-        if (control == null) {
-            populateExampleKeywords();
-        }
+        // Popola con keywords di esempio
+        populateExampleKeywords();
         
         initializeComponents();
         setupLayout();
@@ -341,62 +330,23 @@ public class SkillsSelectionScreen extends JFrame {
             JOptionPane.QUESTION_MESSAGE);
         
         if (result == JOptionPane.YES_OPTION) {
-            // Salva usando il control se disponibile
-            if (gestionePCControl != null) {
-                try {
-                    System.out.println("DEBUG SkillsSelectionScreen: Salvando tramite GestionePCControl");
-                    gestionePCControl.salvaCompetenze(selectedKeywords);
-                    
-                    // Chiudi questa finestra
-                    dispose();
-                    
-                    // Mostra messaggio di successo e torna alla HomeScreen
-                    JOptionPane.showMessageDialog(null,
-                        "Competenze salvate con successo:\n" + String.join("\n", selectedKeywords),
-                        "Salvataggio completato",
-                        JOptionPane.INFORMATION_MESSAGE);
-                    
-                    // Torna alla HomeScreen seguendo il sequence diagram
-                    try {
-                        Class<?> homeScreenClass = Class.forName("com.cms.users.Commons.HomeScreen");
-                        Object homeScreen = homeScreenClass.getDeclaredConstructor().newInstance();
-                        java.lang.reflect.Method displayMethod = homeScreenClass.getMethod("displayUserDashboard");
-                        displayMethod.invoke(homeScreen);
-                    } catch (Exception ex) {
-                        System.err.println("Errore nell'apertura della HomeScreen: " + ex.getMessage());
-                    }
-                    
-                } catch (Exception ex) {
-                    System.err.println("Errore durante il salvataggio delle competenze: " + ex.getMessage());
-                    ex.printStackTrace();
-                    
-                    JOptionPane.showMessageDialog(this,
-                        "Errore durante il salvataggio delle competenze.\nRiprovare più tardi.",
-                        "Errore",
-                        JOptionPane.ERROR_MESSAGE);
-                }
-            } else {
-                // Modalità standalone (senza control) - comportamento originale
-                System.out.println("DEBUG SkillsSelectionScreen: Modalità standalone - non salvo nel DB");
+            // Chiudi questa finestra
+            dispose();
+            
+            // Mostra success screen
+            try {
+                Class<?> successScreenClass = Class.forName("com.cms.users.Commons.SuccessScreen");
+                Object successScreen = successScreenClass.getDeclaredConstructor(String.class)
+                    .newInstance("Keywords salvate\ncon successo");
                 
-                // Chiudi questa finestra
-                dispose();
-                
-                // Mostra success screen
-                try {
-                    Class<?> successScreenClass = Class.forName("com.cms.users.Commons.SuccessScreen");
-                    Object successScreen = successScreenClass.getDeclaredConstructor(String.class)
-                        .newInstance("Keywords salvate\ncon successo");
-                    
-                    java.lang.reflect.Method displayMethod = successScreenClass.getMethod("displaySuccessMessage");
-                    displayMethod.invoke(successScreen);
-                } catch (Exception ex) {
-                    // Fallback: usa dialog semplice
-                    JOptionPane.showMessageDialog(null,
-                        "Keywords salvate con successo:\n" + String.join("\n", selectedKeywords),
-                        "Salvataggio completato",
-                        JOptionPane.INFORMATION_MESSAGE);
-                }
+                java.lang.reflect.Method displayMethod = successScreenClass.getMethod("displaySuccessMessage");
+                displayMethod.invoke(successScreen);
+            } catch (Exception ex) {
+                // Fallback: usa dialog semplice
+                JOptionPane.showMessageDialog(null,
+                    "Keywords salvate con successo:\n" + String.join("\n", selectedKeywords),
+                    "Salvataggio completato",
+                    JOptionPane.INFORMATION_MESSAGE);
             }
         }
     }
