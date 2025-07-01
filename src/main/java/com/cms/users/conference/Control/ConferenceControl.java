@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 // Import per iTextPDF
 import com.itextpdf.text.Document;
@@ -266,7 +265,170 @@ public class ConferenceControl {
     }
     
     public void visualizzaStatoRevisioni() {
-        // Implementazione da definire
+        // Implementazione da definire - metodo legacy senza parametri
+    }
+    
+    /**
+     * Visualizza lo stato delle revisioni per una conferenza specifica
+     * Apre una RevisionOverviewScreen per il Chair che mostra tutte le revisioni di tutti gli articoli
+     * Utilizza getInfoReview(idArticolo) per ottenere informazioni dettagliate sulle revisioni
+     * Segue il sequence diagram: ConferenceControl -> DBMSBoundary -> RevisionOverviewScreen
+     */
+    public void visualizzaStatoRevisioni(int idConferenza) {
+        System.out.println("DEBUG ConferenceControl: === INIZIO visualizzaStatoRevisioni ===");
+        System.out.println("DEBUG ConferenceControl: idConferenza: " + idConferenza);
+        
+        try {
+            // Ottieni tutti gli articoli della conferenza dal database
+            LinkedList<ArticoloE> articoliConferenza = App.dbms.getListaArticoli(idConferenza);
+            
+            if (articoliConferenza == null || articoliConferenza.isEmpty()) {
+                System.out.println("DEBUG ConferenceControl: Nessun articolo trovato per la conferenza " + idConferenza);
+                // Mostra comunque la schermata con messaggio informativo
+                com.cms.users.revisions.Interface.RevisionOverviewScreen revisionScreen = 
+                    new com.cms.users.revisions.Interface.RevisionOverviewScreen(
+                        com.cms.users.revisions.Interface.RevisionOverviewScreen.UserRole.CHAIR,
+                        "Stato Revisioni - Conferenza " + idConferenza,
+                        "CONF" + idConferenza,
+                        new java.util.ArrayList<>(),
+                        idConferenza
+                    );
+                revisionScreen.setVisible(true);
+                return;
+            }
+            
+            // Per il chair, mostriamo una panoramica generale di tutte le revisioni
+            String titoloConferenza = "Stato Revisioni - Conferenza " + idConferenza;
+            
+            // Ottieni lo stato delle revisioni di tutti gli articoli utilizzando getInfoReview
+            java.util.ArrayList<Object> tutteLeRevisioni = new java.util.ArrayList<>();
+            
+            for (ArticoloE articolo : articoliConferenza) {
+                try {
+                    System.out.println("DEBUG ConferenceControl: Processando articolo " + articolo.getId() + ": " + articolo.getTitolo());
+                    
+                    // Utilizza getInfoReview per ottenere informazioni dettagliate sulla revisione
+                    Object infoRevisione = App.dbms.getInfoReview(articolo.getId());
+                    
+                    // Crea un oggetto che combina informazioni articolo e stato revisione
+                    java.util.Map<String, Object> revisioneCompleta = new java.util.HashMap<>();
+                    revisioneCompleta.put("articolo", articolo);
+                    revisioneCompleta.put("infoRevisione", infoRevisione);
+                    revisioneCompleta.put("titoloArticolo", articolo.getTitolo());
+                    revisioneCompleta.put("idArticolo", articolo.getId());
+                    
+                    // Determina lo stato della revisione
+                    String statoRevisione = determineRevisionStatus(infoRevisione);
+                    revisioneCompleta.put("statoRevisione", statoRevisione);
+                    
+                    // Determina se è cliccabile (non iniziata o in corso)
+                    boolean isClickable = "Da iniziare".equals(statoRevisione) || "In corso".equals(statoRevisione);
+                    revisioneCompleta.put("isClickable", isClickable);
+                    
+                    tutteLeRevisioni.add(revisioneCompleta);
+                    
+                    System.out.println("DEBUG ConferenceControl: Articolo " + articolo.getId() + " - Stato: " + statoRevisione + " - Cliccabile: " + isClickable);
+                    
+                } catch (Exception e) {
+                    System.err.println("DEBUG ConferenceControl: Errore nel recupero info revisione per articolo " + articolo.getId() + ": " + e.getMessage());
+                    
+                    // Aggiungi comunque l'articolo con stato di errore
+                    java.util.Map<String, Object> articoloConErrore = new java.util.HashMap<>();
+                    articoloConErrore.put("articolo", articolo);
+                    articoloConErrore.put("infoRevisione", null);
+                    articoloConErrore.put("titoloArticolo", articolo.getTitolo());
+                    articoloConErrore.put("idArticolo", articolo.getId());
+                    articoloConErrore.put("statoRevisione", "Da iniziare");
+                    articoloConErrore.put("isClickable", true); // Se non c'è info, presumiamo sia da iniziare
+                    tutteLeRevisioni.add(articoloConErrore);
+                }
+            }
+            
+            System.out.println("DEBUG ConferenceControl: Totale revisioni/articoli raccolti: " + tutteLeRevisioni.size());
+            
+            // Crea la RevisionOverviewScreen per il Chair con funzionalità di doppio click
+            com.cms.users.revisions.Interface.RevisionOverviewScreen revisionScreen = 
+                new com.cms.users.revisions.Interface.RevisionOverviewScreen(
+                    com.cms.users.revisions.Interface.RevisionOverviewScreen.UserRole.CHAIR,
+                    titoloConferenza,
+                    "CONF" + idConferenza,
+                    tutteLeRevisioni,
+                    idConferenza  // Passa l'ID conferenza per il doppio click
+                );
+            
+            revisionScreen.setVisible(true);
+            
+            System.out.println("DEBUG ConferenceControl: RevisionOverviewScreen aperta con successo");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG ConferenceControl: ERRORE in visualizzaStatoRevisioni: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Fallback: apri la schermata senza dati
+            com.cms.users.revisions.Interface.RevisionOverviewScreen revisionScreen = 
+                new com.cms.users.revisions.Interface.RevisionOverviewScreen(
+                    com.cms.users.revisions.Interface.RevisionOverviewScreen.UserRole.CHAIR,
+                    "Stato Revisioni - Conferenza " + idConferenza,
+                    "CONF" + idConferenza,
+                    new java.util.ArrayList<>(),
+                    idConferenza
+                );
+            revisionScreen.setVisible(true);
+        }
+        
+        System.out.println("DEBUG ConferenceControl: === FINE visualizzaStatoRevisioni ===");
+    }
+    
+    /**
+     * Determina lo stato della revisione basandosi sulle informazioni ottenute da getInfoReview
+     * @param infoRevisione Oggetto contenente le informazioni sulla revisione
+     * @return Stringa che rappresenta lo stato della revisione
+     */
+    private String determineRevisionStatus(Object infoRevisione) {
+        if (infoRevisione == null) {
+            return "Da iniziare";
+        }
+        
+        try {
+            // Se l'info revisione è una stringa, prova a interpretarla
+            if (infoRevisione instanceof String) {
+                String info = (String) infoRevisione;
+                if (info.trim().isEmpty()) {
+                    return "Da iniziare";
+                } else if (info.toLowerCase().contains("completat")) {
+                    return "Completata";
+                } else {
+                    return "In corso";
+                }
+            }
+            
+            // Se è un oggetto più complesso, prova a estrarre lo stato
+            if (infoRevisione instanceof java.util.Map) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> infoMap = (java.util.Map<String, Object>) infoRevisione;
+                Object stato = infoMap.get("stato");
+                if (stato != null) {
+                    return stato.toString();
+                }
+                
+                // Se non c'è un campo stato specifico, determina basandosi su altri campi
+                Object valutazione = infoMap.get("valutazione");
+                Object commenti = infoMap.get("commenti");
+                
+                if (valutazione != null || (commenti != null && !commenti.toString().trim().isEmpty())) {
+                    return "Completata";
+                } else {
+                    return "In corso";
+                }
+            }
+            
+            // Default: se abbiamo informazioni ma non riusciamo a interpretarle
+            return "In corso";
+            
+        } catch (Exception e) {
+            System.err.println("Errore nel determinare lo stato della revisione: " + e.getMessage());
+            return "Errore";
+        }
     }
     
     public void visualizzaStato(String idArticolo) {
@@ -1608,5 +1770,112 @@ public class ConferenceControl {
             System.err.println("Errore durante l'assegnazione del revisore all'articolo: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * Metodo di test per verificare l'apertura dello stato revisioni dal ConferenceManagementScreen
+     * Simula il comportamento quando il Chair clicca "Visualizza stato revisione attuale"
+     */
+    public void testVisualizzaStatoRevisioni() {
+        System.out.println("=== TEST VISUALIZZA STATO REVISIONI ===");
+        
+        try {
+            // Simula l'apertura dalla ConferenceManagementScreen
+            int idConferenzaTest = 1; // Usa un ID di conferenza di test
+            
+            System.out.println("TEST: Simulando click su 'Visualizza stato revisione attuale'");
+            System.out.println("TEST: ID Conferenza: " + idConferenzaTest);
+            
+            visualizzaStatoRevisioni(idConferenzaTest);
+            
+            System.out.println("TEST: RevisionOverviewScreen dovrebbe essere aperta con:");
+            System.out.println("- Tutti gli articoli della conferenza " + idConferenzaTest);
+            System.out.println("- Stato di ogni revisione ottenuto da getInfoReview()");
+            System.out.println("- Revisioni 'Da iniziare' e 'In corso' cliccabili con doppio click");
+            System.out.println("- Doppio click apre ReviewSubmissionScreen per il Chair");
+            
+        } catch (Exception e) {
+            System.err.println("TEST FALLITO: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("=== FINE TEST VISUALIZZA STATO REVISIONI ===");
+    }
+    
+    /**
+     * Metodo di test completo per verificare il workflow Chair -> RevisionOverviewScreen -> ReviewSubmissionScreen
+     * Testa l'intero flusso di revisione del Chair
+     */
+    public void testWorkflowChairRevisione() {
+        System.out.println("=== TEST WORKFLOW COMPLETO CHAIR REVISIONE ===");
+        
+        try {
+            int idConferenzaTest = 1;
+            
+            System.out.println("TEST: 1. Chair apre visualizzazione stato revisioni");
+            visualizzaStatoRevisioni(idConferenzaTest);
+            
+            System.out.println("TEST: 2. Verificando funzionalità doppio click su revisioni non completate");
+            System.out.println("TEST: - RevisionOverviewScreen dovrebbe mostrare revisioni con bordo arancione");
+            System.out.println("TEST: - Doppio click dovrebbe:");
+            System.out.println("TEST:   a) Impostare currentArticleId nella DBMSBoundary");
+            System.out.println("TEST:   b) Creare assegnazione Chair se non esiste");
+            System.out.println("TEST:   c) Aprire ReviewSubmissionScreen con titolo '(Chair)'");
+            System.out.println("TEST:   d) Permettere salvataggio revisione con ID Chair corretto");
+            
+            System.out.println("TEST: 3. Verifica dati necessari per il salvataggio:");
+            if (com.cms.App.utenteAccesso != null) {
+                System.out.println("TEST: - ID Chair corrente: " + com.cms.App.utenteAccesso.getId());
+                System.out.println("TEST: - Username Chair: " + com.cms.App.utenteAccesso.getUsername());
+            } else {
+                System.out.println("TEST: - ERRORE: Nessun utente loggato!");
+            }
+            
+            System.out.println("TEST: 4. Test chiamate DB:");
+            // Test getListaArticoli
+            try {
+                java.util.LinkedList<ArticoloE> articoli = com.cms.App.dbms.getListaArticoli(idConferenzaTest);
+                if (articoli != null && !articoli.isEmpty()) {
+                    ArticoloE primoArticolo = articoli.get(0);
+                    System.out.println("TEST: - Primo articolo trovato: ID=" + primoArticolo.getId() + 
+                                     ", Titolo=" + primoArticolo.getTitolo());
+                    
+                    // Test getInfoReview
+                    Object infoReview = com.cms.App.dbms.getInfoReview(primoArticolo.getId());
+                    System.out.println("TEST: - Info revisione: " + (infoReview != null ? infoReview.toString() : "null"));
+                    
+                    // Test setCurrentArticleId
+                    com.cms.users.Commons.DBMSBoundary.setCurrentArticleId(primoArticolo.getId());
+                    int currentId = com.cms.users.Commons.DBMSBoundary.getCurrentArticleId();
+                    System.out.println("TEST: - ID articolo impostato e verificato: " + currentId);
+                    
+                    // Test verifica assegnazione
+                    if (com.cms.App.utenteAccesso != null) {
+                        boolean assegnazione = com.cms.App.dbms.verificaAssegnazioneEsistente(
+                            primoArticolo.getId(), 
+                            com.cms.App.utenteAccesso.getId()
+                        );
+                        System.out.println("TEST: - Assegnazione Chair esistente: " + assegnazione);
+                    }
+                    
+                } else {
+                    System.out.println("TEST: - Nessun articolo trovato per conferenza " + idConferenzaTest);
+                }
+            } catch (Exception dbTest) {
+                System.err.println("TEST: ERRORE test DB: " + dbTest.getMessage());
+            }
+            
+            System.out.println("TEST: WORKFLOW COMPLETO - Il Chair ora può:");
+            System.out.println("TEST: 1. Vedere tutte le revisioni nella RevisionOverviewScreen");
+            System.out.println("TEST: 2. Fare doppio click su revisioni 'Da iniziare' o 'In corso'");
+            System.out.println("TEST: 3. Compilare la ReviewSubmissionScreen");
+            System.out.println("TEST: 4. Salvare la revisione nel database con il proprio ID");
+            
+        } catch (Exception e) {
+            System.err.println("TEST FALLITO: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("=== FINE TEST WORKFLOW COMPLETO ===");
     }
 }

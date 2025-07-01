@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 import com.cms.users.Entity.ConferenzaE;
+import com.cms.users.Entity.ArticoloE;
 import com.cms.users.conference.Control.CreaConferenzaControl;
 import com.cms.users.conference.Control.ConferenceControl;
 import com.cms.users.submissions.Control.GestioneArticoliControl;
@@ -359,12 +360,19 @@ public class HomeScreen extends JFrame {
                 // Implementazione del sequence diagram per visualizzare articoli assegnati
                 visualizzaArticoliAssegnatiRevisore(conferenza.id);
                 break;
+            case "revisiona":
+                // Sotto-revisori e revisori usano funzionalità simili ma con logiche diverse
+                if ("sotto-revisore".equalsIgnoreCase(conferenza.ruolo)) {
+                    // Per i sotto-revisori: apri direttamente la ReviewSubmissionScreen per l'articolo assegnato
+                    apriRevisioneSottoRevisore(conferenza.id);
+                } else {
+                    // Per i revisori normali: visualizza lista articoli assegnati
+                    visualizzaArticoliAssegnatiRevisore(conferenza.id);
+                }
+                break;
             case "editore":
                 // Implementazione del sequence diagram: HomeScreen -> PubblicazioneControl -> DBMSBoundary -> ListScreen
                 apriInterfacciaEditoriale(conferenza.id);
-                break;
-            case "sotto-revisore":
-                JOptionPane.showMessageDialog(this, message + "\n\nApertura funzionalità Sotto-revisore...");
                 break;
             case "autore":
                 // Implementazione del sequence diagram "Visualizza Sottomissioni"
@@ -527,6 +535,54 @@ public class HomeScreen extends JFrame {
         }
     }
     
+    /**
+     * Apre la revisione per un sotto-revisore dell'articolo specifico assegnato
+     * @param idConferenza ID della conferenza
+     */
+    private void apriRevisioneSottoRevisore(int idConferenza) {
+        try {
+            // Ottieni l'ID del sotto-revisore corrente
+            int idSottoRevisore = App.utenteAccesso.getId();
+            
+            // Ottieni l'articolo assegnato al sotto-revisore per questa conferenza
+            ArticoloE articoloAssegnato = dbmsBoundary.getArticoloAssegnatoSottoRevisore(idSottoRevisore, idConferenza);
+            
+            if (articoloAssegnato == null) {
+                JOptionPane.showMessageDialog(this, 
+                    "Non hai articoli assegnati per la revisione in questa conferenza.", 
+                    "Nessun Articolo Assegnato", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Imposta l'articolo corrente nel DBMSBoundary
+            DBMSBoundary.setCurrentArticleId(articoloAssegnato.getId());
+            
+            // Crea la ReviewSubmissionScreen per il sotto-revisore
+            com.cms.users.revisions.Interface.ReviewSubmissionScreen reviewScreen = 
+                new com.cms.users.revisions.Interface.ReviewSubmissionScreen(
+                    String.valueOf(articoloAssegnato.getId()), 
+                    articoloAssegnato.getTitolo(), 
+                    String.valueOf(idSottoRevisore),
+                    articoloAssegnato
+                );
+            
+            // Mostra la schermata
+            reviewScreen.setVisible(true);
+            
+            System.out.println("DEBUG HomeScreen: Aperta ReviewSubmissionScreen per sotto-revisore. Articolo: " + 
+                             articoloAssegnato.getTitolo());
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura della revisione per sotto-revisore: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante l'apertura della schermata di revisione: " + e.getMessage(), 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     // Metodi originali implementati
     public void displayWelcomeMessage() {
         if (welcomeMessage != null) {
@@ -612,8 +668,8 @@ public class HomeScreen extends JFrame {
                 result = new String[]{"Revisore", "Selezione specifiche competenze", "Modifica preferenze articolo", "Autore"};
                 break;
             case "sotto-revisore":
-                // Sotto-revisore vede i bottoni Sotto-revisore e Autore
-                result = new String[]{"Sotto-revisore", "Autore"};
+                // Sotto-revisore vede i bottoni Revisiona e Autore (stesse funzionalità del revisore)
+                result = new String[]{"Revisiona", "Autore"};
                 break;
             case "autore":
                 // Autore che ha già sottomesso vede solo il bottone Autore

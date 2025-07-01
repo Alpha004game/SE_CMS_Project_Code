@@ -23,12 +23,25 @@ public class RevisionOverviewScreen extends JFrame {
         public String reviewerName;
         public String comment;
         public String status;
+        public boolean isClickable;
+        public int articleId;
         
         public RevisionData(String revisionId, String reviewerName, String comment, String status) {
             this.revisionId = revisionId;
             this.reviewerName = reviewerName;
             this.comment = comment;
             this.status = status;
+            this.isClickable = false;
+            this.articleId = -1;
+        }
+        
+        public RevisionData(String revisionId, String reviewerName, String comment, String status, boolean isClickable, int articleId) {
+            this.revisionId = revisionId;
+            this.reviewerName = reviewerName;
+            this.comment = comment;
+            this.status = status;
+            this.isClickable = isClickable;
+            this.articleId = articleId;
         }
     }
     
@@ -43,6 +56,7 @@ public class RevisionOverviewScreen extends JFrame {
     private String articleTitle;
     private String articleId;
     private List<RevisionData> revisions;
+    private int conferenceId = -1; // ID della conferenza per il doppio click
     
     // Pannello per le revisioni
     private JPanel revisionsPanel;
@@ -83,6 +97,22 @@ public class RevisionOverviewScreen extends JFrame {
     }
     
     /**
+     * Costruttore con dati reali delle revisioni dal database e ID conferenza per doppio click
+     * Utilizzato dal ConferenceControl per mostrare tutte le revisioni con funzionalità interattiva
+     */
+    public RevisionOverviewScreen(UserRole userRole, String articleTitle, String articleId, ArrayList<Object> revisionsData, int conferenceId) {
+        this.userRole = userRole != null ? userRole : UserRole.CHAIR;
+        this.articleTitle = articleTitle != null ? articleTitle : "Titolo articolo";
+        this.articleId = articleId != null ? articleId : "ART" + (int)(Math.random() * 10000);
+        this.conferenceId = conferenceId;
+        
+        initializeDataFromDatabase(revisionsData);
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
      * Inizializza i dati di esempio
      */
     private void initializeData() {
@@ -106,23 +136,93 @@ public class RevisionOverviewScreen extends JFrame {
         
         if (revisionsData != null) {
             for (Object obj : revisionsData) {
-                if (obj instanceof String[]) {
-                    String[] revisionArray = (String[]) obj;
-                    if (revisionArray.length >= 4) {
-                        revisions.add(new RevisionData(
-                            revisionArray[0], // revisionId
-                            revisionArray[1], // reviewerName
-                            revisionArray[2], // comment
-                            revisionArray[3]  // status
-                        ));
+                try {
+                    if (obj instanceof String[]) {
+                        // Gestione del formato array di stringhe (formato precedente)
+                        String[] revisionArray = (String[]) obj;
+                        if (revisionArray.length >= 4) {
+                            revisions.add(new RevisionData(
+                                revisionArray[0], // revisionId
+                                revisionArray[1], // reviewerName
+                                revisionArray[2], // comment
+                                revisionArray[3]  // status
+                            ));
+                        }
+                    } else if (obj instanceof java.util.Map) {
+                        // Gestione del formato Map per dati complessi dal ConferenceControl
+                        @SuppressWarnings("unchecked")
+                        java.util.Map<String, Object> revisioneCompleta = (java.util.Map<String, Object>) obj;
+                        
+                        Object infoRevisioneObj = revisioneCompleta.get("infoRevisione");
+                        String titoloArticolo = (String) revisioneCompleta.get("titoloArticolo");
+                        Integer idArticolo = (Integer) revisioneCompleta.get("idArticolo");
+                        String statoRevisione = (String) revisioneCompleta.get("statoRevisione");
+                        Boolean isClickable = (Boolean) revisioneCompleta.get("isClickable");
+                        
+                        if (idArticolo == null) idArticolo = -1;
+                        if (isClickable == null) isClickable = false;
+                        if (statoRevisione == null) statoRevisione = "Sconosciuto";
+                        
+                        String revisionId = "ART" + idArticolo;
+                        String reviewerName = "Sistema";
+                        String comment = "Articolo: " + titoloArticolo;
+                        
+                        // Costruisci il commento in base alle info della revisione
+                        if (infoRevisioneObj != null) {
+                            if (infoRevisioneObj instanceof String) {
+                                String infoStr = (String) infoRevisioneObj;
+                                if (!infoStr.trim().isEmpty()) {
+                                    comment = "Articolo: " + titoloArticolo + " - " + infoStr;
+                                }
+                            } else if (infoRevisioneObj instanceof java.util.Map) {
+                                @SuppressWarnings("unchecked")
+                                java.util.Map<String, Object> infoMap = (java.util.Map<String, Object>) infoRevisioneObj;
+                                Object revisore = infoMap.get("revisore");
+                                Object commenti = infoMap.get("commenti");
+                                
+                                if (revisore != null) {
+                                    reviewerName = revisore.toString();
+                                }
+                                if (commenti != null) {
+                                    comment = "Articolo: " + titoloArticolo + " - " + commenti.toString();
+                                }
+                            }
+                        } else {
+                            // Nessuna info revisione disponibile
+                            if ("Da iniziare".equals(statoRevisione)) {
+                                comment = "Articolo: " + titoloArticolo + " - Revisione non ancora iniziata";
+                                reviewerName = "Nessun revisore";
+                            }
+                        }
+                        
+                        revisions.add(new RevisionData(revisionId, reviewerName, comment, statoRevisione, isClickable, idArticolo));
                     }
+                } catch (Exception e) {
+                    System.err.println("Errore nel processamento revisione: " + e.getMessage());
+                    // Aggiungi una revisione di fallback
+                    revisions.add(new RevisionData(
+                        "ERR" + revisions.size(),
+                        "Errore di caricamento",
+                        "Errore nel caricamento dei dati di revisione",
+                        "Errore",
+                        false,
+                        -1
+                    ));
                 }
             }
         }
         
         // Se non ci sono revisioni dal database, aggiungi un messaggio
         if (revisions.isEmpty()) {
-            revisions.add(new RevisionData("", "Nessuna revisione", "Nessuna revisione disponibile per questo articolo", ""));
+            if (userRole == UserRole.CHAIR) {
+                revisions.add(new RevisionData("", "Nessuna revisione", 
+                    "Nessuna revisione disponibile per questa conferenza. Gli articoli potrebbero non essere ancora stati assegnati ai revisori.", 
+                    "", false, -1));
+            } else {
+                revisions.add(new RevisionData("", "Nessuna revisione", 
+                    "Nessuna revisione disponibile per questo articolo", 
+                    "", false, -1));
+            }
         }
     }
     
@@ -131,7 +231,10 @@ public class RevisionOverviewScreen extends JFrame {
      */
     private void initializeComponents() {
         // Configurazione finestra principale
-        setTitle("CMS - Panoramica Revisioni");
+        String windowTitle = userRole == UserRole.CHAIR ? 
+            "CMS - Stato Revisioni Conferenza" : 
+            "CMS - Panoramica Revisioni";
+        setTitle(windowTitle);
         setSize(900, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -267,6 +370,33 @@ public class RevisionOverviewScreen extends JFrame {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
         
+        // Se è il Chair, aggiungi un messaggio informativo
+        if (userRole == UserRole.CHAIR && revisions.size() > 1) {
+            JPanel infoPanel = new JPanel();
+            infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+            infoPanel.setBackground(Color.WHITE);
+            infoPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+            
+            JLabel infoLabel = new JLabel("Stato di tutte le revisioni della conferenza (" + revisions.size() + " elementi)");
+            infoLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+            infoLabel.setForeground(Color.GRAY);
+            infoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            infoPanel.add(infoLabel);
+            
+            // Controlla se ci sono revisioni cliccabili
+            boolean hasClickableRevisions = revisions.stream().anyMatch(r -> r.isClickable);
+            if (hasClickableRevisions) {
+                JLabel clickLabel = new JLabel("💡 Doppio click sulle revisioni con bordo arancione per revisionare gli articoli");
+                clickLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+                clickLabel.setForeground(new Color(255, 140, 0));
+                clickLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                infoPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+                infoPanel.add(clickLabel);
+            }
+            
+            panel.add(infoPanel);
+        }
+        
         // Crea una sezione per ogni revisione
         for (RevisionData revision : revisions) {
             JPanel revisionPanel = createRevisionPanel(revision);
@@ -356,7 +486,101 @@ public class RevisionOverviewScreen extends JFrame {
         }
         panel.add(statoValue, gbc);
         
+        // Aggiungi supporto per doppio click se è il Chair e la revisione è cliccabile
+        if (userRole == UserRole.CHAIR && revision.isClickable) {
+            panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            panel.setToolTipText("Doppio click per revisionare questo articolo");
+            
+            // Aggiungi un bordo più evidente per indicare che è cliccabile
+            panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.ORANGE, 2),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+            ));
+            
+            panel.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    if (e.getClickCount() == 2) {
+                        handleDoubleClickRevisione(revision.articleId);
+                    }
+                }
+                
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    panel.setBackground(new Color(255, 248, 220)); // Sfondo chiaro quando hover
+                }
+                
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    panel.setBackground(Color.WHITE);
+                }
+            });
+        }
+        
         return panel;
+    }
+    
+    /**
+     * Gestisce il doppio click su una revisione per aprire la schermata di revisione
+     * @param articleId ID dell'articolo da revisionare
+     */
+    private void handleDoubleClickRevisione(int articleId) {
+        System.out.println("DEBUG RevisionOverviewScreen: Doppio click su articolo ID: " + articleId);
+        
+        try {
+            // Ottieni i dati dell'articolo dalla DBMSBoundary
+            com.cms.users.Entity.ArticoloE articolo = com.cms.App.dbms.getArticolo(articleId);
+            
+            if (articolo == null) {
+                javax.swing.JOptionPane.showMessageDialog(this,
+                    "Impossibile caricare i dati dell'articolo",
+                    "Errore",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Imposta l'ID articolo corrente nella DBMSBoundary per il salvataggio
+            com.cms.users.Commons.DBMSBoundary.setCurrentArticleId(articleId);
+            System.out.println("DEBUG RevisionOverviewScreen: ID articolo impostato: " + articleId);
+            
+            // Verifica che esista un record nella tabella 'revisiona' per il Chair
+            // Se non esiste, lo creiamo
+            int chairId = com.cms.App.utenteAccesso.getId();
+            if (!com.cms.App.dbms.verificaAssegnazioneEsistente(articleId, chairId)) {
+                System.out.println("DEBUG RevisionOverviewScreen: Creando assegnazione Chair per articolo " + articleId);
+                
+                // Crea un'assegnazione temporanea per il Chair
+                try {
+                    com.cms.App.dbms.setRevisoreArticolo(articleId, chairId);
+                    System.out.println("DEBUG RevisionOverviewScreen: Assegnazione Chair creata con successo");
+                } catch (Exception assegnException) {
+                    System.err.println("DEBUG RevisionOverviewScreen: Errore nella creazione assegnazione: " + assegnException.getMessage());
+                    // Continua comunque, potrebbe già esistere
+                }
+            }
+            
+            // Crea la ReviewSubmissionScreen per il Chair
+            com.cms.users.revisions.Interface.ReviewSubmissionScreen reviewScreen = 
+                new com.cms.users.revisions.Interface.ReviewSubmissionScreen(
+                    "ART" + articleId,
+                    articolo.getTitolo(),
+                    String.valueOf(chairId), // Usa l'ID reale del Chair
+                    articolo
+                );
+            
+            reviewScreen.setVisible(true);
+            
+            System.out.println("DEBUG RevisionOverviewScreen: ReviewSubmissionScreen aperta per Chair su articolo: " + articolo.getTitolo());
+            
+        } catch (Exception e) {
+            System.err.println("Errore nell'apertura della schermata di revisione: " + e.getMessage());
+            e.printStackTrace();
+            
+            javax.swing.JOptionPane.showMessageDialog(this,
+                "Errore nell'apertura della schermata di revisione: " + e.getMessage(),
+                "Errore",
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     /**
@@ -419,16 +643,39 @@ public class RevisionOverviewScreen extends JFrame {
     private void handleRevisioneArticolo() {
         // Apre la schermata di revisione per il Chair
         try {
-            Class<?> reviewScreenClass = Class.forName("com.cms.users.revisions.Interface.ReviewSubmissionScreen");
-            Object reviewScreen = reviewScreenClass.getDeclaredConstructor(String.class, String.class, String.class)
-                                                   .newInstance(articleId, articleTitle, "CHAIR_001");
-            java.lang.reflect.Method createMethod = reviewScreenClass.getMethod("create");
-            createMethod.invoke(reviewScreen);
+            // Ottieni i dati dell'articolo dalla DBMSBoundary
+            com.cms.users.Entity.ArticoloE articolo = null;
+            try {
+                // Estrai l'ID numerico dall'articleId (esempio: "ART1234" -> 1234)
+                int idArticolo = Integer.parseInt(articleId.replaceAll("[^0-9]", ""));
+                articolo = com.cms.App.dbms.getArticolo(idArticolo);
+            } catch (NumberFormatException ex) {
+                System.err.println("Errore nel parsing dell'ID articolo: " + articleId);
+            }
+            
+            // Crea la ReviewSubmissionScreen con i dati dell'articolo
+            com.cms.users.revisions.Interface.ReviewSubmissionScreen reviewScreen = 
+                new com.cms.users.revisions.Interface.ReviewSubmissionScreen(
+                    articleId, 
+                    articolo != null ? articolo.getTitolo() : articleTitle, 
+                    "CHAIR_" + com.cms.App.utenteAccesso.getId(),
+                    articolo
+                );
+            
+            reviewScreen.setVisible(true);
+            
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, 
-                "Apertura schermata di revisione per l'articolo: " + articleTitle, 
-                "Revisione Articolo", 
-                JOptionPane.INFORMATION_MESSAGE);
+            System.err.println("Errore nell'apertura della schermata di revisione: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Fallback: apri la schermata senza dati dell'articolo
+            com.cms.users.revisions.Interface.ReviewSubmissionScreen reviewScreen = 
+                new com.cms.users.revisions.Interface.ReviewSubmissionScreen(
+                    articleId, 
+                    articleTitle, 
+                    "CHAIR_001"
+                );
+            reviewScreen.setVisible(true);
         }
     }
     

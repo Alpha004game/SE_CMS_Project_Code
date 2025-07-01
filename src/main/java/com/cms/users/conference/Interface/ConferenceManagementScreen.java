@@ -687,11 +687,21 @@ public class ConferenceManagementScreen extends JFrame {
     
     /**
      * Visualizza lo stato delle revisioni
+     * Apre una RevisionOverviewScreen che mostra tutte le revisioni di tutti gli articoli della conferenza
      */
     public void visualizzaStatoRevisionButton() {
-        // Delega al ConferenceControl per ottenere dati dinamici
-        ConferenceControl conferenceControl = new ConferenceControl();
-        conferenceControl.visualizzaStatoSottomissioni(this.id);
+        try {
+            // Delega al ConferenceControl per aprire la RevisionOverviewScreen per il chair
+            ConferenceControl conferenceControl = new ConferenceControl();
+            conferenceControl.visualizzaStatoRevisioni(this.id);
+        } catch (Exception e) {
+            System.err.println("Errore nell'apertura dello stato revisioni: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Errore nell'apertura dello stato delle revisioni", 
+                "Errore", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     /**

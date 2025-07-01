@@ -545,7 +545,19 @@ public class MemberListScreen extends JFrame {
                 conferenceControl.selezionaRevisore(Integer.parseInt(selectedUser.id));
                 break;
             case "SUMMON_SUB_REVIEWER":
-                
+                try {
+                    // Chiama il metodo statico del GestioneRevisioneControl per gestire l'invito
+                    com.cms.users.revisions.Control.GestioneRevisioneControl.gestisciInvitoSottoRevisore(
+                        Integer.parseInt(selectedUser.id)
+                    );
+                } catch (Exception e) {
+                    System.err.println("Errore durante l'invito del sotto-revisore: " + e.getMessage());
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(this,
+                        "Errore durante l'invito del sotto-revisore: " + e.getMessage(),
+                        "Errore",
+                        JOptionPane.ERROR_MESSAGE);
+                }
                 break;
             default:
                     //DEFINIRE

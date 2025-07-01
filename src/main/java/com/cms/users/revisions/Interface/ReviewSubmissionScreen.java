@@ -60,6 +60,9 @@ public class ReviewSubmissionScreen extends JFrame {
     private String submissionTitle;
     private String reviewerId;
     
+    // Riferimento al control per gestire le azioni
+    private com.cms.users.revisions.Control.GestioneRevisioneControl gestioneControl;
+    
     // Attributi per compatibilità
     private String puntiDiForza;
     private String puntiDiDebolezza;
@@ -74,6 +77,7 @@ public class ReviewSubmissionScreen extends JFrame {
         this.submissionId = "SUB" + (int)(Math.random() * 10000);
         this.submissionTitle = "Articolo da Revisionare";
         this.reviewerId = "REV" + (int)(Math.random() * 1000);
+        this.gestioneControl = new com.cms.users.revisions.Control.GestioneRevisioneControl();
         
         initializeComponents();
         setupLayout();
@@ -87,6 +91,35 @@ public class ReviewSubmissionScreen extends JFrame {
         this.submissionId = submissionId != null ? submissionId : "SUB" + (int)(Math.random() * 10000);
         this.submissionTitle = submissionTitle != null ? submissionTitle : "Articolo da Revisionare";
         this.reviewerId = reviewerId != null ? reviewerId : "REV" + (int)(Math.random() * 1000);
+        this.gestioneControl = new com.cms.users.revisions.Control.GestioneRevisioneControl();
+        
+        initializeComponents();
+        setupLayout();
+        setupEventHandlers();
+    }
+    
+    /**
+     * Costruttore con parametri e dati articolo dal database
+     * Utilizzato quando il chair apre la revisione da RevisionOverviewScreen
+     */
+    public ReviewSubmissionScreen(String submissionId, String submissionTitle, String reviewerId, com.cms.users.Entity.ArticoloE articolo) {
+        this.submissionId = submissionId != null ? submissionId : "SUB" + (int)(Math.random() * 10000);
+        this.submissionTitle = submissionTitle != null ? submissionTitle : "Articolo da Revisionare";
+        this.reviewerId = reviewerId != null ? reviewerId : "REV" + (int)(Math.random() * 1000);
+        this.gestioneControl = new com.cms.users.revisions.Control.GestioneRevisioneControl();
+        
+        // Se l'articolo è fornito, utilizza i suoi dati
+        if (articolo != null) {
+            this.submissionTitle = articolo.getTitolo();
+            // Opzionalmente, puoi impostare l'ID dall'articolo
+            this.submissionId = "ART" + articolo.getId();
+            
+            // Se è il Chair che sta facendo la revisione, aggiorna il titolo della finestra
+            if (com.cms.App.utenteAccesso != null && 
+                String.valueOf(com.cms.App.utenteAccesso.getId()).equals(reviewerId)) {
+                System.out.println("DEBUG ReviewSubmissionScreen: Chair sta revisionando l'articolo: " + this.submissionTitle);
+            }
+        }
         
         initializeComponents();
         setupLayout();
@@ -98,7 +131,15 @@ public class ReviewSubmissionScreen extends JFrame {
      */
     private void initializeComponents() {
         // Configurazione finestra principale
-        setTitle("CMS - Revisione Sottomissione");
+        // Controlla se è il Chair che sta facendo la revisione
+        boolean isChairReviewing = com.cms.App.utenteAccesso != null && 
+                                   String.valueOf(com.cms.App.utenteAccesso.getId()).equals(reviewerId);
+        
+        String windowTitle = isChairReviewing ? 
+            "CMS - Revisione Sottomissione (Chair)" : 
+            "CMS - Revisione Sottomissione";
+            
+        setTitle(windowTitle);
         setSize(800, 700);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -279,8 +320,18 @@ public class ReviewSubmissionScreen extends JFrame {
         JLabel titleLabel = new JLabel("Compila i campi per la revisione");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         mainPanel.add(titleLabel);
+        
+        // Messaggio informativo se è il Chair che sta revisionando
+        
+        
+        // Sottotitolo con informazioni articolo
+        JLabel subtitleLabel = new JLabel("Articolo: " + submissionTitle);
+        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        subtitleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
+        mainPanel.add(subtitleLabel);
         
         // Bottoni azione
         mainPanel.add(createActionButtonsPanel());
@@ -441,31 +492,15 @@ public class ReviewSubmissionScreen extends JFrame {
     }
     
     private void handleConvocaSottoRevisore() {
-        // Dialog per convocazione sotto-revisore
-        String[] options = {"Conferma", "Annulla"};
-        int result = JOptionPane.showOptionDialog(this,
-            "Vuoi convocare un sotto-revisore per questa sottomissione?\n\n" +
-            "ID Sottomissione: " + submissionId + "\n" +
-            "Titolo: " + submissionTitle + "\n\n" +
-            "Il sotto-revisore riceverà una notifica e potrà fornire un parere aggiuntivo.",
-            "Convoca Sotto-Revisore",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            options,
-            options[0]);
-        
-        if (result == JOptionPane.YES_OPTION) {
-            // Simula la convocazione
-            JOptionPane.showMessageDialog(this,
-                "Sotto-revisore convocato con successo!\n\n" +
-                "Un revisore esperto è stato notificato e contattato.\n" +
-                "Riceverai una notifica quando sarà disponibile il suo parere.",
-                "Convocazione Completata",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            // Qui andrà la logica per convocare effettivamente un sotto-revisore
-            System.out.println("Sotto-revisore convocato per sottomissione: " + submissionId);
+        try {
+            // Chiama il metodo del control per gestire la convocazione
+            gestioneControl.convocaSottoRevisore();
+        } catch (Exception e) {
+            System.err.println("Errore durante la convocazione del sotto-revisore: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, 
+                "Errore durante la convocazione del sotto-revisore: " + e.getMessage(), 
+                "Errore", JOptionPane.ERROR_MESSAGE);
         }
     }
     

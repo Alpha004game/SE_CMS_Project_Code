@@ -2,7 +2,10 @@ package com.cms.users.revisions.Control;
 
 import com.cms.App;
 import com.cms.users.Entity.ArticoloE;
+import com.cms.users.Entity.UtenteE;
 import com.cms.users.Commons.ListScreen;
+import com.cms.users.conference.Interface.MemberListScreen;
+import com.cms.users.conference.Control.ConferenceControl;
 import java.util.LinkedList;
 
 /**
@@ -123,6 +126,13 @@ public class GestioneRevisioneControl {
         return idConferenza;
     }
     
+    /**
+     * Imposta l'ID della conferenza corrente
+     */
+    public void setIdConferenza(int idConferenza) {
+        this.idConferenza = idConferenza;
+    }
+    
     // Metodi esistenti della classe mantenuti per compatibilità
     public void create() {
         // Implementazione da definire
@@ -133,7 +143,113 @@ public class GestioneRevisioneControl {
     }
     
     public void convocaSottoRevisore() {
-        // Implementazione da definire
+        System.out.println("DEBUG GestioneRevisioneControl: === INIZIO convocaSottoRevisore ===");
+        
+        try {
+            // Prova a ottenere l'ID conferenza dall'articolo corrente se non è stato impostato
+            if (idConferenza <= 0) {
+                int currentArticleId = com.cms.users.Commons.DBMSBoundary.getCurrentArticleId();
+                if (currentArticleId > 0) {
+                    ArticoloE articolo = App.dbms.getArticolo(currentArticleId);
+                    if (articolo != null) {
+                        idConferenza = articolo.getIdConferenza();
+                        System.out.println("DEBUG: ID Conferenza ottenuto dall'articolo: " + idConferenza);
+                    }
+                }
+            }
+            
+            // Ottieni tutti gli utenti dal database
+            LinkedList<UtenteE> tuttiUtenti = App.dbms.getUsersInfo();
+            
+            if (tuttiUtenti == null || tuttiUtenti.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Nessun utente disponibile per la convocazione.", 
+                    "Nessun Utente", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Filtra gli utenti che non hanno un ruolo particolare nella conferenza corrente
+            LinkedList<UtenteE> utentiDisponibili = filtraUtentiDisponibili(tuttiUtenti);
+            
+            if (utentiDisponibili.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Nessun sotto-revisore disponibile per questa conferenza.", 
+                    "Nessun Sotto-Revisore", javax.swing.JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Crea un ConferenceControl temporaneo (o usa quello esistente se disponibile)
+            ConferenceControl conferenceControl = new ConferenceControl();
+            
+            // Apri la MemberListScreen per la selezione del sotto-revisore
+            MemberListScreen memberScreen = new MemberListScreen(
+                MemberListScreen.UserRole.REVISORE, 
+                MemberListScreen.Action.SUMMON_SUB_REVIEWER, 
+                conferenceControl
+            );
+            
+            // Imposta la lista degli utenti disponibili
+            memberScreen.setUserList(utentiDisponibili);
+            memberScreen.setHasData(!utentiDisponibili.isEmpty());
+            
+            // Mostra la schermata
+            memberScreen.setVisible(true);
+            
+            System.out.println("DEBUG GestioneRevisioneControl: MemberListScreen aperta con " + 
+                             utentiDisponibili.size() + " utenti disponibili");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG GestioneRevisioneControl: ERRORE durante convocaSottoRevisore: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null, 
+                "Errore durante l'apertura della selezione sotto-revisore: " + e.getMessage(), 
+                "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+        
+        System.out.println("DEBUG GestioneRevisioneControl: === FINE convocaSottoRevisore ===");
+    }
+    
+    /**
+     * Filtra gli utenti che non hanno un ruolo particolare nella conferenza corrente
+     * @param tuttiUtenti Lista di tutti gli utenti del sistema
+     * @return Lista degli utenti disponibili come sotto-revisori
+     */
+    private LinkedList<UtenteE> filtraUtentiDisponibili(LinkedList<UtenteE> tuttiUtenti) {
+        LinkedList<UtenteE> utentiDisponibili = new LinkedList<>();
+        
+        try {
+            for (UtenteE utente : tuttiUtenti) {
+                // Esclude l'utente corrente
+                if (App.utenteAccesso != null && utente.getId() == App.utenteAccesso.getId()) {
+                    continue;
+                }
+                
+                // Se abbiamo una conferenza corrente, verifica i ruoli
+                if (idConferenza > 0) {
+                    String ruolo = App.dbms.getRuoloUtenteConferenza(utente.getId(), idConferenza);
+                    
+                    // Esclude utenti che hanno già ruoli specifici (Chair, Revisore, Editore)
+                    if (ruolo != null && !ruolo.equalsIgnoreCase("Utente")) {
+                        System.out.println("DEBUG: Utente " + utente.getUsername() + " escluso - ha ruolo: " + ruolo);
+                        continue;
+                    }
+                }
+                
+                // Include l'utente se non ha ruoli particolari
+                utentiDisponibili.add(utente);
+                System.out.println("DEBUG: Utente " + utente.getUsername() + " incluso come potenziale sotto-revisore");
+            }
+        } catch (Exception e) {
+            System.err.println("Errore durante il filtraggio utenti: " + e.getMessage());
+            // In caso di errore, ritorna tutti gli utenti tranne quello corrente
+            for (UtenteE utente : tuttiUtenti) {
+                if (App.utenteAccesso != null && utente.getId() != App.utenteAccesso.getId()) {
+                    utentiDisponibili.add(utente);
+                }
+            }
+        }
+        
+        return utentiDisponibili;
     }
     
     public void visualizzaRevisioneDelegata(String idArticolo) {
@@ -596,5 +712,186 @@ public class GestioneRevisioneControl {
         }
         
         System.out.println("=== FINE TEST CONNESSIONE DATABASE ===");
+    }
+    
+    /**
+     * Metodo di test per verificare la convocazione sotto-revisore
+     */
+    public void testConvocaSottoRevisore() {
+        System.out.println("=== TEST CONVOCA SOTTO-REVISORE ===");
+        
+        try {
+            // Imposta un ID conferenza di test se necessario
+            if (idConferenza <= 0) {
+                idConferenza = 1; // Conferenza di test
+                System.out.println("DEBUG: Impostato ID Conferenza di test: " + idConferenza);
+            }
+            
+            // Chiama il metodo di convocazione
+            convocaSottoRevisore();
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il test convoca sotto-revisore: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("=== FINE TEST CONVOCA SOTTO-REVISORE ===");
+    }
+    
+    /**
+     * Gestisce l'invito di un sotto-revisore selezionato
+     * @param idSottoRevisore ID dell'utente selezionato come sotto-revisore
+     */
+    public void invitaSottoRevisore(int idSottoRevisore) {
+        System.out.println("DEBUG GestioneRevisioneControl: === INIZIO invitaSottoRevisore ===");
+        System.out.println("DEBUG: ID Sotto-revisore: " + idSottoRevisore);
+        
+        try {
+            // Ottieni informazioni necessarie
+            int currentArticleId = com.cms.users.Commons.DBMSBoundary.getCurrentArticleId();
+            
+            if (currentArticleId <= 0) {
+                throw new Exception("Nessun articolo corrente impostato");
+            }
+            
+            // Ottieni l'articolo per avere il nome e l'ID conferenza
+            ArticoloE articolo = App.dbms.getArticolo(currentArticleId);
+            if (articolo == null) {
+                throw new Exception("Articolo non trovato con ID: " + currentArticleId);
+            }
+            
+            // Ottieni informazioni sul sotto-revisore
+            UtenteE sottoRevisore = App.dbms.getUser(idSottoRevisore);
+            if (sottoRevisore == null) {
+                throw new Exception("Sotto-revisore non trovato con ID: " + idSottoRevisore);
+            }
+            
+            // Ottieni informazioni sul revisore corrente
+            String nomeRevisore = App.utenteAccesso != null ? App.utenteAccesso.getUsername() : "Revisore";
+            
+            // Ottieni nome della conferenza e assicurati che idConferenza sia corretto
+            String nomeConferenza = "Conferenza";
+            int conferenceId = articolo.getIdConferenza(); // Usa sempre l'ID dall'articolo
+            
+            if (conferenceId > 0) {
+                com.cms.users.Entity.ConferenzaE conferenza = App.dbms.getConferenza(conferenceId);
+                if (conferenza != null) {
+                    nomeConferenza = conferenza.getTitolo();
+                }
+                // Aggiorna l'ID conferenza locale se necessario
+                this.idConferenza = conferenceId;
+            } else {
+                System.err.println("ATTENZIONE: ID conferenza non valido dall'articolo: " + conferenceId);
+                throw new Exception("ID conferenza non valido: " + conferenceId);
+            }
+            
+            // Prepara il testo della notifica
+            String testoNotifica = "Sei stato invitato come ruolo di sottorevisore per l'articolo " + 
+                                 articolo.getTitolo() + " dal revisore " + nomeRevisore;
+            
+            System.out.println("DEBUG: Inserimento notifica - ID Conferenza: " + conferenceId + 
+                             ", ID Sotto-revisore: " + idSottoRevisore);
+            
+            // Inserisci la notifica nel database usando l'ID conferenza corretto
+            App.dbms.insertNotifica(testoNotifica, conferenceId, idSottoRevisore, 1, "add-subRev");
+            
+            // Assegna il sotto-revisore all'articolo nella tabella revisiona
+            int idRevisoreCorrente = App.utenteAccesso != null ? App.utenteAccesso.getId() : 1;
+            boolean assegnazioneRiuscita = App.dbms.assegnaSottoRevisoreArticolo(currentArticleId, idRevisoreCorrente, idSottoRevisore);
+            
+            if (!assegnazioneRiuscita) {
+                System.err.println("ATTENZIONE: Errore durante l'assegnazione del sotto-revisore all'articolo");
+            } else {
+                System.out.println("DEBUG: Sotto-revisore assegnato con successo all'articolo " + currentArticleId);
+            }
+            
+            // Prepara e invia l'email
+            String emailSottoRevisore = sottoRevisore.getEmail();
+            String subject = "Invito per sotto-revisione";
+            String messageText = "Il revisore " + nomeRevisore + " ti ha invitato ad essere sottoRevisore per l'articolo " + 
+                                articolo.getTitolo() + " della conferenza " + nomeConferenza;
+            
+            System.out.println("DEBUG: Invio email a: " + emailSottoRevisore + " per conferenza ID: " + conferenceId);
+            
+            boolean emailInviata = com.cms.users.Commons.UtilsControl.sendMail(
+                emailSottoRevisore, 
+                subject, 
+                messageText
+            );
+            
+            // Mostra il risultato all'utente
+            if (emailInviata) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Invito inviato con successo!\n\n" +
+                    "Sotto-revisore: " + sottoRevisore.getUsername() + "\n" +
+                    "Email: " + emailSottoRevisore + "\n" +
+                    "Articolo: " + articolo.getTitolo() + "\n\n" +
+                    "Il sotto-revisore riceverà una notifica nell'applicazione e un'email.",
+                    "Invito Completato",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Notifica inserita nel database, ma errore nell'invio dell'email.\n\n" +
+                    "Il sotto-revisore riceverà comunque la notifica nell'applicazione.",
+                    "Invito Parzialmente Completato",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+            }
+            
+            System.out.println("DEBUG: Invito sotto-revisore completato");
+            
+        } catch (Exception e) {
+            System.err.println("DEBUG GestioneRevisioneControl: ERRORE durante invitaSottoRevisore: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Errore durante l'invio dell'invito: " + e.getMessage(),
+                "Errore",
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+        
+        System.out.println("DEBUG GestioneRevisioneControl: === FINE invitaSottoRevisore ===");
+    }
+    
+    /**
+     * Metodo statico per gestire l'invito di un sotto-revisore dalla MemberListScreen
+     * @param idSottoRevisore ID dell'utente selezionato
+     */
+    public static void gestisciInvitoSottoRevisore(int idSottoRevisore) {
+        try {
+            // Crea un'istanza temporanea per chiamare il metodo di istanza
+            GestioneRevisioneControl control = new GestioneRevisioneControl();
+            control.invitaSottoRevisore(idSottoRevisore);
+        } catch (Exception e) {
+            System.err.println("Errore durante la gestione dell'invito sotto-revisore: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Metodo di test per verificare l'invito sotto-revisore
+     */
+    public void testInvitoSottoRevisore() {
+        System.out.println("=== TEST INVITO SOTTO-REVISORE ===");
+        
+        try {
+            // Imposta un articolo di test
+            com.cms.users.Commons.DBMSBoundary.setCurrentArticleId(1);
+            
+            // Imposta una conferenza di test
+            idConferenza = 1;
+            
+            // Testa con un ID sotto-revisore di esempio
+            int idSottoRevisoreTest = 2; // ID di test
+            
+            System.out.println("DEBUG: Testando invito sotto-revisore con ID: " + idSottoRevisoreTest);
+            
+            // Chiama il metodo di invito
+            invitaSottoRevisore(idSottoRevisoreTest);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante il test invito sotto-revisore: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("=== FINE TEST INVITO SOTTO-REVISORE ===");
     }
 }
