@@ -1212,8 +1212,24 @@ public class ListScreen extends JFrame {
                 
                 switch (column) {
                     case 1:
-                        action = "Invia avviso per: " + article.title;
-                        article.notificationSent = true;
+                        // Implementazione del sequence diagram: ListScreen -> PubblicazioneControl.sendNotice()
+                        try {
+                            PubblicazioneControl pubblicazioneControl = new PubblicazioneControl();
+                            pubblicazioneControl.sendNotice(article.id);
+                            
+                            // Segna che la notifica è stata inviata
+                            article.notificationSent = true;
+                            
+                            // Non mostrare messaggio aggiuntivo perché sendNotice gestisce già i feedback
+                            return;
+                        } catch (Exception ex) {
+                            System.err.println("ERRORE durante l'invio dell'avviso: " + ex.getMessage());
+                            ex.printStackTrace();
+                            JOptionPane.showMessageDialog(ListScreen.this, 
+                                "Errore durante l'invio dell'avviso: " + ex.getMessage(),
+                                "Errore",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
                         break;
                     case 2:
                         // Implementazione del sequence diagram: ListScreen -> PubblicazioneControl -> DBMSBoundary

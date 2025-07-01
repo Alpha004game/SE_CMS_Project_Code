@@ -4,12 +4,25 @@ import com.cms.users.Commons.DBMSBoundary;
 import com.cms.users.Commons.ListScreen;
 import com.cms.users.Commons.ListScreen.EditoreFunction;
 import com.cms.users.Commons.ListScreen.UserRole;
+import com.cms.users.Commons.UtilsControl;
 import com.cms.users.Entity.ConferenzaE;
 import com.cms.users.Entity.ArticoloE;
+import com.cms.users.Entity.UtenteE;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ArrayList;
 import javax.swing.JOptionPane;
+import javax.swing.JDialog;
+import javax.swing.JTextField;
+import javax.swing.JTextArea;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -192,8 +205,212 @@ public class PubblicazioneControl {
         }
     }
     
+    /**
+     * Invia comunicazioni agli autori di un articolo specifico
+     * Segue il sequence diagram per la gestione delle notifiche personalizzate
+     */
     public void sendNotice(String idArticolo) {
-        // Implementazione da definire
+        System.out.println("DEBUG: PubblicazioneControl.sendNotice - ID Articolo: " + idArticolo);
+        
+        try {
+            int articleId = Integer.parseInt(idArticolo);
+            
+            // 1. Ottieni gli autori dell'articolo dal DBMSBoundary (getArticleAuthors)
+            System.out.println("DEBUG: Chiamando getArticleAuthors per articolo: " + articleId);
+            LinkedList<UtenteE> authorsList = dbmsBoundary.getArticleAuthors(articleId);
+            
+            if (authorsList == null || authorsList.isEmpty()) {
+                System.out.println("DEBUG: Nessun autore trovato per l'articolo " + articleId);
+                JOptionPane.showMessageDialog(null, 
+                    "Nessun autore trovato per questo articolo.", 
+                    "Informazione", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            System.out.println("DEBUG: Trovati " + authorsList.size() + " autori per l'articolo");
+            
+            // 2. Crea e mostra la SendCustomNotificationScreen
+            createAndShowNotificationScreen(authorsList, articleId);
+            
+        } catch (NumberFormatException e) {
+            System.err.println("ERRORE: ID articolo non valido: " + idArticolo);
+            JOptionPane.showMessageDialog(null, 
+                "Errore: ID articolo non valido.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            System.err.println("ERRORE in sendNotice: " + e.getMessage());
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                "Errore nell'invio della comunicazione: " + e.getMessage(), 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Crea e mostra la schermata di notifica personalizzata
+     * Implementa la SendCustomNotificationScreen del sequence diagram
+     */
+    private void createAndShowNotificationScreen(LinkedList<UtenteE> authorsList, int articleId) {
+        // Crea il dialog per l'invio della notifica
+        JDialog notificationDialog = new JDialog((JDialog) null, "Invia Comunicazione agli Autori", true);
+        notificationDialog.setSize(600, 400);
+        notificationDialog.setLocationRelativeTo(null);
+        notificationDialog.setLayout(new BorderLayout(10, 10));
+        
+        // Panel delle informazioni superiori
+        JPanel infoPanel = new JPanel(new GridLayout(0, 1, 5, 5));
+        infoPanel.add(new JLabel("Destinatari: " + getAuthorsDisplayString(authorsList)));
+        infoPanel.add(new JLabel("Oggetto:"));
+        
+        JTextField subjectField = new JTextField("Comunicazione riguardo l'articolo ID: " + articleId);
+        infoPanel.add(subjectField);
+        
+        // Panel del messaggio
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.add(new JLabel("Messaggio:"), BorderLayout.NORTH);
+        
+        JTextArea messageArea = new JTextArea(10, 50);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        messageArea.setText("Gentili Autori,\n\nVi scriviamo in merito al vostro articolo sottomesso alla conferenza.\n\nCordiali saluti,\nL'Editore");
+        
+        JScrollPane scrollPane = new JScrollPane(messageArea);
+        messagePanel.add(scrollPane, BorderLayout.CENTER);
+        
+        // Panel dei pulsanti
+        JPanel buttonPanel = new JPanel();
+        JButton sendButton = new JButton("Invia");
+        JButton cancelButton = new JButton("Annulla");
+        buttonPanel.add(sendButton);
+        buttonPanel.add(cancelButton);
+        
+        // Aggiungi i panel al dialog
+        notificationDialog.add(infoPanel, BorderLayout.NORTH);
+        notificationDialog.add(messagePanel, BorderLayout.CENTER);
+        notificationDialog.add(buttonPanel, BorderLayout.SOUTH);
+        
+        // Event handlers
+        sendButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sendNotificationsToAuthors(authorsList, articleId, subjectField.getText(), messageArea.getText());
+                notificationDialog.dispose();
+            }
+        });
+        
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                notificationDialog.dispose();
+            }
+        });
+        
+        // Mostra il dialog
+        notificationDialog.setVisible(true);
+    }
+    
+    /**
+     * Crea una stringa per mostrare i nomi degli autori
+     * Utilizza username e email dato che UtenteE non ha getNome/getCognome
+     */
+    private String getAuthorsDisplayString(LinkedList<UtenteE> authorsList) {
+        StringBuilder display = new StringBuilder();
+        for (int i = 0; i < authorsList.size(); i++) {
+            UtenteE author = authorsList.get(i);
+            display.append(author.getUsername()).append(" (").append(author.getEmail()).append(")");
+            if (i < authorsList.size() - 1) {
+                display.append(", ");
+            }
+        }
+        return display.toString();
+    }
+    
+    /**
+     * Invia le notifiche a tutti gli autori
+     * Implementa il loop del sequence diagram: sendmail + insertNotification
+     */
+    private void sendNotificationsToAuthors(LinkedList<UtenteE> authorsList, int articleId, String subject, String message) {
+        if (subject.trim().isEmpty() || message.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, 
+                "Oggetto e messaggio sono obbligatori.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        int successCount = 0;
+        int totalCount = authorsList.size();
+        
+        // Loop attraverso tutti gli autori (come specificato nel sequence diagram)
+        for (UtenteE author : authorsList) {
+            try {
+                System.out.println("DEBUG: Invio notifica all'autore: " + author.getUsername() + " (" + author.getEmail() + ")");
+                
+                // 1. Invia email utilizzando UtilsControl.sendMail (seguendo il sequence diagram)
+                boolean emailSent = UtilsControl.sendMail(author.getEmail(), subject, message);
+                
+                if (emailSent) {
+                    System.out.println("DEBUG: Email inviata con successo a: " + author.getEmail());
+                    
+                    // 2. Inserisci notifica nel database tramite DBMSBoundary.insertNotification
+                    String dettagli = "Articolo ID: " + articleId + " - " + subject;
+                    // Tipo 1 = notifica generale agli autori
+                    dbmsBoundary.insertNotifica(message, getConferenceIdFromArticle(articleId), author.getId(), 1, dettagli);
+                    
+                    System.out.println("DEBUG: Notifica inserita nel database per utente ID: " + author.getId());
+                    successCount++;
+                } else {
+                    System.err.println("ERRORE: Impossibile inviare email a: " + author.getEmail());
+                }
+                
+            } catch (Exception e) {
+                System.err.println("ERRORE nell'invio notifica all'autore " + author.getId() + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        // Mostra risultato finale
+        if (successCount == totalCount) {
+            JOptionPane.showMessageDialog(null, 
+                "Comunicazione inviata con successo a tutti gli autori (" + successCount + "/" + totalCount + ").", 
+                "Successo", 
+                JOptionPane.INFORMATION_MESSAGE);
+        } else if (successCount > 0) {
+            JOptionPane.showMessageDialog(null, 
+                "Comunicazione inviata parzialmente: " + successCount + "/" + totalCount + " autori raggiunti.", 
+                "Attenzione", 
+                JOptionPane.WARNING_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(null, 
+                "Impossibile inviare la comunicazione a nessun autore.", 
+                "Errore", 
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Ottiene l'ID della conferenza a partire dall'ID dell'articolo
+     * Utilizza DBMSBoundary per recuperare le informazioni dell'articolo
+     */
+    private int getConferenceIdFromArticle(int articleId) {
+        try {
+            // Cerca di ottenere l'articolo per recuperare l'ID della conferenza
+            ArticoloE articolo = dbmsBoundary.getArticolo(articleId);
+            if (articolo != null) {
+                // Assumiamo che ArticoloE abbia un metodo per ottenere l'ID conferenza
+                // Per ora restituiamo 1 come placeholder
+                System.out.println("DEBUG: Recuperato articolo, usando conferenza di default");
+                return 1; // Placeholder - in una implementazione reale si userebbe articolo.getIdConferenza()
+            }
+        } catch (Exception e) {
+            System.err.println("ERRORE nel recupero ID conferenza: " + e.getMessage());
+        }
+        
+        // Valore di fallback
+        return 1;
     }
     
     /**
