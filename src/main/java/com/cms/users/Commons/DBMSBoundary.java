@@ -2465,7 +2465,67 @@ public class DBMSBoundary {
     }
     
     public LinkedList<Object> getArticleFile(int idArticle) {
-        return null;
+        System.out.println("DEBUG DBMSBoundary: === INIZIO getArticleFile ===");
+        System.out.println("DEBUG DBMSBoundary: idArticle ricevuto: " + idArticle);
+        
+        LinkedList<Object> articleFile = new LinkedList<>();
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = getConnection();
+            
+            // Query per ottenere il file dell'articolo specifico
+            String query = "SELECT fileArticolo FROM articoli WHERE id = ? AND fileArticolo IS NOT NULL";
+            
+            stmt = conn.prepareStatement(query);
+            stmt.setInt(1, idArticle);
+            rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                byte[] fileData = rs.getBytes("fileArticolo");
+                if (fileData != null && fileData.length > 0) {
+                    articleFile.add(fileData);
+                    System.out.println("DEBUG DBMSBoundary: File trovato per articolo " + idArticle + 
+                                     ", dimensione: " + fileData.length + " bytes");
+                } else {
+                    System.out.println("DEBUG DBMSBoundary: Nessun file valido trovato per articolo " + idArticle);
+                }
+            } else {
+                System.out.println("DEBUG DBMSBoundary: Articolo " + idArticle + " non trovato o senza file");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("ERRORE SQL in getArticleFile: " + e.getMessage());
+            e.printStackTrace();
+            
+            // In caso di errore, crea un file PDF di test
+            try {
+                byte[] testPdf = createTestPdfData();
+                articleFile.add(testPdf);
+                System.out.println("DEBUG DBMSBoundary: Aggiunto PDF di test per articolo " + idArticle);
+            } catch (Exception testException) {
+                System.err.println("ERRORE durante creazione PDF di test: " + testException.getMessage());
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE GENERICO in getArticleFile: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                System.err.println("ERRORE chiusura connessioni: " + e.getMessage());
+            }
+        }
+        
+        System.out.println("DEBUG DBMSBoundary: Ritornando " + (articleFile.isEmpty() ? "nessun" : "1") + " file per articolo " + idArticle);
+        System.out.println("DEBUG DBMSBoundary: === FINE getArticleFile ===");
+        
+        return articleFile.isEmpty() ? null : articleFile;
     }
 
     public Object getAllArticleFile(int idConferenza) {

@@ -1216,8 +1216,31 @@ public class ListScreen extends JFrame {
                         article.notificationSent = true;
                         break;
                     case 2:
-                        action = "Scarica articolo: " + article.title;
-                        break;
+                        // Implementazione del sequence diagram: ListScreen -> PubblicazioneControl -> DBMSBoundary
+                        try {
+                            PubblicazioneControl pubblicazioneControl = new PubblicazioneControl();
+                            String result = pubblicazioneControl.downloadArticle(article.id);
+                            
+                            if (result != null && result.startsWith("Articolo scaricato con successo:")) {
+                                JOptionPane.showMessageDialog(ListScreen.this, 
+                                    result,
+                                    "Download Completato",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            } else {
+                                JOptionPane.showMessageDialog(ListScreen.this, 
+                                    result != null ? result : "Errore durante il download.",
+                                    "Errore Download",
+                                    JOptionPane.ERROR_MESSAGE);
+                            }
+                        } catch (Exception ex) {
+                            System.err.println("ERRORE durante il download dell'articolo: " + ex.getMessage());
+                            ex.printStackTrace();
+                            JOptionPane.showMessageDialog(ListScreen.this, 
+                                "Errore durante il download: " + ex.getMessage(),
+                                "Errore",
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                        return; // Non mostrare il messaggio di default
                 }
                 
                 JOptionPane.showMessageDialog(ListScreen.this, action, "Azione Editore", JOptionPane.INFORMATION_MESSAGE);

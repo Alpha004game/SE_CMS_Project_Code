@@ -121,8 +121,39 @@ public class PubblicazioneControl {
     }
     
     public String downloadArticle(String idArticolo) {
-        // Implementazione da definire
-        return null;
+        System.out.println("DEBUG: PubblicazioneControl.downloadArticle - ID Articolo: " + idArticolo);
+        
+        try {
+            int articleId = Integer.parseInt(idArticolo);
+            
+            // 1. Ottieni il file dell'articolo dal DBMSBoundary
+            System.out.println("DEBUG: Chiamando getArticleFile per articolo: " + articleId);
+            LinkedList<Object> articleFileRaw = dbmsBoundary.getArticleFile(articleId);
+            
+            if (articleFileRaw == null || articleFileRaw.isEmpty()) {
+                System.out.println("DEBUG: Nessun file trovato per l'articolo " + articleId);
+                return "Errore: Nessun file trovato per questo articolo.";
+            }
+            
+            // 2. Processa il file e salvalo
+            String filePath = saveArticleFileSingle(articleFileRaw.get(0), articleId);
+            
+            if (filePath != null) {
+                System.out.println("DEBUG: Articolo scaricato con successo: " + filePath);
+                return "Articolo scaricato con successo: " + filePath;
+            } else {
+                System.err.println("ERRORE: Impossibile salvare l'articolo");
+                return "Errore: Impossibile salvare l'articolo.";
+            }
+            
+        } catch (NumberFormatException e) {
+            System.err.println("ERRORE: ID articolo non valido: " + idArticolo);
+            return "Errore: ID articolo non valido.";
+        } catch (Exception e) {
+            System.err.println("ERRORE in downloadArticle: " + e.getMessage());
+            e.printStackTrace();
+            return "Errore durante il download: " + e.getMessage();
+        }
     }
     
     public String downloadAllArticle(String idConferenza) {
@@ -286,6 +317,86 @@ public class PubblicazioneControl {
                fileData[1] == 0x50 && // P
                fileData[2] == 0x44 && // D
                fileData[3] == 0x46;   // F
+    }
+    
+    /**
+     * Salva un singolo file articolo
+     * Segue il sequence diagram per la gestione del singolo file
+     */
+    private String saveArticleFileSingle(Object articleFileRaw, int articleId) {
+        System.out.println("DEBUG: PubblicazioneControl.saveArticleFileSingle - Inizio elaborazione articolo " + articleId);
+        
+        try {
+            // 1. Ottieni la directory Downloads dell'utente
+            String userHome = System.getProperty("user.home");
+            Path downloadsPath = Paths.get(userHome, "Downloads");
+            
+            // Assicurati che la directory Downloads esista
+            if (!Files.exists(downloadsPath)) {
+                Files.createDirectories(downloadsPath);
+            }
+            
+            // 2. Estrai i dati del file
+            byte[] fileData = extractSingleFileData(articleFileRaw);
+            
+            if (fileData == null || fileData.length == 0) {
+                System.out.println("DEBUG: Nessun dato file valido per l'articolo " + articleId);
+                return null;
+            }
+            
+            // 3. Crea il nome del file con timestamp
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String fileName = "Articolo_" + articleId + "_" + timestamp + ".pdf";
+            Path outputPath = downloadsPath.resolve(fileName);
+            
+            // 4. Salva il file
+            Files.write(outputPath, fileData, StandardOpenOption.CREATE);
+            System.out.println("DEBUG: Articolo salvato: " + outputPath.toString());
+            
+            return outputPath.toString();
+            
+        } catch (IOException e) {
+            System.err.println("ERRORE IO in saveArticleFileSingle: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        } catch (Exception e) {
+            System.err.println("ERRORE GENERICO in saveArticleFileSingle: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * Estrae i dati di un singolo file dall'oggetto del database
+     */
+    private byte[] extractSingleFileData(Object fileRaw) {
+        try {
+            if (fileRaw instanceof byte[]) {
+                byte[] fileData = (byte[]) fileRaw;
+                if (isPdfFile(fileData)) {
+                    System.out.println("DEBUG: File PDF valido trovato, dimensione: " + fileData.length + " bytes");
+                    return fileData;
+                } else {
+                    System.out.println("DEBUG: File non è un PDF valido");
+                    // Restituisci comunque i dati se non è un PDF (potrebbe essere un altro formato)
+                    return fileData;
+                }
+            } else if (fileRaw instanceof String) {
+                // Se il file è memorizzato come stringa (base64 o altro)
+                System.out.println("DEBUG: File memorizzato come stringa, conversione necessaria");
+                // Per ora restituisci null, in futuro si potrebbe implementare la decodifica
+                return null;
+            } else {
+                System.out.println("DEBUG: Tipo di dato file non riconosciuto: " + 
+                    (fileRaw != null ? fileRaw.getClass().getName() : "null"));
+                return null;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("ERRORE in extractSingleFileData: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
     }
 
 }
