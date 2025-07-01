@@ -638,6 +638,10 @@ public class ConferenceManagementScreen extends JFrame {
     /**
      * Rimuove un revisore da un articolo
      */
+    /**
+     * Rimuove un revisore da un articolo
+     * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl
+     */
     public void rimuoviArticoloReviewerButton() {
         String articolo = JOptionPane.showInputDialog(this, 
             "Inserisci l'ID dell'articolo:", 
@@ -657,11 +661,25 @@ public class ConferenceManagementScreen extends JFrame {
                     JOptionPane.YES_NO_OPTION);
                 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    JOptionPane.showMessageDialog(this, 
-                        "Revisore " + revisore + " rimosso dall'articolo " + articolo, 
-                        "Rimozione Completata", 
-                        JOptionPane.INFORMATION_MESSAGE);
-                    // Qui andrà la logica per rimuovere il revisore dall'articolo
+                    try {
+                        // Converte l'ID articolo da String a int
+                        int idArticolo = Integer.parseInt(articolo.trim());
+                        
+                        // Crea un'istanza di ConferenceControl e delega la rimozione
+                        ConferenceControl conferenceControl = new ConferenceControl();
+                        conferenceControl.rimuoviRevisoreArticolo(this.id, idArticolo, revisore.trim());
+                        
+                    } catch (NumberFormatException e) {
+                        JOptionPane.showMessageDialog(this, 
+                            "ID articolo non valido. Inserisci un numero.", 
+                            "Errore", 
+                            JOptionPane.ERROR_MESSAGE);
+                    } catch (Exception e) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Errore durante la rimozione: " + e.getMessage(), 
+                            "Errore", 
+                            JOptionPane.ERROR_MESSAGE);
+                    }
                 }
             }
         }

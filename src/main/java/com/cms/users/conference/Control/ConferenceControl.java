@@ -1428,4 +1428,157 @@ public class ConferenceControl {
         
         return compatibili;
     }
+    
+    /**
+     * Rimuove un revisore da un articolo specifico
+     * Segue il sequence diagram: ConferenceManagementScreen -> ConferenceControl -> DBMSBoundary -> ListScreen
+     */
+    public void rimuoviRevisoreArticolo(int idConferenza, int idArticolo, String emailRevisore) {
+        try {
+            if (conferenzaSelezionata == null) {
+                System.err.println("Errore: nessuna conferenza selezionata");
+                return;
+            }
+            
+            // Verifica che la conferenza corrisponda
+            if (conferenzaSelezionata.getId() != idConferenza) {
+                System.err.println("Errore: conferenza selezionata non corrisponde all'ID richiesto");
+                return;
+            }
+            
+            // Ottieni l'ID del revisore dall'email tramite DBMSBoundary
+            java.util.LinkedList<UtenteE> tuttiRevisori = App.dbms.getRevisori(idConferenza);
+            UtenteE revisoreTarget = null;
+            
+            for (UtenteE revisore : tuttiRevisori) {
+                if (revisore.getEmail().equals(emailRevisore)) {
+                    revisoreTarget = revisore;
+                    break;
+                }
+            }
+            
+            if (revisoreTarget == null) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Revisore con email " + emailRevisore + " non trovato nella conferenza",
+                    "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Verifica che l'articolo esista nella conferenza
+            java.util.LinkedList<com.cms.users.Entity.ArticoloE> articoli = App.dbms.getListaArticoli(idConferenza);
+            boolean articoloTrovato = false;
+            
+            for (com.cms.users.Entity.ArticoloE articolo : articoli) {
+                if (articolo.getId() == idArticolo) {
+                    articoloTrovato = true;
+                    break;
+                }
+            }
+            
+            if (!articoloTrovato) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Articolo con ID " + idArticolo + " non trovato nella conferenza",
+                    "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Esegui la rimozione tramite query diretta (seguendo lo stesso pattern di verificaAssegnazioneEsistente)
+            boolean rimossoConSuccesso = rimuoviAssegnazioneArticoloRevisore(idArticolo, revisoreTarget.getId());
+            
+            if (rimossoConSuccesso) {
+                System.out.println("Revisore " + revisoreTarget.getUsername() + " rimosso con successo dall'articolo ID: " + idArticolo);
+                
+                // Mostra la ListScreen per visualizzare lo stato aggiornato come indicato nel sequence diagram
+                mostraListScreenRimozioneRevisore(idConferenza);
+                
+                // Mostra messaggio di successo
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Revisore " + revisoreTarget.getUsername() + " rimosso con successo dall'articolo " + idArticolo,
+                    "Rimozione Completata", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Impossibile rimuovere il revisore: assegnazione non trovata",
+                    "Errore", javax.swing.JOptionPane.WARNING_MESSAGE);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante la rimozione del revisore dall'articolo: " + e.getMessage());
+            e.printStackTrace();
+            
+            javax.swing.JOptionPane.showMessageDialog(null,
+                "Errore durante la rimozione del revisore: " + e.getMessage(),
+                "Errore", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Rimuove un'assegnazione revisore-articolo dal database
+     * Utilizza accesso diretto al database seguendo lo stesso pattern di verificaAssegnazioneEsistente
+     */
+    private boolean rimuoviAssegnazioneArticoloRevisore(int idArticolo, int idRevisore) {
+        try {
+            java.sql.Connection conn = null;
+            java.sql.PreparedStatement stmt = null;
+            
+            try {
+                // Accede direttamente al database (stessa connessione di DBMSBoundary)
+                conn = java.sql.DriverManager.getConnection(
+                    "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS", 
+                    "ids", 
+                    "IngegneriaDelSoftware"
+                );
+                
+                String sql = "DELETE FROM revisiona WHERE idRevisore = ? AND idArticolo = ?";
+                stmt = conn.prepareStatement(sql);
+                stmt.setInt(1, idRevisore);
+                stmt.setInt(2, idArticolo);
+                
+                int rowsDeleted = stmt.executeUpdate();
+                
+                if (rowsDeleted > 0) {
+                    System.out.println("Rimossa assegnazione: Revisore ID " + idRevisore + " -> Articolo ID " + idArticolo);
+                    return true;
+                } else {
+                    System.out.println("Nessuna assegnazione trovata per Revisore ID " + idRevisore + " e Articolo ID " + idArticolo);
+                    return false;
+                }
+                
+            } finally {
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante la rimozione dell'assegnazione per articolo " + idArticolo + 
+                             " e revisore " + idRevisore + ": " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Mostra la ListScreen per la rimozione revisori come indicato nel sequence diagram
+     */
+    private void mostraListScreenRimozioneRevisore(int idConferenza) {
+        try {
+            // Crea e mostra la ListScreen per la funzione "Rimuovi revisore"
+            com.cms.users.Commons.ListScreen listScreen = 
+                new com.cms.users.Commons.ListScreen(
+                    com.cms.users.Commons.ListScreen.UserRole.CHAIR,
+                    com.cms.users.Commons.ListScreen.ChairFunction.REMOVE_REVIEWER
+                );
+            
+            // Imposta che ci sono dati da visualizzare
+            listScreen.setHasData(true);
+            
+            // Mostra la schermata
+            listScreen.setVisible(true);
+            
+            System.out.println("ListScreen per rimozione revisore aperta per conferenza ID: " + idConferenza);
+            
+        } catch (Exception e) {
+            System.err.println("Errore durante l'apertura della ListScreen: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }
