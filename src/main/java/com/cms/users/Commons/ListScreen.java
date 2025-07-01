@@ -1415,6 +1415,12 @@ public class ListScreen extends JFrame {
         updateDisplay();
     }
     
+    public void setSubmissionData(List<SubmissionData> submissionData) {
+        this.submissionData = submissionData != null ? submissionData : new ArrayList<>();
+        setHasData(!this.submissionData.isEmpty());
+    }
+
+
     /**
      * Imposta i dati degli articoli del revisore da una lista di ArticoloE
      * @param articoliAssegnati Lista degli articoli assegnati al revisore
