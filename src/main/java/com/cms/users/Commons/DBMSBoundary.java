@@ -1681,12 +1681,80 @@ public class DBMSBoundary {
     }
     
     
-    public Object getReviewStatus(int idArticolo, int idUtente) {
-        return null;
+    public Object getReviewStatus(int idArticolo) {
+        try {
+            Connection conn = getConnection();
+            if (conn == null) return false;
+            
+            String query = "SELECT COUNT(*) as count FROM revisiona WHERE idArticolo = ?";
+            PreparedStatement stat = conn.prepareStatement(query);
+            stat.setInt(1, idArticolo);
+            
+            ResultSet result = stat.executeQuery();
+            
+            boolean hasReviews = false;
+            if (result.next()) {
+                hasReviews = result.getInt("count") > 0;
+            }
+            
+            result.close();
+            stat.close();
+            conn.close();
+            
+            return hasReviews;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
     
-    public Object getInfoReview(int idArticolo, int idUtente) {
-        return null;
+    public Object getInfoReview(int idArticolo) {
+        try {
+            Connection conn = getConnection();
+            if (conn == null) return null;
+            
+            String query = "SELECT r.id as revisionId, u.username as reviewerName, " +
+                          "r.commentiPerAutori as comment, " +
+                          "CASE " +
+                          "  WHEN r.valutazione IS NOT NULL THEN 'Completata' " +
+                          "  WHEN r.commentiPerAutori IS NOT NULL THEN 'In corso' " +
+                          "  ELSE 'Da iniziare' " +
+                          "END as status " +
+                          "FROM revisiona r " +
+                          "INNER JOIN utenti u ON r.idRevisore = u.id " +
+                          "WHERE r.idArticolo = ?";
+            
+            PreparedStatement stat = conn.prepareStatement(query);
+            stat.setInt(1, idArticolo);
+            
+            ResultSet result = stat.executeQuery();
+            
+            ArrayList<Object> revisions = new ArrayList<>();
+            
+            while (result.next()) {
+                String revisionId = "REV" + result.getInt("revisionId");
+                String reviewerName = result.getString("reviewerName");
+                String comment = result.getString("comment");
+                if (comment == null) comment = "Nessun commento disponibile";
+                String status = result.getString("status");
+                
+                // Creo un array di stringhe invece di un oggetto RevisionData
+                // per evitare dipendenze circolari
+                String[] revisionData = {revisionId, reviewerName, comment, status};
+                revisions.add(revisionData);
+            }
+            
+            result.close();
+            stat.close();
+            conn.close();
+            
+            return revisions;
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public LinkedList<UtenteE> getInformazioniAutoriRevisioneFinalePassata(int idConferenza)
