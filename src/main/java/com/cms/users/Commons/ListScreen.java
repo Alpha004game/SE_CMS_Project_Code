@@ -5,7 +5,10 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+
+import com.cms.users.Entity.ArticoloE;
 
 /**
  * <<boundary>>
@@ -1413,11 +1416,39 @@ public class ListScreen extends JFrame {
     }
     
     /**
-     * Imposta i dati delle sottomissioni (usato per caricare dati dinamici)
+     * Imposta i dati degli articoli del revisore da una lista di ArticoloE
+     * @param articoliAssegnati Lista degli articoli assegnati al revisore
      */
-    public void setSubmissionData(List<SubmissionData> submissionData) {
-        this.submissionData = submissionData != null ? submissionData : new ArrayList<>();
-        setHasData(!this.submissionData.isEmpty());
+    public void setRevisoreArticleDataFromArticoli(LinkedList<ArticoloE> articoliAssegnati) {
+        System.out.println("DEBUG ListScreen: === INIZIO setRevisoreArticleDataFromArticoli ===");
+        System.out.println("DEBUG ListScreen: Ricevuti " + articoliAssegnati.size() + " articoli");
+        
+        if (revisoreArticleData == null) {
+            revisoreArticleData = new ArrayList<>();
+        }
+        
+        // Pulisce i dati esistenti
+        revisoreArticleData.clear();
+        
+        // Converte gli ArticoloE in RevisoreArticleData
+        for (ArticoloE articolo : articoliAssegnati) {
+            RevisoreArticleData data = new RevisoreArticleData(
+                String.valueOf(articolo.getId()),
+                articolo.getTitolo(),
+                articolo.getStato() != null ? articolo.getStato() : "Da revisionare"
+            );
+            revisoreArticleData.add(data);
+            
+            System.out.println("DEBUG ListScreen: Aggiunto articolo - ID: " + data.id + 
+                             ", Titolo: '" + data.title + "', Stato: '" + data.status + "'");
+        }
+        
+        // Aggiorna lo stato dei dati e la visualizzazione
+        this.hasData = !revisoreArticleData.isEmpty();
+        updateDisplay();
+        
+        System.out.println("DEBUG ListScreen: Impostati " + revisoreArticleData.size() + " articoli per il revisore");
+        System.out.println("DEBUG ListScreen: === FINE setRevisoreArticleDataFromArticoli ===");
     }
     
     /**
