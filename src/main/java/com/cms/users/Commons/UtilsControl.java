@@ -34,7 +34,7 @@ public class UtilsControl {
         try
         {
             String email="cagl.cmsids@gmail.com";
-            String password="zxtw wgme krfm lbqp";
+            String password="";
 
             Properties p = new Properties();
             p.put("mail.smtp.auth", "true");
