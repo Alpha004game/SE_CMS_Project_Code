@@ -26,9 +26,9 @@ import com.cms.users.Entity.UtenteE;
 public class DBMSBoundary {
     
     // Constructor
-    private final String DB_URL = "jdbc:mariadb://cicciosworld.duckdns.org:3306/CMS";
+    private final String DB_URL = "jdbc:mariadb://localhost:3306/CMS";
     private final String DB_USER = "ids";
-    private final String DB_PASSWORD = "IngegneriaDelSoftware";
+    private final String DB_PASSWORD = "";
     
     // Static variable to track current article being reviewed
     private static int currentArticleId = -1;
